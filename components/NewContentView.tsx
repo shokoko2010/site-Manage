@@ -2,17 +2,17 @@ import React, { useState, useEffect, useContext, useRef, useCallback } from 'rea
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, NewContentViewProps } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, NewContentViewProps, CampaignGenerationResult } from '../types';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon } from '../constants';
 import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
 import InlineAiMenu from './InlineAiMenu';
 
 type SelectionInfo = { text: string; top: number; left: number; field: 'body' | 'longDescription' | 'shortDescription'; };
-type WizardStep = 'brief' | 'generating' | 'editor' | 'strategy_result';
+type WizardStep = 'brief' | 'generating' | 'editor' | 'campaign_result';
 
 
 // Standalone Toolkit Components defined outside the main component to prevent closure issues and bugs
@@ -152,14 +152,14 @@ const InternalLinkerTool = ({ article, suggestions, onLinkApplied }: { article: 
 };
 
 // Main Component
-const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent, newContentType, onUpdateComplete, initialTitle }) => {
+const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onCampaignGenerated, sites, showNotification, initialContent, newContentType, onUpdateComplete, initialTitle }) => {
     const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [wizardStep, setWizardStep] = useState<WizardStep>('brief');
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [generatedResult, setGeneratedResult] = useState<GeneratedContent | null>(null);
-    const [generatedStrategy, setGeneratedStrategy] = useState<ArticleContent[] | null>(null);
+    const [generatedCampaign, setGeneratedCampaign] = useState<CampaignGenerationResult | null>(null);
 
     // Form states
     const [activeTab, setActiveTab] = useState<ContentType>(ContentType.Article);
@@ -168,7 +168,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [articleLength, setArticleLength] = useState<ArticleLength>(ArticleLength.Medium);
     const [productName, setProductName] = useState('');
     const [productFeatures, setProductFeatures] = useState('');
-    const [strategyTopic, setStrategyTopic] = useState('');
+    const [campaignTopic, setCampaignTopic] = useState('');
     const [numArticles, setNumArticles] = useState(4);
     const [tone, setTone] = useState<WritingTone>(WritingTone.Professional);
     const [language, setLanguage] = useState<Language>(Language.English); // Language of the content
@@ -322,8 +322,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                 await handleGenerateArticle();
             } else if (activeTab === ContentType.Product) {
                 await handleGenerateProduct();
-            } else if (activeTab === ContentType.Strategy) {
-                await handleGenerateStrategy();
+            } else if (activeTab === ContentType.Campaign) {
+                await handleGenerateCampaign();
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : t('errorUnknown');
@@ -353,12 +353,14 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setWizardStep('editor');
     };
     
-    const handleGenerateStrategy = async () => {
-        if (!strategyTopic || !selectedSiteId) throw new Error(t('errorAllFieldsRequired'));
-        const articles = await generateContentStrategy(strategyTopic, numArticles, language);
-        const scheduledArticles = articles.map((article) => ({ ...article, siteId: selectedSiteId, scheduledFor: undefined }));
-        setGeneratedStrategy(scheduledArticles);
-        setWizardStep('strategy_result');
+    const handleGenerateCampaign = async () => {
+        if (!campaignTopic || !selectedSiteId) throw new Error(t('errorAllFieldsRequired'));
+        const campaignResult = await generateContentCampaign(campaignTopic, numArticles, language);
+        // Assign site ID to all generated articles
+        const updatedPillar = { ...campaignResult.pillarPost, siteId: selectedSiteId };
+        const updatedClusters = campaignResult.clusterPosts.map(c => ({...c, siteId: selectedSiteId}));
+        setGeneratedCampaign({ pillarPost: updatedPillar, clusterPosts: updatedClusters });
+        setWizardStep('campaign_result');
     };
 
     const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
@@ -417,20 +419,28 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         }
     };
 
-    const handleSaveStrategy = () => {
-        if (generatedStrategy) {
-            onStrategyGenerated(generatedStrategy);
-            setGeneratedStrategy(null);
+    const handleSaveCampaign = () => {
+        if (generatedCampaign) {
+            onCampaignGenerated(generatedCampaign);
+            setGeneratedCampaign(null);
             setWizardStep('brief');
         }
     };
     
-    const handleStrategyTitleChange = (index: number, newTitle: string) => {
-        if (!generatedStrategy) return;
-        const updatedStrategy = [...generatedStrategy];
-        updatedStrategy[index].title = newTitle;
-        setGeneratedStrategy(updatedStrategy);
+    const handleCampaignArticleTitleChange = (type: 'pillar' | 'cluster', index: number, newTitle: string) => {
+        if (!generatedCampaign) return;
+        
+        const updatedCampaign = { ...generatedCampaign };
+        
+        if (type === 'pillar') {
+            updatedCampaign.pillarPost.title = newTitle;
+        } else {
+            updatedCampaign.clusterPosts[index].title = newTitle;
+        }
+        
+        setGeneratedCampaign(updatedCampaign);
     };
+
 
     const handleAiTextModify = async (instruction: string) => {
         if (!selection || !generatedResult) return;
@@ -515,7 +525,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     <div className="flex border-b border-gray-700 mb-6">
                         <TabButton id={ContentType.Article} label={t('article')} icon={<ArticleIcon />} />
                         <TabButton id={ContentType.Product} label={t('product')} icon={<ProductIcon />} />
-                        <TabButton id={ContentType.Strategy} label={t('contentStrategy')} icon={<StrategyIcon />} />
+                        <TabButton id={ContentType.Campaign} label={t('campaign')} icon={<CampaignIcon />} />
                     </div>
                     <div className="space-y-6 mb-8">
                     {activeTab === ContentType.Article && (
@@ -551,16 +561,16 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                             {commonFields}
                         </div>
                     )}
-                    {activeTab === ContentType.Strategy && (
+                    {activeTab === ContentType.Campaign && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {contextSelector}
                             <div className="md:col-span-2">
-                                <label htmlFor="strategy-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('mainTopic')}</label>
-                                <input type="text" id="strategy-topic" value={strategyTopic} onChange={e => setStrategyTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('mainTopicPlaceholder')} />
+                                <label htmlFor="campaign-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('mainTopic')}</label>
+                                <input type="text" id="campaign-topic" value={campaignTopic} onChange={e => setCampaignTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('mainTopicPlaceholder')} />
                             </div>
                             <div>
                                 <label htmlFor="num-articles" className="block text-sm font-medium text-gray-300 mb-1">{t('numArticles')}</label>
-                                <input type="number" id="num-articles" value={numArticles} min="1" max="30" onChange={e => setNumArticles(parseInt(e.target.value, 10))} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <input type="number" id="num-articles" value={numArticles} min="1" max="10" onChange={e => setNumArticles(parseInt(e.target.value, 10))} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                             </div>
                             {commonFields}
                         </div>
@@ -568,7 +578,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     </div>
                     <button type="submit" disabled={isLoading} className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                         <SparklesIcon />
-                        <span className="ms-2">{activeTab === ContentType.Strategy ? t('generateStrategy') : t('generateContent')}</span>
+                        <span className="ms-2">{activeTab === ContentType.Campaign ? t('generateCampaign') : t('generateContent')}</span>
                     </button>
                     {error && <p className="text-red-400 mt-4 text-sm text-center">{error}</p>}
                 </form>
@@ -656,11 +666,11 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     <div className="lg:col-span-1 bg-gray-800 rounded-xl border border-gray-700/50 p-4 overflow-y-auto">
                         <h3 className="text-lg font-bold text-white mb-4">{t('aiToolkit')}</h3>
                         <div className="space-y-4">
-                           <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}}>
-                                <RefineTool article={generatedResult as ArticleContent} contentLanguage={language} showNotification={showNotification} onRefined={setGeneratedResult} />
-                           </AIToolkitSection>
                             {generatedResult.type === ContentType.Article && (
                                 <>
+                                    <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}}>
+                                        <RefineTool article={generatedResult as ArticleContent} contentLanguage={language} showNotification={showNotification} onRefined={setGeneratedResult} />
+                                    </AIToolkitSection>
                                     <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}}>
                                         <ImageGeneratorTool article={generatedResult as ArticleContent} showNotification={showNotification} onImageChange={setGeneratedResult} />
                                     </AIToolkitSection>
@@ -693,35 +703,55 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         );
     };
 
-    const renderStrategyResultStep = () => {
-        if (!generatedStrategy) return null;
+    const renderCampaignResultStep = () => {
+        if (!generatedCampaign) return null;
 
         return (
             <div className="max-w-4xl mx-auto p-8">
                 <header className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-white">{t('generatedStrategy')}</h1>
-                    <p className="text-gray-400 mt-1">{t('reviewStrategyHint')}</p>
+                    <h1 className="text-3xl font-bold text-white">{t('generatedCampaign')}</h1>
+                    <p className="text-gray-400 mt-1">{t('reviewCampaignHint')}</p>
                 </header>
                 <div className="bg-gray-800 rounded-lg p-6 animate-fade-in border border-gray-700/50">
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto p-2">
-                        {generatedStrategy.map((article, index) => (
-                            <div key={article.id} className="flex items-center gap-4">
-                                <span className="text-indigo-400 font-bold">{index + 1}.</span>
-                                <input 
-                                    type="text"
-                                    value={article.title}
-                                    onChange={e => handleStrategyTitleChange(index, e.target.value)}
-                                    className="text-base font-medium w-full bg-gray-700 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto p-2">
+                        {/* Pillar Post */}
+                        <div className="bg-gray-700/50 p-4 rounded-lg border-l-4 border-indigo-400">
+                             <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-lg font-bold text-white">Pillar Post</h4>
+                                <span className="text-xs bg-indigo-600/50 text-indigo-300 font-semibold py-1 px-2 rounded-full">Pillar</span>
+                             </div>
+                             <input 
+                                type="text"
+                                value={generatedCampaign.pillarPost.title}
+                                onChange={e => handleCampaignArticleTitleChange('pillar', 0, e.target.value)}
+                                className="text-base font-medium w-full bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                        </div>
+                        
+                        {/* Cluster Posts */}
+                        <div>
+                             <h4 className="text-lg font-bold text-white mb-2 mt-6">Cluster Posts</h4>
+                             <div className="space-y-3">
+                                {generatedCampaign.clusterPosts.map((article, index) => (
+                                    <div key={article.id} className="flex items-center gap-4">
+                                        <span className="text-gray-400 font-bold">{index + 1}.</span>
+                                        <input 
+                                            type="text"
+                                            value={article.title}
+                                            onChange={e => handleCampaignArticleTitleChange('cluster', index, e.target.value)}
+                                            className="text-base font-medium w-full bg-gray-700 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        </div>
                     </div>
                     <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
                         <button onClick={() => setWizardStep('brief')} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                             {t('discard')}
                         </button>
-                        <button onClick={handleSaveStrategy} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center">
-                            <LibraryIcon /> <span className="ms-2">{t('saveStrategyToLibrary')}</span>
+                        <button onClick={handleSaveCampaign} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center">
+                            <LibraryIcon /> <span className="ms-2">{t('saveCampaignToLibrary')}</span>
                         </button>
                     </div>
                 </div>
@@ -734,7 +764,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             {wizardStep === 'brief' && renderBriefStep()}
             {wizardStep === 'generating' && renderGeneratingStep()}
             {wizardStep === 'editor' && renderEditorStep()}
-            {wizardStep === 'strategy_result' && renderStrategyResultStep()}
+            {wizardStep === 'campaign_result' && renderCampaignResultStep()}
 
             {isPublishModalOpen && generatedResult && (
                 <PublishModal

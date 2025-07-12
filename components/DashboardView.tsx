@@ -4,7 +4,7 @@ import SiteCard from './SiteCard';
 import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
 import AddSiteModal from './AddSiteModal';
-import { PlusCircleIcon, StrategyIcon, ArticleIcon, ClockIcon, ChartPieIcon, EyeIcon, ChatBubbleLeftIcon, ArrowUpRightIcon, ProductIcon } from '../constants';
+import { PlusCircleIcon, CampaignIcon, ArticleIcon, ClockIcon, ChartPieIcon, EyeIcon, ChatBubbleLeftIcon, ArrowUpRightIcon, ProductIcon } from '../constants';
 import IdeaGeneratorModal from './IdeaGeneratorModal';
 
 const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite, onNavigateToNewContent, recentActivity }) => {
@@ -31,7 +31,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
   const ActivityItem = ({ item }: {item: GeneratedContent}) => (
     <div className="flex items-center space-x-4 rtl:space-x-reverse p-3 hover:bg-gray-700/50 rounded-lg">
       <div className="flex-shrink-0 bg-gray-700 p-2 rounded-lg">
-        {item.type === ContentType.Article ? <ArticleIcon /> : <StrategyIcon />}
+        {item.type === ContentType.Article ? <ArticleIcon /> : <CampaignIcon />}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white truncate">{item.title}</p>
@@ -68,7 +68,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <QuickActionButton title={t('article')} icon={<ArticleIcon />} onClick={() => onNavigateToNewContent(ContentType.Article)} />
                     <QuickActionButton title={t('product')} icon={<ProductIcon />} onClick={() => onNavigateToNewContent(ContentType.Product)} />
-                    <QuickActionButton title={t('contentStrategy')} icon={<StrategyIcon />} onClick={() => onNavigateToNewContent(ContentType.Strategy)} />
+                    <QuickActionButton title={t('campaign')} icon={<CampaignIcon />} onClick={() => onNavigateToNewContent(ContentType.Campaign)} />
                 </div>
             </section>
             

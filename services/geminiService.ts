@@ -5,7 +5,7 @@
 
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion, GeneratedIdea, SitePost } from '../types';
+import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion, GeneratedIdea, SitePost, CampaignGenerationResult } from '../types';
 
 const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
 const BRAND_VOICE_STORAGE_KEY = 'brand_voice';
@@ -49,10 +49,18 @@ const productSchema = {
     required: ["title", "longDescription", "shortDescription"],
 };
 
-const contentStrategySchema = {
-    type: Type.ARRAY,
-    items: articleSchema
+const contentCampaignSchema = {
+    type: Type.OBJECT,
+    properties: {
+        pillarPost: articleSchema,
+        clusterPosts: {
+            type: Type.ARRAY,
+            items: articleSchema
+        }
+    },
+    required: ["pillarPost", "clusterPosts"]
 };
+
 
 const seoAnalysisSchema = {
     type: Type.OBJECT,
@@ -401,25 +409,40 @@ export const generateFeaturedImage = async (prompt: string): Promise<string[]> =
     }
 };
 
-export const generateContentStrategy = async (
+export const generateContentCampaign = async (
     topic: string,
     numArticles: number,
     language: Language
-): Promise<ArticleContent[]> => {
+): Promise<CampaignGenerationResult> => {
     const ai = getAiClient();
     if (!ai) throw new Error(MISSING_KEY_ERROR);
     const brandVoice = localStorage.getItem(BRAND_VOICE_STORAGE_KEY) || '';
     
-    const systemInstruction = `You are an expert content strategist and SEO writer. Your task is to generate a complete content plan for a given topic. You must generate a JSON array containing the specified number of full, ready-to-publish articles. Each article object in the array must conform to the provided schema.`;
+    const systemInstruction = `You are an expert content strategist and SEO writer, specializing in the Pillar-Cluster model. Your task is to generate a complete, interconnected content campaign. You must generate one comprehensive 'pillar' post and a specified number of 'cluster' posts that link back to the pillar. The output MUST be a single JSON object that strictly conforms to the provided schema.`;
 
     const userPrompt = `
-        Generate a content strategy consisting of ${numArticles} full articles on the main topic of "${topic}".
-        Each article should be unique, target a different sub-topic or keyword, and be engaging for readers.
-        The output MUST be a single, valid JSON array of article objects. Do not include any text outside of the JSON array. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
-        Each object in the array must strictly adhere to this schema: { title, metaDescription, body }.
-        The language for all articles must be ${language}.
-        ${brandVoice ? `Adhere to this Brand Voice Guideline for all articles: "${brandVoice}"` : ''}
-        The body of each article must be formatted in markdown and be well-structured with an introduction, H2 subheadings, and a conclusion.
+        Generate a complete content campaign based on the Pillar-Cluster model.
+        The campaign should center around the main topic: "${topic}".
+        It must consist of exactly ONE Pillar Post and ${numArticles} Cluster Posts.
+
+        **Pillar Post Requirements:**
+        - It should be a comprehensive, long-form article covering the main topic broadly.
+        - It should serve as the central hub for this topic.
+
+        **Cluster Posts Requirements:**
+        - Each cluster post must dive deep into a specific sub-topic related to the main topic.
+        - Each cluster post must be unique.
+        - CRITICAL: The body of each cluster post MUST naturally include a markdown link back to the Pillar Post. The anchor text for this link should be the main topic itself or a very close variant. Use "#" as a placeholder for the URL, for example: "[main topic text](#)".
+
+        **General Requirements:**
+        - Language for all articles: ${language}.
+        - ${brandVoice ? `Adhere to this Brand Voice Guideline for all articles: "${brandVoice}"` : ''}
+        - The body of every article must be well-structured in markdown with an introduction, multiple H2 (##) subheadings, and a conclusion.
+
+        **Output Format:**
+        The output MUST be a single, valid JSON object. Do not include any text, comments, or explanations outside this object. All string values must be properly escaped. The object must contain two keys:
+        1. "pillarPost": An object for the main article, conforming to the article schema.
+        2. "clusterPosts": A JSON array containing exactly ${numArticles} article objects for the cluster posts.
     `;
 
     try {
@@ -429,40 +452,49 @@ export const generateContentStrategy = async (
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
-                responseSchema: contentStrategySchema,
+                responseSchema: contentCampaignSchema,
             },
         });
 
         const jsonText = processApiResponse(response);
-        const parsedArticles: any[] = JSON.parse(jsonText);
+        const parsedCampaign = JSON.parse(jsonText);
 
-        if (!Array.isArray(parsedArticles)) {
-             throw new Error("AI response was not a JSON array.");
+        if (!parsedCampaign.pillarPost || !Array.isArray(parsedCampaign.clusterPosts)) {
+             throw new Error("AI response was not in the expected campaign format.");
         }
+        
+        const pillarPost: ArticleContent = {
+            id: `art_pillar_${new Date().getTime()}`,
+            type: ContentType.Article,
+            ...parsedCampaign.pillarPost,
+            status: 'draft',
+            createdAt: new Date(),
+            language: language,
+        };
 
-        return parsedArticles.map((parsed, index) => {
+        const clusterPosts: ArticleContent[] = parsedCampaign.clusterPosts.map((parsed: any, index: number) => {
             if (!parsed.title || !parsed.metaDescription || !parsed.body) {
-                console.warn(`Invalid JSON structure for article ${index} in strategy. Skipping.`, parsed);
+                console.warn(`Invalid JSON structure for cluster article ${index}. Skipping.`, parsed);
                 return null;
             }
             return {
-                id: `art_${new Date().getTime()}_${index}`,
+                id: `art_cluster_${new Date().getTime()}_${index}`,
                 type: ContentType.Article,
-                title: parsed.title,
-                metaDescription: parsed.metaDescription,
-                body: parsed.body,
+                ...parsed,
                 status: 'draft',
                 createdAt: new Date(),
                 language: language,
             };
         }).filter((article): article is ArticleContent => article !== null);
 
+        return { pillarPost, clusterPosts };
+
     } catch (error) {
-        console.error("Error generating content strategy:", error);
-        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("not a JSON array"))) {
+        console.error("Error generating content campaign:", error);
+        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("was not in the expected campaign format"))) {
             throw error;
         }
-        throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format or the service is unavailable.");
+        throw new Error("Failed to generate content campaign from AI. The model may have returned an invalid format or the service is unavailable.");
     }
 };
 

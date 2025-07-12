@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
-import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType } from './types';
+import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult } from './types';
 import Sidebar from './components/Sidebar';
 import { getSitesFromStorage, saveSitesToStorage } from './services/wordpressService';
 import Notification from './components/Notification';
@@ -85,9 +85,10 @@ export default function App() {
     showNotification({ message: t('contentSaved', { title: content.title }), type: 'success' });
   }, [t]);
   
-  const addMultipleToLibrary = useCallback((contents: ArticleContent[]) => {
-    setContentLibrary(prevLibrary => [...contents, ...prevLibrary]);
-    showNotification({ message: t('strategyGenerated'), type: 'success' });
+  const handleCampaignGenerated = useCallback((campaignResult: CampaignGenerationResult) => {
+    const allNewArticles = [campaignResult.pillarPost, ...campaignResult.clusterPosts];
+    setContentLibrary(prevLibrary => [...allNewArticles, ...prevLibrary]);
+    showNotification({ message: t('campaignGenerated'), type: 'success' });
   }, [t]);
 
   const removeFromLibrary = (contentId: string) => {
@@ -178,7 +179,7 @@ export default function App() {
             <Suspense fallback={fallback}>
                 <NewContentView 
                     onContentGenerated={addToLibrary} 
-                    onStrategyGenerated={addMultipleToLibrary} 
+                    onCampaignGenerated={handleCampaignGenerated} 
                     sites={sites} 
                     showNotification={showNotification} 
                     initialContent={editingContent}

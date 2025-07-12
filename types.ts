@@ -25,7 +25,7 @@ export enum View {
 export enum ContentType {
   Article = 'ARTICLE',
   Product = 'PRODUCT',
-  Strategy = 'STRATEGY',
+  Campaign = 'CAMPAIGN',
 }
 
 export interface InternalLinkSuggestion {
@@ -65,6 +65,11 @@ export interface ProductContent {
 }
 
 export type GeneratedContent = ArticleContent | ProductContent;
+
+export interface CampaignGenerationResult {
+    pillarPost: ArticleContent;
+    clusterPosts: ArticleContent[];
+}
 
 export enum WritingTone {
   Professional = 'Professional',
@@ -156,7 +161,7 @@ export interface DashboardViewProps {
 
 export interface NewContentViewProps {
     onContentGenerated: (content: GeneratedContent) => void;
-    onStrategyGenerated: (contents: ArticleContent[]) => void;
+    onCampaignGenerated: (campaignResult: CampaignGenerationResult) => void;
     sites: WordPressSite[];
     showNotification: (notification: Notification) => void;
     initialContent?: ArticleContent | null;

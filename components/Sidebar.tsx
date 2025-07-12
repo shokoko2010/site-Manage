@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { View, LanguageContextType, ContentType } from '../types';
-import { AppTitle, DashboardIcon, PlusCircleIcon, LibraryIcon, SettingsIcon, CalendarIcon, LanguageIcon, ArticleIcon, StrategyIcon, ProductIcon } from '../constants';
+import { AppTitle, DashboardIcon, PlusCircleIcon, LibraryIcon, SettingsIcon, CalendarIcon, LanguageIcon, ArticleIcon, CampaignIcon, ProductIcon } from '../constants';
 import { LanguageContext } from '../App';
 
 interface SidebarProps {
@@ -70,7 +70,7 @@ const QuickActionButton = ({ onAction }: { onAction: (type: ContentType) => void
                  <div className="absolute bottom-full mb-2 w-full bg-gray-700 rounded-lg shadow-2xl z-10 p-1.5 border border-gray-600 animate-fade-in-fast">
                     <button onClick={() => handleSelect(ContentType.Article)} className="flex items-center w-full p-2 text-sm text-gray-200 hover:bg-gray-600 rounded-md"><ArticleIcon className="me-2"/>{t('article')}</button>
                     <button onClick={() => handleSelect(ContentType.Product)} className="flex items-center w-full p-2 text-sm text-gray-200 hover:bg-gray-600 rounded-md"><ProductIcon className="me-2"/>{t('product')}</button>
-                    <button onClick={() => handleSelect(ContentType.Strategy)} className="flex items-center w-full p-2 text-sm text-gray-200 hover:bg-gray-600 rounded-md"><StrategyIcon className="me-2"/>{t('contentStrategy')}</button>
+                    <button onClick={() => handleSelect(ContentType.Campaign)} className="flex items-center w-full p-2 text-sm text-gray-200 hover:bg-gray-600 rounded-md"><CampaignIcon className="me-2"/>{t('campaign')}</button>
                 </div>
             )}
         </div>
