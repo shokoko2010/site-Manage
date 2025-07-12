@@ -137,6 +137,9 @@ const InternalLinkerTool = ({ article, suggestions, onLinkApplied }: { article: 
                             textToLink: `<strong>“${suggestion.textToLink}”</strong>`,
                             postTitle: `<em>“${suggestion.postTitle}”</em>`
                         }).split(/<strong>(.*?)<\/strong>|<em>(.*?)<\/em>/g).map((part, i) => {
+                            if (part === undefined) {
+                                return null;
+                            }
                             if (i % 3 === 1) return <strong key={i} className="font-semibold text-white">{part.replace(/“|”/g, '')}</strong>;
                             if (i % 3 === 2) return <em key={i} className="text-sky-300 not-italic">{part.replace(/“|”/g, '')}</em>;
                             return <span key={i}>{part}</span>;
