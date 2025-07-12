@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
@@ -210,6 +211,12 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     
     const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
     const selectedSite = sites.find(s => s.id === selectedSiteId);
+
+    const wordCount = useMemo(() => {
+        if (generatedResult?.type !== ContentType.Article) return 0;
+        const body = (generatedResult as ArticleContent).body;
+        return body ? body.trim().split(/\s+/).filter(Boolean).length : 0;
+    }, [generatedResult]);
 
     // Set initial state from props (for new content or editing existing content)
     useEffect(() => {
@@ -581,12 +588,6 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                 editorRef.current.executeCommand(command, command.replace('title',''));
             }
         };
-
-        const wordCount = useMemo(() => {
-            if (generatedResult.type !== ContentType.Article) return 0;
-            const body = (generatedResult as ArticleContent).body;
-            return body ? body.trim().split(/\s+/).filter(Boolean).length : 0;
-        }, [generatedResult]);
 
         return(
             <div className="fixed inset-0 bg-gray-900 z-40 flex flex-col animate-fade-in-fast">
