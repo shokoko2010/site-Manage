@@ -1,6 +1,8 @@
 
 
 
+
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
@@ -132,6 +134,8 @@ For context, here is some information about the website this article will be pub
   try {
     const config: any = {
         systemInstruction,
+        maxOutputTokens: 8192, // Set a higher token limit for long articles
+        thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
     };
     
     if (useGoogleSearch) {
@@ -284,6 +288,8 @@ export const generateContentStrategy = async (
                 systemInstruction,
                 responseMimeType: "application/json",
                 responseSchema: contentStrategySchema,
+                maxOutputTokens: 8192, // Set a higher token limit for multiple articles
+                thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
             },
         });
 
@@ -361,6 +367,8 @@ export const refineArticle = async (
             systemInstruction,
             responseMimeType: "application/json",
             responseSchema: articleSchema,
+            maxOutputTokens: 8192, // Set a higher token limit for refined articles
+            thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
         },
     });
 
