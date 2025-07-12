@@ -141,8 +141,7 @@ export default function App() {
   };
 
   const navigateTo = (view: View) => {
-      // Clean up states when navigating away from a specific view
-      if (currentView === View.NewContent) {
+      if (view !== View.NewContent && currentView === View.NewContent) {
         setEditingContent(null);
         setNewContentType(undefined);
         setInitialTitleForNewContent(undefined);
@@ -159,7 +158,6 @@ export default function App() {
   };
   
   const handleEditorExit = () => {
-    // Logic for where to go after exiting the editor
     const destination = activeSite ? View.SiteDetail : View.ContentLibrary;
     navigateTo(destination);
   };
@@ -169,7 +167,6 @@ export default function App() {
     const fallback = <div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>;
     const sortedActivity = [...contentLibrary].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    // The NewContentView is rendered outside the switch to allow it to overlay the entire screen.
     if (currentView === View.NewContent) {
         return (
              <Suspense fallback={fallback}>
