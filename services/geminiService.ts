@@ -326,10 +326,15 @@ export const refineArticle = async (
   
   const systemInstruction = `You are an expert SEO content editor and writer. Your goal is to intelligently modify and improve an existing article based on a user's request, while maintaining the overall structure and quality. Always return the complete, updated article in the specified JSON format.`;
 
-  const userPrompt = `
-    Please refine the following article based on the user's instruction.
+  const refinementInstruction = instruction.trim()
+    ? `**User's Instruction:** "${instruction}"`
+    : `**User's Instruction:** The user did not provide a specific instruction. Please perform a general refinement of the article. Improve its clarity, flow, SEO, and overall quality. You can fix typos, improve sentence structure, and make the content more engaging.`;
 
-    **User's Instruction:** "${instruction}"
+
+  const userPrompt = `
+    Please refine the following article based on the provided instruction.
+
+    ${refinementInstruction}
 
     **Current Article:**
     - Title: "${currentArticle.title}"
@@ -340,7 +345,7 @@ export const refineArticle = async (
     ---
 
     **Your Task:**
-    Apply the user's instruction to the article. You might need to rewrite sections, add new content, remove content, or change the tone.
+    Apply the instruction to the article. You might need to rewrite sections, add new content, remove content, or change the tone.
     The output MUST be a single valid JSON object that strictly matches the provided schema, containing the full, updated content for the article.
     The language of the article must remain ${language}.
 

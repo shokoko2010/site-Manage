@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useContext } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
@@ -21,7 +22,7 @@ interface NewContentViewProps {
 }
 
 const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent }) => {
-    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [activeTab, setActiveTab] = useState<ContentType>(ContentType.Article);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -259,7 +260,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     };
 
      const handleRefineArticle = async () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article || !refinementPrompt) return;
+        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
         
         setIsRefining(true);
         showNotification({ message: t('refiningArticle'), type: 'info' });
@@ -494,12 +495,12 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                          </div>
                          <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">{t('articleBody')}</label>
-                            <div data-color-mode="dark">
+                            <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
                                 <MDEditor
                                     value={generatedResult.body}
                                     onChange={(val) => handleResultChange('body', val || '')}
                                     height={500}
-                                    preview="split"
+                                    preview="live"
                                     previewOptions={{
                                         remarkPlugins: [remarkGfm],
                                         rehypePlugins: [rehypeSanitize],
@@ -523,7 +524,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                                 />
                                 <button 
                                     onClick={handleRefineArticle} 
-                                    disabled={isRefining || !refinementPrompt.trim()}
+                                    disabled={isRefining}
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors disabled:bg-blue-800 disabled:cursor-not-allowed"
                                 >
                                     {isRefining ? <Spinner size="sm"/> : t('refineArticle')}
@@ -541,12 +542,12 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
-                             <div data-color-mode="dark">
+                             <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
                                 <MDEditor
                                     value={(generatedResult as ProductContent).longDescription}
                                     onChange={(val) => handleResultChange('longDescription', val || '')}
                                     height={400}
-                                    preview="split"
+                                    preview="live"
                                     previewOptions={{
                                         remarkPlugins: [remarkGfm],
                                         rehypePlugins: [rehypeSanitize],
