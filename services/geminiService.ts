@@ -1,8 +1,4 @@
 
-
-
-
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
@@ -74,6 +70,8 @@ const extractJsonFromText = (text: string): any => {
             return JSON.parse(match[1]);
         } catch (e) {
              console.error("Failed to parse extracted JSON block:", e);
+             console.error("Original JSON block from AI:", match[1]);
+             throw new Error("AI returned a JSON block that could not be parsed.");
         }
     }
     // Fallback for when the model doesn't use a markdown block
@@ -134,7 +132,7 @@ For context, here is some information about the website this article will be pub
   try {
     const config: any = {
         systemInstruction,
-        maxOutputTokens: 8192, // Set a higher token limit for long articles
+        maxOutputTokens: 16384, // Increased token limit for very long articles
         thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
     };
     
@@ -207,6 +205,8 @@ export const generateProduct = async (
         config: {
             responseMimeType: "application/json",
             responseSchema: productSchema,
+            maxOutputTokens: 8192,
+            thinkingConfig: { thinkingBudget: 1024 },
         },
     });
 
@@ -288,8 +288,8 @@ export const generateContentStrategy = async (
                 systemInstruction,
                 responseMimeType: "application/json",
                 responseSchema: contentStrategySchema,
-                maxOutputTokens: 8192, // Set a higher token limit for multiple articles
-                thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
+                maxOutputTokens: 32768, // Increased significantly for multiple articles
+                thinkingConfig: { thinkingBudget: 4096 }, // Reserve tokens for thinking for strategy
             },
         });
 
@@ -367,7 +367,7 @@ export const refineArticle = async (
             systemInstruction,
             responseMimeType: "application/json",
             responseSchema: articleSchema,
-            maxOutputTokens: 8192, // Set a higher token limit for refined articles
+            maxOutputTokens: 16384, // Increased token limit for refined articles
             thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
         },
     });
