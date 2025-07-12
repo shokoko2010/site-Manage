@@ -1,12 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength } from '../types';
 
-// Lazily initialize the AI client to avoid app crash on startup if API key is missing.
-const getAiClient = () => {
-    // The constructor throws an error if the API key is not set.
-    // This will now be caught by the calling function's try...catch block.
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Lazily initializes the AI client.
+ * Returns null if the API key is missing, allowing for graceful error handling in the UI.
+ */
+const getAiClient = (): GoogleGenAI | null => {
+    if (!process.env.API_KEY) {
+        return null;
+    }
+    try {
+        return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    } catch (e) {
+        console.error("Error initializing GoogleGenAI:", e);
+        return null;
+    }
 };
+
+const MISSING_KEY_ERROR = "Gemini API Key is not configured. Please set the API_KEY environment variable in your deployment platform's settings.";
 
 const articleSchema = {
     type: Type.OBJECT,
@@ -61,6 +72,8 @@ export const generateArticle = async (
   useGoogleSearch: boolean,
   siteContext?: SiteContext
 ): Promise<ArticleContent> => {
+  const ai = getAiClient();
+  if (!ai) throw new Error(MISSING_KEY_ERROR);
   
   const systemInstruction = `You are an expert SEO content writer and a WordPress specialist. Your goal is to create high-quality, engaging, and well-structured articles that are optimized for search engines. Always follow the instructions precisely and return the content in the specified JSON format.`;
 
@@ -95,7 +108,6 @@ For context, here is some information about the website this article will be pub
   `;
     
   try {
-    const ai = getAiClient();
     const config: any = {
         systemInstruction,
     };
@@ -132,12 +144,10 @@ For context, here is some information about the website this article will be pub
     };
   } catch (error) {
     console.error("Error generating article:", error);
-    if (error instanceof Error) {
-        if (error.message.includes("could not be parsed as JSON") || error.message.includes("API_KEY")) {
-            throw error;
-        }
+    if (error instanceof Error && (error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
+        throw error;
     }
-    throw new Error("Failed to generate article content from AI. Please check the console for details.");
+    throw new Error("Failed to generate article from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
   }
 };
 
@@ -147,8 +157,9 @@ export const generateProduct = async (
   features: string, 
   language: Language
 ): Promise<ProductContent> => {
-  try {
     const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+
     const prompt = `
         Generate complete product page content for a WooCommerce store. The output MUST be a valid JSON object matching the provided schema.
 
@@ -160,6 +171,7 @@ export const generateProduct = async (
         Create compelling copy that persuades customers to buy. Use markdown for formatting in the descriptions.
     `;
 
+  try {
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
@@ -187,16 +199,15 @@ export const generateProduct = async (
     };
   } catch (error) {
     console.error("Error generating product content:", error);
-    if (error instanceof Error && error.message.includes("API_KEY")) {
-        throw error;
-    }
-    throw new Error("Failed to generate product content from AI. Please check the console for details.");
+    throw new Error("Failed to generate product content from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
   }
 };
 
 export const generateFeaturedImage = async (prompt: string): Promise<string[]> => {
+    const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+
     try {
-        const ai = getAiClient();
         const response = await ai.models.generateImages({
             model: 'imagen-3.0-generate-002',
             prompt: prompt,
@@ -215,10 +226,7 @@ export const generateFeaturedImage = async (prompt: string): Promise<string[]> =
 
     } catch (error) {
         console.error("Error generating featured image:", error);
-        if (error instanceof Error && error.message.includes("API_KEY")) {
-            throw error;
-        }
-        throw new Error("Failed to generate image from AI. Please try again.");
+        throw new Error("Failed to generate image from AI. The service may be temporarily unavailable or the prompt may have been rejected.");
     }
 };
 
@@ -227,6 +235,9 @@ export const generateContentStrategy = async (
     numArticles: number,
     language: Language
 ): Promise<ArticleContent[]> => {
+    const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+    
     const systemInstruction = `You are an expert content strategist and SEO writer. Your task is to generate a complete content plan for a given topic. You must generate a JSON array containing the specified number of full, ready-to-publish articles. Each article object in the array must conform to the provided schema.`;
 
     const userPrompt = `
@@ -239,7 +250,6 @@ export const generateContentStrategy = async (
     `;
 
     try {
-        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: userPrompt,
@@ -259,8 +269,7 @@ export const generateContentStrategy = async (
 
         return parsedArticles.map((parsed, index) => {
             if (!parsed.title || !parsed.metaDescription || !parsed.body) {
-                console.error(`Invalid JSON structure for article ${index}:`, parsed);
-                // Return a fallback or skip it
+                console.warn(`Invalid JSON structure for article ${index} in strategy. Skipping.`, parsed);
                 return null;
             }
             return {
@@ -276,9 +285,6 @@ export const generateContentStrategy = async (
 
     } catch (error) {
         console.error("Error generating content strategy:", error);
-        if (error instanceof Error && error.message.includes("API_KEY")) {
-            throw error;
-        }
-        throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format.");
+        throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format or the service is unavailable.");
     }
 };
