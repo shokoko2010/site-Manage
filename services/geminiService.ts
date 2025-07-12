@@ -62,57 +62,63 @@ const seoAnalysisSchema = {
     required: ["score", "suggestions"],
 };
 
+/**
+ * A robust JSON parser for LLM outputs. It extracts a JSON string from
+ * markdown blocks or raw text, cleans common syntax errors (like trailing
+ * commas), and then parses it.
+ * @param text The raw text output from the AI model.
+ * @returns The parsed JSON object.
+ * @throws An error if JSON cannot be found or parsed.
+ */
 const extractJsonFromText = (text: string): any => {
-    // 1. First, try to find a JSON object enclosed in ```json ... ```
+    let jsonString = text.trim();
+
+    // 1. Prioritize extracting from a markdown block, which is the expected format for search-enabled queries.
     const markdownJsonRegex = /```json\s*([\s\S]*?)\s*```/;
-    const markdownMatch = text.match(markdownJsonRegex);
+    const markdownMatch = jsonString.match(markdownJsonRegex);
 
     if (markdownMatch && markdownMatch[1]) {
-        try {
-            return JSON.parse(markdownMatch[1]);
-        } catch (e) {
-            console.warn("Could not parse JSON from markdown block, attempting to find JSON in the full response.", e);
-            // Fall through to the next method if parsing the markdown block fails
-        }
-    }
-
-    // 2. If no valid markdown block is found, find the largest possible JSON object/array.
-    // This is a fallback for when the AI doesn't use markdown blocks or the block is malformed.
-    const firstBrace = text.indexOf('{');
-    const firstBracket = text.indexOf('[');
-
-    let startIndex = -1;
-    
-    if (firstBrace === -1 && firstBracket === -1) {
-        console.error("Could not find start of JSON ('{' or '[') in the response:", text);
-        throw new Error("AI response does not appear to contain any JSON.");
-    }
-
-    // Determine if it's likely an object or an array that starts first
-    if (firstBrace !== -1 && (firstBrace < firstBracket || firstBracket === -1)) {
-        startIndex = firstBrace;
+        jsonString = markdownMatch[1];
     } else {
-        startIndex = firstBracket;
-    }
+        // 2. Fallback: If no markdown block is found, find the largest possible JSON object/array substring.
+        // This handles cases where the AI forgets the markdown wrapper.
+        const firstBrace = jsonString.indexOf('{');
+        const firstBracket = jsonString.indexOf('[');
+        
+        // If we can't find a start, there's no JSON.
+        if (firstBrace === -1 && firstBracket === -1) {
+             console.error("Could not find start of JSON ('{' or '[') in the response:", text);
+             throw new Error("AI response does not appear to contain any JSON data.");
+        }
 
-    const lastBrace = text.lastIndexOf('}');
-    const lastBracket = text.lastIndexOf(']');
-    const endIndex = Math.max(lastBrace, lastBracket);
+        const startIndex = Math.min(
+            firstBrace > -1 ? firstBrace : Infinity,
+            firstBracket > -1 ? firstBracket : Infinity
+        );
+        
+        const lastBrace = jsonString.lastIndexOf('}');
+        const lastBracket = jsonString.lastIndexOf(']');
+        const endIndex = Math.max(lastBrace, lastBracket);
 
-    if (endIndex === -1 || endIndex < startIndex) {
-        console.error("Could not find a complete JSON structure (e.g. missing closing '}' or ']') in response:", text);
-        throw new Error("AI response contains incomplete JSON.");
+        // If we can't find a valid end or it's before the start, the JSON is incomplete.
+        if (endIndex <= startIndex) {
+            console.error("Could not find a complete JSON structure in response:", text);
+            throw new Error("AI response contains an incomplete JSON structure.");
+        }
+
+        jsonString = jsonString.substring(startIndex, endIndex + 1);
     }
     
-    const jsonString = text.substring(startIndex, endIndex + 1);
-
     try {
-        return JSON.parse(jsonString);
-    } catch (e) {
-        console.error("Final attempt to parse extracted substring as JSON failed:", e);
-        console.error("Original text from AI:", text);
-        console.error("Substring that was extracted and failed to parse:", jsonString);
-        throw new Error("AI returned a response that could not be parsed as JSON.");
+        // 3. Clean the extracted string from common LLM-generated errors.
+        // The most frequent and safe-to-fix error is a trailing comma.
+        const cleanedString = jsonString.replace(/,(?=\s*?[}\]])/g, '');
+        return JSON.parse(cleanedString);
+    } catch (error) {
+        console.error("Failed to parse JSON even after cleaning.", { originalText: text, extractedString: jsonString, error });
+        // Include the specific parsing error message for better debugging.
+        const parseError = error instanceof Error ? error.message : "Unknown parsing error";
+        throw new Error(`AI returned a JSON block that could not be parsed. Error: ${parseError}`);
     }
 };
 
@@ -238,7 +244,14 @@ For context, here is some information about the website this article will be pub
     };
   } catch (error) {
     console.error("Error generating article:", error);
-    if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
+    if (error instanceof Error && (
+        error.message.includes("cut off") || 
+        error.message.includes("blocked") || 
+        error.message.includes("could not be parsed") || 
+        error.message.includes("missing required fields") ||
+        error.message.includes("incomplete") ||
+        error.message.includes("does not appear to contain")
+    )) {
         throw error;
     }
     throw new Error("Failed to generate article from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
