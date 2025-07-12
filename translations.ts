@@ -70,6 +70,11 @@ export const translations = {
     reviewStrategyHint: 'Review and edit the article titles below. The full content will be saved to your library.',
     discard: 'Discard & Start Over',
     saveStrategyToLibrary: 'Save Strategy to Library',
+    refineWithAI: 'Refine with AI',
+    refineWithAIHint: 'Provide instructions to improve or expand the current article.',
+    refinementPlaceholder: 'e.g., Add a section on future trends, make the tone more formal',
+    refineArticle: 'Refine Article',
+    refiningArticle: 'Refining the article with AI...',
     
     // Image Generator
     featuredImage: 'Featured Image',
@@ -241,6 +246,11 @@ export const translations = {
     reviewStrategyHint: 'راجع وعدّل عناوين المقالات أدناه. سيتم حفظ المحتوى الكامل في مكتبتك.',
     discard: 'تجاهل والبدء من جديد',
     saveStrategyToLibrary: 'حفظ الاستراتيجية في المكتبة',
+    refineWithAI: 'تحسين بواسطة الذكاء الاصطناعي',
+    refineWithAIHint: 'قدم تعليمات لتحسين أو توسيع المقال الحالي.',
+    refinementPlaceholder: 'مثال: أضف قسماً عن الاتجاهات المستقبلية، اجعل النبرة أكثر رسمية',
+    refineArticle: 'تحسين المقال',
+    refiningArticle: 'جاري تحسين المقال بالذكاء الاصطناعي...',
 
     // Image Generator
     featuredImage: 'الصورة البارزة',

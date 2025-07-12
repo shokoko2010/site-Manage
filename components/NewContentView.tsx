@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect, useContext } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo } from '../services/geminiService';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle } from '../services/geminiService';
 import Spinner from './common/Spinner';
 import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon } from '../constants';
 import { getSiteContext, publishContent } from '../services/wordpressService';
@@ -49,6 +51,10 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     // SEO Analysis states
     const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
     const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
+
+    // Refinement states
+    const [isRefining, setIsRefining] = useState(false);
+    const [refinementPrompt, setRefinementPrompt] = useState('');
     
     const selectedSite = sites.find(s => s.id === selectedSiteId);
 
@@ -67,14 +73,20 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             setGeneratedResult(initialContent);
             setSeoAnalysis(null);
             setGeneratedStrategy(null);
+            setRefinementPrompt('');
             
             if(initialContent.siteId) {
                 setSelectedSiteId(initialContent.siteId);
             }
+            // Pre-fill the "generate" form with the topic of the edited article
+            // This allows the user to easily regenerate a completely new article on the same topic if desired
             if (initialContent.type === ContentType.Article) {
                 setArticleTopic(initialContent.title);
                 setArticleKeywords('');
             }
+        } else {
+            // If there's no initial content, clear the result.
+            setGeneratedResult(null);
         }
     }, [initialContent]);
 
@@ -86,6 +98,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setGeneratedResult(null);
         setGeneratedStrategy(null);
         setSeoAnalysis(null);
+        setRefinementPrompt('');
 
         try {
             if (activeTab === ContentType.Article) {
@@ -141,6 +154,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     
     const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
         if (!generatedResult) return;
+        setSeoAnalysis(null); // Invalidate SEO analysis on manual change
         setGeneratedResult(prev => {
             if (!prev) return null;
             return { ...prev, [field]: value } as GeneratedContent;
@@ -193,9 +207,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
     const handleSaveToLibrary = () => {
         if (generatedResult) {
-            // Note: This currently creates a duplicate if editing. A more robust solution
-            // would involve an `onUpdateLibraryItem` prop and logic to differentiate.
-            // For now, focusing on the primary 'edit and publish' workflow.
+            // If editing, this will save a *new* copy. This is intended behavior for now,
+            // allowing users to create variations. A true "update" would require more state management.
             onContentGenerated(generatedResult);
             setGeneratedResult(null);
             // Reset forms
@@ -239,6 +252,30 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         const updatedStrategy = [...generatedStrategy];
         updatedStrategy[index].title = newTitle;
         setGeneratedStrategy(updatedStrategy);
+    };
+
+     const handleRefineArticle = async () => {
+        if (!generatedResult || generatedResult.type !== ContentType.Article || !refinementPrompt) return;
+        
+        setIsRefining(true);
+        showNotification({ message: t('refiningArticle'), type: 'info' });
+        
+        try {
+            const refinedData = await refineArticle(generatedResult, refinementPrompt, language);
+            setGeneratedResult(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    ...refinedData,
+                } as GeneratedContent;
+            });
+            setSeoAnalysis(null); // SEO analysis is now outdated.
+        } catch(err) {
+            const message = err instanceof Error ? err.message : t('errorUnknown');
+            showNotification({ message, type: 'error' });
+        } finally {
+            setIsRefining(false);
+        }
     };
 
     const renderForm = () => {
@@ -452,9 +489,44 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                             <textarea value={generatedResult.metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
                          </div>
                          <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Body (Markdown)</label>
-                            <textarea value={generatedResult.body} onChange={e => handleResultChange('body', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-96 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Body (Markdown Editor & Preview)</label>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-700 rounded-lg h-[40rem] max-h-[60vh]">
+                                <textarea 
+                                    value={generatedResult.body} 
+                                    onChange={e => handleResultChange('body', e.target.value)} 
+                                    className="text-base w-full bg-gray-700 p-3 rounded-l-md text-gray-200 leading-relaxed font-mono focus:ring-0 focus:outline-none resize-none"
+                                    spellCheck="false"
+                                />
+                                <div className="prose prose-invert prose-sm max-w-none bg-gray-900 p-3 rounded-r-md overflow-y-auto">
+                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                         {generatedResult.body || "Start typing to see a preview..."}
+                                     </ReactMarkdown>
+                                </div>
+                            </div>
                          </div>
+                         <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-blue-500/50">
+                            <h4 className="text-lg font-semibold text-gray-200 mb-2 flex items-center">
+                                <SparklesIcon /> <span className="ms-2">{t('refineWithAI')}</span>
+                            </h4>
+                            <p className="text-sm text-gray-400 mb-3">{t('refineWithAIHint')}</p>
+                            <div className="space-y-3">
+                                <input 
+                                    type="text"
+                                    value={refinementPrompt}
+                                    onChange={e => setRefinementPrompt(e.target.value)}
+                                    placeholder={t('refinementPlaceholder')}
+                                    className="w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    disabled={isRefining}
+                                />
+                                <button 
+                                    onClick={handleRefineArticle} 
+                                    disabled={isRefining || !refinementPrompt.trim()}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors disabled:bg-blue-800 disabled:cursor-not-allowed"
+                                >
+                                    {isRefining ? <Spinner size="sm"/> : t('refineArticle')}
+                                </button>
+                            </div>
+                        </div>
                          {renderImageGenerator()}
                          {renderSeoAnalyzer()}
                     </div>

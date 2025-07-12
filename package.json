@@ -14,7 +14,9 @@
     "@google/genai": "^0.11.0",
     "@fullcalendar/react": "6.1.11",
     "@fullcalendar/daygrid": "6.1.11",
-    "@fullcalendar/interaction": "6.1.11"
+    "@fullcalendar/interaction": "6.1.11",
+    "react-markdown": "9.0.1",
+    "remark-gfm": "4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

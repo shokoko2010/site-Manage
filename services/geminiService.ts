@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
@@ -311,6 +312,66 @@ export const generateContentStrategy = async (
         console.error("Error generating content strategy:", error);
         throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format or the service is unavailable.");
     }
+};
+
+export const refineArticle = async (
+  currentArticle: ArticleContent, 
+  instruction: string,
+  language: Language
+): Promise<Pick<ArticleContent, 'title' | 'body' | 'metaDescription'>> => {
+  const ai = getAiClient();
+  if (!ai) throw new Error(MISSING_KEY_ERROR);
+  
+  const systemInstruction = `You are an expert SEO content editor and writer. Your goal is to intelligently modify and improve an existing article based on a user's request, while maintaining the overall structure and quality. Always return the complete, updated article in the specified JSON format.`;
+
+  const userPrompt = `
+    Please refine the following article based on the user's instruction.
+
+    **User's Instruction:** "${instruction}"
+
+    **Current Article:**
+    - Title: "${currentArticle.title}"
+    - Meta Description: "${currentArticle.metaDescription}"
+    - Body (Markdown):
+    ---
+    ${currentArticle.body}
+    ---
+
+    **Your Task:**
+    Apply the user's instruction to the article. You might need to rewrite sections, add new content, remove content, or change the tone.
+    The output MUST be a single valid JSON object that strictly matches the provided schema, containing the full, updated content for the article.
+    The language of the article must remain ${language}.
+
+    Return the JSON object with the "title", "metaDescription", and "body" keys.
+  `;
+    
+  try {
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: userPrompt,
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: articleSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const parsed = JSON.parse(jsonText);
+
+    if (!parsed.title || !parsed.metaDescription || !parsed.body) {
+        throw new Error("AI response is missing required fields for refinement.");
+    }
+    
+    return {
+      title: parsed.title,
+      metaDescription: parsed.metaDescription,
+      body: parsed.body,
+    };
+  } catch (error) {
+    console.error("Error refining article:", error);
+    throw new Error("Failed to refine article from AI. The model may have returned an invalid response.");
+  }
 };
 
 export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalysis> => {
