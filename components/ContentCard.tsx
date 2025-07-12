@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { GeneratedContent, WordPressSite, ContentType, ArticleContent, LanguageContextType, PublishingOptions } from '../types';
-import { ArticleIcon, ProductIcon, ClockIcon, TrashIcon, EditIcon, PublishIcon } from './constants';
+import { ArticleIcon, ProductIcon, ClockIcon, TrashIcon, EditIcon, PublishIcon } from '../constants';
 import { LanguageContext } from '../App';
 import PublishModal from './PublishModal';
 import { publishContent } from '../services/wordpressService';
