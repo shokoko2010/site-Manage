@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { LanguageContext } from '../../App';
 import { LanguageContextType } from '../../types';
-import { CloseIcon } from '../constants';
+import { CloseIcon } from '../../constants';
 
 interface ModalProps {
   title: string;
