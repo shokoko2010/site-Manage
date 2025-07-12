@@ -1,3 +1,4 @@
+import { marked } from 'marked';
 import { WordPressSite, GeneratedContent, PublishingOptions, SiteContext, ContentType, ArticleContent, ProductContent, SitePost } from '../types';
 
 const SITES_STORAGE_KEY = 'ai-wp-manager-sites';
@@ -261,7 +262,7 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
         endpoint = `${site.url}/wp-json/wp/v2/posts`;
         body = {
             title: article.title,
-            content: article.body,
+            content: marked(article.body),
             status: options.status,
             categories: categoryIds,
             tags: tagIds,
@@ -277,8 +278,8 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
         endpoint = `${site.url}/wp-json/wc/v3/products`;
         body = {
             name: product.title,
-            description: product.longDescription,
-            short_description: product.shortDescription,
+            description: marked(product.longDescription),
+            short_description: marked(product.shortDescription),
             status: options.status,
             regular_price: options.price || '0',
             sale_price: options.salePrice || '',
@@ -343,7 +344,7 @@ export const updatePost = async (
     const endpoint = `${site.url}/wp-json/wp/v2/posts/${postId}`;
     const body: any = {
         title: content.title,
-        content: content.body,
+        content: marked(content.body),
         status: options.status,
         categories: categoryIds,
         tags: tagIds,

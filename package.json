@@ -20,7 +20,8 @@
     "@uiw/react-md-editor": "4.0.4",
     "rehype-sanitize": "6.0.0",
     "turndown": "7.1.3",
-    "dompurify": "3.1.2"
+    "dompurify": "3.1.2",
+    "marked": "12.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
