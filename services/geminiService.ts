@@ -1,7 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazily initialize the AI client to avoid app crash on startup if API key is missing.
+const getAiClient = () => {
+    // The constructor throws an error if the API key is not set.
+    // This will now be caught by the calling function's try...catch block.
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
 
 const articleSchema = {
     type: Type.OBJECT,
@@ -90,6 +95,7 @@ For context, here is some information about the website this article will be pub
   `;
     
   try {
+    const ai = getAiClient();
     const config: any = {
         systemInstruction,
     };
@@ -126,8 +132,10 @@ For context, here is some information about the website this article will be pub
     };
   } catch (error) {
     console.error("Error generating article:", error);
-    if (error instanceof Error && error.message.includes("could not be parsed as JSON")) {
-        throw error;
+    if (error instanceof Error) {
+        if (error.message.includes("could not be parsed as JSON") || error.message.includes("API_KEY")) {
+            throw error;
+        }
     }
     throw new Error("Failed to generate article content from AI. Please check the console for details.");
   }
@@ -140,6 +148,7 @@ export const generateProduct = async (
   language: Language
 ): Promise<ProductContent> => {
   try {
+    const ai = getAiClient();
     const prompt = `
         Generate complete product page content for a WooCommerce store. The output MUST be a valid JSON object matching the provided schema.
 
@@ -178,12 +187,16 @@ export const generateProduct = async (
     };
   } catch (error) {
     console.error("Error generating product content:", error);
+    if (error instanceof Error && error.message.includes("API_KEY")) {
+        throw error;
+    }
     throw new Error("Failed to generate product content from AI. Please check the console for details.");
   }
 };
 
 export const generateFeaturedImage = async (prompt: string): Promise<string[]> => {
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateImages({
             model: 'imagen-3.0-generate-002',
             prompt: prompt,
@@ -202,6 +215,9 @@ export const generateFeaturedImage = async (prompt: string): Promise<string[]> =
 
     } catch (error) {
         console.error("Error generating featured image:", error);
+        if (error instanceof Error && error.message.includes("API_KEY")) {
+            throw error;
+        }
         throw new Error("Failed to generate image from AI. Please try again.");
     }
 };
@@ -223,6 +239,7 @@ export const generateContentStrategy = async (
     `;
 
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: userPrompt,
@@ -259,6 +276,9 @@ export const generateContentStrategy = async (
 
     } catch (error) {
         console.error("Error generating content strategy:", error);
+        if (error instanceof Error && error.message.includes("API_KEY")) {
+            throw error;
+        }
         throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format.");
     }
 };
