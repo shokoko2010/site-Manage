@@ -15,7 +15,7 @@ type SelectionInfo = { text: string; top: number; left: number; field: 'body' | 
 type WizardStep = 'brief' | 'generating' | 'editor' | 'strategy_result';
 
 
-// Standalone Toolkit Components defined outside the main component to prevent closure issues
+// Standalone Toolkit Components defined outside the main component to prevent closure issues and bugs
 const AIToolkitSection: React.FC<{title: string, icon: React.ReactNode, children: React.ReactNode, isOpen: boolean, onToggle: () => void, isLoading?: boolean}> = ({ title, icon, children, isOpen, onToggle, isLoading = false }) => {
     return (
         <div className="bg-gray-700/50 rounded-lg border border-gray-600/50">
@@ -32,7 +32,7 @@ const AIToolkitSection: React.FC<{title: string, icon: React.ReactNode, children
     );
 };
 
-const RefineTool = ({ article, language, showNotification, onRefined }: { article: ArticleContent, language: Language, showNotification: (n: Notification) => void, onRefined: (content: GeneratedContent) => void }) => {
+const RefineTool = ({ article, contentLanguage, showNotification, onRefined }: { article: ArticleContent, contentLanguage: Language, showNotification: (n: Notification) => void, onRefined: (content: GeneratedContent) => void }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [isRefining, setIsRefining] = useState(false);
     const [refinementPrompt, setRefinementPrompt] = useState('');
@@ -41,7 +41,7 @@ const RefineTool = ({ article, language, showNotification, onRefined }: { articl
         setIsRefining(true);
         showNotification({ message: t('refiningArticle'), type: 'info' });
         try {
-            const refinedData = await refineArticle(article, refinementPrompt, language);
+            const refinedData = await refineArticle(article, refinementPrompt, contentLanguage);
             onRefined({ ...article, ...refinedData });
         } catch(err) {
             showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
@@ -54,7 +54,7 @@ const RefineTool = ({ article, language, showNotification, onRefined }: { articl
         <div className="space-y-3">
             <p className="text-sm text-gray-400">{t('refineWithAIHint')}</p>
             <textarea value={refinementPrompt} onChange={e => setRefinementPrompt(e.target.value)} placeholder={t('refinementPlaceholder')} className="w-full text-sm bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} disabled={isRefining} />
-            <button onClick={handleRefineArticle} disabled={isRefining || !refinementPrompt} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50">
+            <button onClick={handleRefineArticle} disabled={isRefining} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50">
                 {isRefining ? <Spinner size="sm"/> : <><ArrowPathIcon className="me-2 h-4 w-4"/> {t('refineArticle')}</>}
             </button>
         </div>
@@ -171,7 +171,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [strategyTopic, setStrategyTopic] = useState('');
     const [numArticles, setNumArticles] = useState(4);
     const [tone, setTone] = useState<WritingTone>(WritingTone.Professional);
-    const [language, setLanguage] = useState<Language>(Language.English);
+    const [language, setLanguage] = useState<Language>(Language.English); // Language of the content
     const [selectedSiteId, setSelectedSiteId] = useState<string | undefined>(sites.length > 0 ? sites[0].id : undefined);
     const [useGoogleSearch, setUseGoogleSearch] = useState(true);
 
@@ -219,7 +219,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
     // Proactive AI handlers
     const handleAnalyzeSeoProactive = useCallback(async () => {
-        if (!articleForAnalysis) return;
+        if (!articleForAnalysis || isAnalyzingSeo) return;
         setIsAnalyzingSeo(true);
         try {
             const result = await analyzeSeo(articleForAnalysis.title, articleForAnalysis.body);
@@ -229,18 +229,25 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         } finally {
             setIsAnalyzingSeo(false);
         }
-    }, [articleForAnalysis]);
+    }, [articleForAnalysis, isAnalyzingSeo]);
 
     const handleSuggestLinksProactive = useCallback(async () => {
         const siteForLinks = sites.find(s => s.id === selectedSiteId);
-        if (!articleForAnalysis || !siteForLinks || siteForLinks.isVirtual) return;
+        if (!articleForAnalysis || !siteForLinks || siteForLinks.isVirtual || isSuggestingLinks) return;
 
         setIsSuggestingLinks(true);
         try {
             const siteContext = await getSiteContext(siteForLinks);
             if (siteContext.recentPosts && siteContext.recentPosts.length > 0) {
                  const suggestions = await generateInternalLinks(articleForAnalysis.body, siteContext);
-                 setLinkSuggestions(suggestions);
+                 // Only update if the content hasn't changed since the request was made
+                 setLinkSuggestions(prev => {
+                     const currentArticle = generatedResult as ArticleContent;
+                     if (currentArticle?.body === articleForAnalysis.body) {
+                         return suggestions;
+                     }
+                     return prev; // Stale request, ignore.
+                 });
             } else {
                 setLinkSuggestions([]);
             }
@@ -250,7 +257,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         } finally {
             setIsSuggestingLinks(false);
         }
-    }, [articleForAnalysis, sites, selectedSiteId]);
+    }, [articleForAnalysis, sites, selectedSiteId, isSuggestingLinks, generatedResult]);
 
     // Debounced effect for proactive analysis
     useEffect(() => {
@@ -358,7 +365,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         if (!generatedResult) return;
         setGeneratedResult(prev => {
              if (!prev) return null;
-             // When body or title changes, reset proactive suggestions
+             // When body or title changes, reset proactive suggestions to indicate they are stale
              if (field === 'body' || field === 'title') {
                  setSeoAnalysis(null);
                  setLinkSuggestions(null);
@@ -649,12 +656,12 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     <div className="lg:col-span-1 bg-gray-800 rounded-xl border border-gray-700/50 p-4 overflow-y-auto">
                         <h3 className="text-lg font-bold text-white mb-4">{t('aiToolkit')}</h3>
                         <div className="space-y-4">
-                           <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}} isLoading={false}>
-                                <RefineTool article={generatedResult as ArticleContent} language={language} showNotification={showNotification} onRefined={setGeneratedResult} />
+                           <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}}>
+                                <RefineTool article={generatedResult as ArticleContent} contentLanguage={language} showNotification={showNotification} onRefined={setGeneratedResult} />
                            </AIToolkitSection>
                             {generatedResult.type === ContentType.Article && (
                                 <>
-                                    <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}} isLoading={false}>
+                                    <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}}>
                                         <ImageGeneratorTool article={generatedResult as ArticleContent} showNotification={showNotification} onImageChange={setGeneratedResult} />
                                     </AIToolkitSection>
                                     <AIToolkitSection title={t('seoAnalysis')} icon={<SeoIcon/>} isOpen={isSeoToolkitOpen} onToggle={() => setIsSeoToolkitOpen(p => !p)} isLoading={isAnalyzingSeo}>
