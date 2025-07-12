@@ -122,7 +122,7 @@ export const getSiteContext = async (site: WordPressSite): Promise<SiteContext> 
     }
     const headers = createAuthHeaders(site.username, site.appPassword);
     const [postsRes, categoriesRes] = await Promise.all([
-        apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=5&_fields=title`, { headers }),
+        apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&_fields=id,title,link`, { headers }),
         apiFetch(`${site.url}/wp-json/wp/v2/categories?per_page=20&_fields=name`, { headers }),
     ]);
 

@@ -1,8 +1,10 @@
 
 
 
+
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
+import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion } from '../types';
 
 const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
 const BRAND_VOICE_STORAGE_KEY = 'brand_voice';
@@ -63,6 +65,20 @@ const seoAnalysisSchema = {
     },
     required: ["score", "suggestions"],
 };
+
+const internalLinkSuggestionSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            textToLink: { type: Type.STRING, description: "The exact, case-sensitive phrase from the article body to be hyperlinked." },
+            linkTo: { type: Type.STRING, description: "The full URL of the existing post to link to." },
+            postTitle: { type: Type.STRING, description: "The title of the existing post to link to." },
+        },
+        required: ["textToLink", "linkTo", "postTitle"],
+    },
+};
+
 
 /**
  * A robust JSON parser for LLM outputs. It extracts a JSON string from
@@ -192,7 +208,7 @@ export const generateArticle = async (
   const systemInstruction = `You are an expert SEO content writer and a WordPress specialist. Your goal is to create high-quality, engaging, and well-structured articles that are optimized for search engines. Always follow the instructions precisely and return the content in the specified JSON format.`;
 
   let contextPrompt = "";
-  if (siteContext) {
+  if (siteContext && siteContext.recentPosts.length > 0) {
     contextPrompt = `
 For context, here is some information about the website this article will be published on. Use this to ensure the new content is relevant, matches the site's tone, and complements existing content.
 - Existing Article Titles: ${siteContext.recentPosts.map(p => `"${p.title}"`).join(", ")}
@@ -600,5 +616,70 @@ export const modifyText = async (
             throw error;
         }
         throw new Error("Failed to modify text with AI. The service might be unavailable.");
+    }
+};
+
+export const generateInternalLinks = async (
+    articleBody: string,
+    siteContext: SiteContext
+): Promise<InternalLinkSuggestion[]> => {
+    const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+    
+    if (!siteContext.recentPosts || siteContext.recentPosts.length === 0) {
+        return []; // No posts to link to.
+    }
+
+    const systemInstruction = `You are an expert SEO specialist with a deep understanding of internal linking strategies. Your task is to analyze a new article and suggest relevant internal links to existing posts on the same website. The response must be a valid JSON array matching the provided schema.`;
+    
+    const userPrompt = `
+    I have written a new article and I need you to suggest internal links to my existing posts.
+
+    **Here is the content of the new article (in Markdown):**
+    ---
+    ${articleBody}
+    ---
+
+    **Here is a list of my existing posts on the website:**
+    ${siteContext.recentPosts.map(p => `- Title: "${p.title}", URL: "${p.link}"`).join('\n')}
+
+    **Your Task:**
+    1. Read through the new article.
+    2. Identify phrases or keywords in the new article that would be a natural and relevant anchor text for a link to one of the existing posts.
+    3. You can suggest up to 5 high-quality links. Do not suggest a link if it is not highly relevant.
+    4. The "textToLink" value in your response MUST be an exact, case-sensitive match to a phrase found in the new article's body.
+
+    **Output Format:**
+    Return a single, valid JSON array of objects. Each object represents a single link suggestion.
+    Do not include any text or explanations outside of the JSON array.
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: userPrompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: internalLinkSuggestionSchema,
+            },
+        });
+        
+        const jsonText = processApiResponse(response);
+        const parsedSuggestions = JSON.parse(jsonText);
+        
+        if (!Array.isArray(parsedSuggestions)) {
+            throw new Error("AI response for internal links was not a JSON array.");
+        }
+
+        // Final validation
+        return parsedSuggestions.filter(s => s.textToLink && s.linkTo && s.postTitle);
+
+    } catch (error) {
+        console.error("Error generating internal links:", error);
+        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("not a JSON array"))) {
+            throw error;
+        }
+        throw new Error("Failed to generate internal links from AI.");
     }
 };

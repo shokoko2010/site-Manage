@@ -27,6 +27,12 @@ export enum ContentType {
   Strategy = 'STRATEGY',
 }
 
+export interface InternalLinkSuggestion {
+  textToLink: string;
+  linkTo: string;
+  postTitle: string;
+}
+
 export interface ArticleContent {
   id: string;
   type: ContentType.Article;
@@ -40,6 +46,7 @@ export interface ArticleContent {
   featuredImage?: string; // Selected Base64 image string
   generatedImageOptions?: string[]; // Array of Base64 strings for user to choose from
   scheduledFor?: string; // ISO Date string for scheduling
+  internalLinkSuggestions?: InternalLinkSuggestion[]; // AI-generated suggestions for internal links
 }
 
 export interface ProductContent {
@@ -91,7 +98,7 @@ export interface PublishingOptions {
 }
 
 export interface SiteContext {
-    recentPosts: { title: string }[];
+    recentPosts: { id: number; title: string; link: string }[];
     categories: { name: string }[];
 }
 

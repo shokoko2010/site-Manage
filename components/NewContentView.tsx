@@ -2,14 +2,16 @@
 
 
 
+
+
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle, modifyText } from '../services/geminiService';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion } from '../types';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon, LinkIcon } from '../constants';
 import { getSiteContext, publishContent } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
@@ -64,6 +66,10 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
     const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
 
+    // Internal Linking states
+    const [linkSuggestions, setLinkSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
+    const [isSuggestingLinks, setIsSuggestingLinks] = useState(false);
+
     // Refinement states
     const [isRefining, setIsRefining] = useState(false);
     const [refinementPrompt, setRefinementPrompt] = useState('');
@@ -89,6 +95,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             setActiveTab(initialContent.type);
             setGeneratedResult(initialContent);
             setSeoAnalysis(null);
+            setLinkSuggestions(null);
             setGeneratedStrategy(null);
             setRefinementPrompt('');
             setSelection(null);
@@ -156,6 +163,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setGeneratedResult(null);
         setGeneratedStrategy(null);
         setSeoAnalysis(null);
+        setLinkSuggestions(null);
         setRefinementPrompt('');
         setSelection(null);
 
@@ -176,11 +184,25 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         }
     };
     
+    const handleGenerateInternalLinks = async (articleBody: string, siteContext: SiteContext) => {
+        setIsSuggestingLinks(true);
+        setLinkSuggestions(null);
+        try {
+            const suggestions = await generateInternalLinks(articleBody, siteContext);
+            setLinkSuggestions(suggestions);
+        } catch (err) {
+            console.warn("Failed to generate internal links", err);
+            // Don't show a blocking error, just log it.
+        } finally {
+            setIsSuggestingLinks(false);
+        }
+    };
+
     const handleGenerateArticle = async () => {
         if (!articleTopic) throw new Error(t('errorAllFieldsRequired'));
         
         let siteContext: SiteContext | undefined = undefined;
-        if (useGoogleSearch && selectedSite && !selectedSite.isVirtual) {
+        if (selectedSite && !selectedSite.isVirtual) {
             try {
                 siteContext = await getSiteContext(selectedSite);
             } catch (err) {
@@ -190,6 +212,11 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         }
         const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, siteContext);
         setGeneratedResult({ ...result, siteId: selectedSiteId });
+        
+        // After generating the article, fetch internal link suggestions
+        if (siteContext && result.body) {
+            handleGenerateInternalLinks(result.body, siteContext);
+        }
     };
 
     const handleGenerateProduct = async () => {
@@ -332,6 +359,18 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         } finally {
             setIsRefining(false);
         }
+    };
+
+    const handleApplyLink = (suggestion: InternalLinkSuggestion) => {
+        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
+
+        const { textToLink, linkTo } = suggestion;
+        const newBody = generatedResult.body.replace(textToLink, `[${textToLink}](${linkTo})`);
+        
+        handleResultChange('body', newBody);
+
+        // Remove the applied suggestion from the list
+        setLinkSuggestions(prev => prev ? prev.filter(s => s.textToLink !== textToLink) : null);
     };
 
     const handleAiTextModify = async (instruction: string) => {
@@ -554,6 +593,53 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         );
     }
 
+    const renderInternalLinker = () => {
+        if (!generatedResult || generatedResult.type !== ContentType.Article || selectedSite?.isVirtual) return null;
+
+        return (
+             <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                <h4 className="text-lg font-semibold text-gray-200 mb-2 flex items-center">
+                    <LinkIcon /> <span className="ms-2">{t('internalLinkAssistant')}</span>
+                </h4>
+                <p className="text-sm text-gray-400 mb-3">{t('internalLinkAssistantHint')}</p>
+
+                {isSuggestingLinks && (
+                     <div className="flex flex-col items-center justify-center h-24">
+                        <Spinner />
+                        <p className="mt-2 text-sm text-gray-400">{t('generatingLinks')}</p>
+                    </div>
+                )}
+                
+                {!isSuggestingLinks && linkSuggestions && (
+                    <div className="space-y-3">
+                        {linkSuggestions.length === 0 ? (
+                            <p className="text-sm text-center text-gray-500 py-4">{t('noLinksFound')}</p>
+                        ) : (
+                            linkSuggestions.map((suggestion, index) => (
+                                <div key={index} className="bg-gray-700 p-3 rounded-md flex items-center justify-between gap-4">
+                                    <p className="text-sm text-gray-300 leading-relaxed flex-1">
+                                       {t('linkSuggestionText', {
+                                            textToLink: `<strong>“${suggestion.textToLink}”</strong>`,
+                                            postTitle: `<strong>“${suggestion.postTitle}”</strong>`
+                                        }).split(/<strong>(.*?)<\/strong>/g).map((part, i) => 
+                                            i % 2 === 1 ? <strong key={i} className="font-semibold text-white">{part.replace(/“|”/g, '')}</strong> : <span key={i}>{part}</span>
+                                        )}
+                                    </p>
+                                    <button 
+                                        onClick={() => handleApplyLink(suggestion)}
+                                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 text-xs rounded-md transition-colors flex-shrink-0"
+                                    >
+                                        {t('applyLink')}
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const renderResult = () => {
         if (!generatedResult) return null;
 
@@ -613,6 +699,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                         </div>
                          {renderImageGenerator()}
                          {renderSeoAnalyzer()}
+                         {renderInternalLinker()}
                     </div>
                 ) : (
                      <div className="space-y-4">

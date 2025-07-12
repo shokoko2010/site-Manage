@@ -93,6 +93,14 @@ export const translations = {
     seoScore: 'SEO Score',
     seoSuggestions: 'Suggestions for Improvement',
     
+    // Internal Linker
+    internalLinkAssistant: 'Internal Link Assistant',
+    internalLinkAssistantHint: 'AI suggestions to improve SEO by linking to existing content.',
+    generatingLinks: 'Searching for linking opportunities...',
+    noLinksFound: 'No internal linking opportunities found in this article.',
+    applyLink: 'Apply',
+    linkSuggestionText: 'Link the phrase {{textToLink}} to your post {{postTitle}}',
+
     // AI Magic Edit Menu
     aiMagicMenu: {
         improve: 'Improve Writing',
@@ -281,6 +289,14 @@ export const translations = {
     analyzingSEO: 'جاري تحليل أداء السيو...',
     seoScore: 'درجة السيو',
     seoSuggestions: 'اقتراحات للتحسين',
+    
+    // Internal Linker
+    internalLinkAssistant: 'مساعد الربط الداخلي',
+    internalLinkAssistantHint: 'اقتراحات لتحسين سيو موقعك عبر الربط بالمحتوى الحالي.',
+    generatingLinks: 'جاري البحث عن فرص للربط...',
+    noLinksFound: 'لم يتم العثور على فرص للربط الداخلي في هذا المقال.',
+    applyLink: 'تطبيق',
+    linkSuggestionText: 'اربط عبارة {{textToLink}} بمقالك {{postTitle}}',
 
     // AI Magic Edit Menu
     aiMagicMenu: {
