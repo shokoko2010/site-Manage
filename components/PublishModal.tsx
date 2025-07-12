@@ -11,6 +11,7 @@ interface PublishModalProps {
     content: GeneratedContent;
     sites: WordPressSite[];
     isPublishing?: boolean;
+    mode?: 'publish' | 'update';
 }
 
 const toDatetimeLocal = (isoDate?: string) => {
@@ -23,10 +24,10 @@ const toDatetimeLocal = (isoDate?: string) => {
 };
 
 
-const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish, content, sites, isPublishing }) => {
+const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish, content, sites, isPublishing, mode = 'publish' }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [options, setOptions] = useState<Partial<PublishingOptions>>({
-        siteId: sites.length > 0 ? sites[0].id : undefined,
+        siteId: content.siteId || (sites.length > 0 ? sites[0].id : undefined),
         status: 'publish',
         categories: '',
         tags: '',
@@ -72,15 +73,18 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
     if (!isOpen) return null;
 
     const articleContent = content.type === ContentType.Article ? (content as ArticleContent) : null;
+    const modalTitle = mode === 'update' ? t('updateTitle', { title: content.title }) : t('publishTitle', { title: content.title });
+    const confirmButtonText = mode === 'update' ? t('confirmUpdate') : t('confirmPublish');
+
 
     return (
-        <Modal title={t('publishTitle', { title: content.title })} onClose={onClose}>
+        <Modal title={modalTitle} onClose={onClose}>
             <div className="space-y-4 text-gray-300 max-h-[60vh] overflow-y-auto px-2">
                 {articleContent?.featuredImage && (
                     <div>
                         <label className="block text-sm font-medium mb-2">{t('featuredImage')}</label>
                         <img 
-                            src={`data:image/jpeg;base64,${articleContent.featuredImage}`} 
+                            src={articleContent.featuredImage.startsWith('data:') ? articleContent.featuredImage : `data:image/jpeg;base64,${articleContent.featuredImage}`} 
                             alt="Featured image preview"
                             className="rounded-lg w-full object-cover"
                         />
@@ -90,7 +94,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
                     <label className="block text-sm font-medium">{t('publishToSite')}</label>
                     <select name="siteId" value={options.siteId} onChange={handleChange} className="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white disabled:bg-gray-700">
                          {sites.length > 0 ? (
-                            sites.map(site => <option key={site.id} value={site.id}>{site.name}</option>)
+                            sites.filter(s => !s.isVirtual).map(site => <option key={site.id} value={site.id}>{site.name}</option>)
                          ) : (
                             <option>{t('noSitesAvailable')}</option>
                          )}
@@ -98,11 +102,11 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
                 </div>
                 <div>
                     <label className="block text-sm font-medium">{t('categories')}</label>
-                    <input type="text" name="categories" value={options.categories} onChange={handleChange} className="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md text-white" />
+                    <input type="text" name="categories" value={options.categories} onChange={handleChange} placeholder="e.g. tech, news" className="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md text-white placeholder-gray-400" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium">{t('tags')}</label>
-                    <input type="text" name="tags" value={options.tags} onChange={handleChange} className="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md text-white" />
+                    <input type="text" name="tags" value={options.tags} onChange={handleChange} placeholder="e.g. ai, wordpress" className="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md text-white placeholder-gray-400" />
                 </div>
                 {content.type === ContentType.Product && (
                     <>
@@ -158,7 +162,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
             <div className="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
                  <button onClick={onClose} disabled={isPublishing} className="bg-gray-500 hover:bg-gray-400 text-white font-bold py-2 px-4 rounded-md transition-colors disabled:opacity-50">{t('cancel')}</button>
                  <button onClick={handleSubmit} disabled={isPublishing || !options.siteId} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center justify-center w-40 disabled:bg-blue-800 disabled:cursor-not-allowed">
-                    {isPublishing ? <Spinner size="sm" /> : t('confirmPublish')}
+                    {isPublishing ? <Spinner size="sm" /> : confirmButtonText}
                  </button>
             </div>
         </Modal>

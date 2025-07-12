@@ -1,4 +1,4 @@
-import { WordPressSite, GeneratedContent, PublishingOptions, SiteContext, ContentType, ArticleContent, ProductContent } from '../types';
+import { WordPressSite, GeneratedContent, PublishingOptions, SiteContext, ContentType, ArticleContent, ProductContent, SitePost } from '../types';
 
 const SITES_STORAGE_KEY = 'ai-wp-manager-sites';
 
@@ -132,6 +132,28 @@ export const getSiteContext = async (site: WordPressSite): Promise<SiteContext> 
     return { recentPosts, categories };
 };
 
+
+export const fetchAllPosts = async (site: WordPressSite): Promise<SitePost[]> => {
+    if (site.isVirtual || !site.username || !site.appPassword) {
+        return [];
+    }
+    const headers = createAuthHeaders(site.username, site.appPassword);
+    let allPosts: SitePost[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+        const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&_fields=id,title,content,status,date,link,performance_stats`, { headers });
+        const posts = await response.json();
+        allPosts = allPosts.concat(posts);
+        totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
+        page++;
+    } while (page <= totalPages);
+
+    return allPosts;
+};
+
+
 // --- Publishing Logic ---
 
 // Helper to convert base64 to Blob
@@ -214,7 +236,6 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
 
     let mediaId: number | null = null;
     
-    // Step 1: Upload featured image if it exists
     if (content.type === ContentType.Article && (content as ArticleContent).featuredImage) {
         try {
             mediaId = await uploadMedia(site, (content as ArticleContent).featuredImage as string, content.title);
@@ -224,7 +245,6 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
         }
     }
 
-    // Step 2: Prepare post/product data
     const postHeaders = createAuthHeaders(site.username, site.appPassword);
     postHeaders.append('Content-Type', 'application/json');
 
@@ -248,7 +268,6 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
             featured_media: mediaId || 0
         };
         
-        // Add scheduling parameter if status is 'future'
         if(options.status === 'future' && options.scheduledAt) {
             body.date = new Date(options.scheduledAt).toISOString();
         }
@@ -269,7 +288,6 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
             tags: tagIds.map(id => ({id})),
         };
         
-        // Add scheduling parameter if status is 'future'
         if(options.status === 'future' && options.scheduledAt) {
             body.date_created = new Date(options.scheduledAt).toISOString();
         }
@@ -278,7 +296,6 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
         throw new Error('Unsupported content type for publishing.');
     }
     
-    // Step 3: Create the post/product
     const response = await apiFetch(endpoint, {
         method: 'POST',
         headers: postHeaders,
@@ -290,5 +307,66 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
     return {
         success: true,
         postUrl: newPost.link,
+    };
+};
+
+
+export const updatePost = async (
+    site: WordPressSite,
+    postId: number,
+    content: ArticleContent,
+    options: Omit<PublishingOptions, 'siteId'>
+): Promise<{ success: true; postUrl: string }> => {
+    if (site.isVirtual || !site.username || !site.appPassword) {
+        throw new Error("Cannot update content on a virtual site.");
+    }
+
+    let mediaId: number | undefined = undefined;
+
+    if (content.featuredImage) {
+        try {
+            mediaId = await uploadMedia(site, content.featuredImage, content.title);
+        } catch (error) {
+            console.error("Failed to upload featured image during update:", error);
+            throw new Error(`Could not upload the new featured image. Error: ${error instanceof Error ? error.message : 'Unknown reason'}`);
+        }
+    }
+
+    const postHeaders = createAuthHeaders(site.username, site.appPassword);
+    postHeaders.append('Content-Type', 'application/json');
+
+    const [categoryIds, tagIds] = await Promise.all([
+        getTermIds(site, options.categories, 'categories'),
+        getTermIds(site, options.tags, 'tags')
+    ]);
+
+    const endpoint = `${site.url}/wp-json/wp/v2/posts/${postId}`;
+    const body: any = {
+        title: content.title,
+        content: content.body,
+        status: options.status,
+        categories: categoryIds,
+        tags: tagIds,
+    };
+
+    if (mediaId) {
+        body.featured_media = mediaId;
+    }
+
+    if (options.status === 'future' && options.scheduledAt) {
+        body.date = new Date(options.scheduledAt).toISOString();
+    }
+
+    const response = await apiFetch(endpoint, {
+        method: 'POST', // WP REST API uses POST for updates
+        headers: postHeaders,
+        body: JSON.stringify(body),
+    });
+
+    const updatedPost = await response.json();
+
+    return {
+        success: true,
+        postUrl: updatedPost.link,
     };
 };

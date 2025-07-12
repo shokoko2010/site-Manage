@@ -10,9 +10,10 @@ interface DashboardViewProps {
   onAddSite: (site: WordPressSite) => void;
   onRemoveSite: (siteId: string) => void;
   isLoading: boolean;
+  onManageSite: (site: WordPressSite) => void;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState('');
   const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
@@ -187,7 +188,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
         ) : sites.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sites.map(site => (
-              <SiteCard key={site.id} site={site} onRemove={onRemoveSite} />
+              <SiteCard key={site.id} site={site} onRemove={onRemoveSite} onManage={onManageSite} />
             ))}
           </div>
         ) : (

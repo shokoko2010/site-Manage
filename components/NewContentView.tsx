@@ -12,7 +12,7 @@ import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent
 import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
 import Spinner from './common/Spinner';
 import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon, LinkIcon } from '../constants';
-import { getSiteContext, publishContent } from '../services/wordpressService';
+import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
 import InlineAiMenu from './InlineAiMenu';
@@ -30,14 +30,15 @@ interface NewContentViewProps {
     sites: WordPressSite[];
     showNotification: (notification: Notification) => void;
     initialContent?: ArticleContent | null;
+    onUpdateComplete?: () => void;
 }
 
-const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent }) => {
+const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent, onUpdateComplete }) => {
     const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [activeTab, setActiveTab] = useState<ContentType>(ContentType.Article);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [generatedResult, setGeneratedResult] = useState<GeneratedContent | null>(null);
+    const [generatedResult, setGeneratedResult] = useState<GeneratedContent | ArticleContent | null>(null);
     const [generatedStrategy, setGeneratedStrategy] = useState<ArticleContent[] | null>(null);
 
     // Form states
@@ -211,7 +212,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             }
         }
         const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, siteContext);
-        setGeneratedResult({ ...result, siteId: selectedSiteId });
+        setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
         
         // After generating the article, fetch internal link suggestions
         if (siteContext && result.body) {
@@ -322,6 +323,30 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             setIsPublishing(false);
         }
     };
+
+    const handleUpdate = async (options: PublishingOptions) => {
+        const siteToUpdate = sites.find(s => s.id === options.siteId);
+        const article = generatedResult as ArticleContent;
+
+        if (!article?.postId || !siteToUpdate) {
+            showNotification({ message: 'Post ID or site not found for update.', type: 'error' });
+            return;
+        }
+        setIsPublishing(true);
+        
+        try {
+            const result = await updatePost(siteToUpdate, article.postId, article, options);
+            showNotification({ message: t('updateSuccess', { url: result.postUrl }), type: 'success' });
+            setIsPublishModalOpen(false);
+            setGeneratedResult(null);
+            if(onUpdateComplete) onUpdateComplete(); // Navigate back
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : t('errorUnknown');
+            showNotification({ message: t('updateFail', { error: errorMessage }), type: 'error' });
+        } finally {
+            setIsPublishing(false);
+        }
+    };
     
     const handleSaveStrategy = () => {
         if (generatedStrategy) {
@@ -403,6 +428,11 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     };
 
     const renderForm = () => {
+        const isEditingSyncedPost = initialContent?.origin === 'synced';
+        if (isEditingSyncedPost) {
+            return <div className="text-center text-gray-400 p-4 bg-gray-900/50 rounded-lg">{t('editAndImprove')}</div>;
+        }
+
         const commonFields = (
              <>
                 <div className="md:col-span-2">
@@ -645,6 +675,17 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
         const contentSite = sites.find(s => s.id === generatedResult.siteId);
         const isForVirtualSite = contentSite?.isVirtual === true;
+        const isEditingSyncedPost = (generatedResult as ArticleContent)?.origin === 'synced';
+
+        const actionButton = isEditingSyncedPost ? (
+            <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                {t('updatePost')}
+            </button>
+        ) : (
+             <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                {t('publish')}
+            </button>
+        );
 
         return (
             <div className="bg-gray-800 rounded-lg p-6 animate-fade-in">
@@ -657,13 +698,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                         </div>
                          <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Meta Description</label>
-                            <textarea value={generatedResult.metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
+                            <textarea value={(generatedResult as ArticleContent).metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
                          </div>
                          <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">{t('articleBody')}</label>
                             <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="body">
                                 <MDEditor
-                                    value={generatedResult.body}
+                                    value={(generatedResult as ArticleContent).body}
                                     onChange={(val) => handleResultChange('body', val || '')}
                                     height={500}
                                     preview="live"
@@ -731,14 +772,12 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     </div>
                 )}
                 <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
-                     <button onClick={handleSaveToLibrary} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                        {t('saveToLibrary')}
-                    </button>
-                    {!isForVirtualSite && (
-                        <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                            {t('publish')}
-                        </button>
+                     {!isEditingSyncedPost && (
+                        <button onClick={handleSaveToLibrary} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                           {t('saveToLibrary')}
+                       </button>
                     )}
+                    {!isForVirtualSite && actionButton}
                 </div>
             </div>
         )
@@ -778,16 +817,17 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
     const buttonText = activeTab === ContentType.Strategy ? t('generateStrategy') : t('generateContent');
     const buttonIcon = activeTab === ContentType.Strategy ? <StrategyIcon /> : <SparklesIcon />;
-    
+    const isEditingSyncedPost = initialContent?.origin === 'synced';
+
     return (
         <div className="p-8 h-full">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold text-white">{t('createNewContent')}</h1>
-                <p className="text-gray-400 mt-1">{t('createNewContentHint')}</p>
+                <h1 className="text-3xl font-bold text-white">{isEditingSyncedPost ? t('editAndImprove') : t('createNewContent')}</h1>
+                <p className="text-gray-400 mt-1">{isEditingSyncedPost ? initialContent.title : t('createNewContentHint')}</p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <form onSubmit={handleGenerate} className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <form onSubmit={handleGenerate} className={`bg-gray-800 p-6 rounded-lg shadow-lg ${isEditingSyncedPost ? 'hidden' : ''}`}>
                     <div className="mb-6">
                         <div className="flex border-b border-gray-700">
                             <button type="button" onClick={() => setActiveTab(ContentType.Article)} className={`flex items-center space-x-2 py-2 px-4 text-sm font-medium ${activeTab === ContentType.Article ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>
@@ -817,9 +857,9 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     </button>
                 </form>
 
-                <div className="lg:col-span-1 relative" ref={resultViewRef}>
+                <div className={`relative ${isEditingSyncedPost ? 'lg:col-span-2' : 'lg:col-span-1'}`} ref={resultViewRef}>
                     {(() => {
-                        if (isLoading) {
+                        if (isLoading && !isEditingSyncedPost) {
                             return (
                                 <div className="text-center p-10 bg-gray-800 rounded-lg flex flex-col items-center justify-center h-full">
                                     <Spinner size="lg"/>
@@ -861,8 +901,9 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     sites={sites}
                     isOpen={isPublishModalOpen}
                     onClose={() => setIsPublishModalOpen(false)}
-                    onPublish={handlePublish}
+                    onPublish={isEditingSyncedPost ? handleUpdate : handlePublish}
                     isPublishing={isPublishing}
+                    mode={isEditingSyncedPost ? 'update' : 'publish'}
                 />
             )}
         </div>

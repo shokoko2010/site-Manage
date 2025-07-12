@@ -19,6 +19,7 @@ export enum View {
   ContentLibrary = 'CONTENT_LIBRARY',
   Calendar = 'CALENDAR',
   Settings = 'SETTINGS',
+  SiteDetail = 'SITE_DETAIL',
 }
 
 export enum ContentType {
@@ -47,6 +48,8 @@ export interface ArticleContent {
   generatedImageOptions?: string[]; // Array of Base64 strings for user to choose from
   scheduledFor?: string; // ISO Date string for scheduling
   internalLinkSuggestions?: InternalLinkSuggestion[]; // AI-generated suggestions for internal links
+  postId?: number; // The ID of the post on WordPress, if editing
+  origin?: 'new' | 'synced'; // Whether the content is new or synced from WP
 }
 
 export interface ProductContent {
@@ -120,4 +123,22 @@ export interface LanguageContextType {
 export interface SeoAnalysis {
   score: number;
   suggestions: string[];
+}
+
+export interface SitePost {
+    id: number;
+    title: {
+        rendered: string;
+    };
+    content: {
+        rendered: string;
+        protected: boolean;
+    };
+    status: string;
+    date: string;
+    link: string;
+    performance_stats?: {
+        views: number;
+        comments: number;
+    };
 }

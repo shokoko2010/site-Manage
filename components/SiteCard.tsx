@@ -6,9 +6,10 @@ import { LanguageContext } from '../App';
 interface SiteCardProps {
   site: WordPressSite;
   onRemove: (siteId: string) => void;
+  onManage: (site: WordPressSite) => void;
 }
 
-const SiteCard: React.FC<SiteCardProps> = ({ site, onRemove }) => {
+const SiteCard: React.FC<SiteCardProps> = ({ site, onRemove, onManage }) => {
   const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
 
   return (
@@ -51,7 +52,7 @@ const SiteCard: React.FC<SiteCardProps> = ({ site, onRemove }) => {
       </div>
       <div className="mt-6 text-end">
         {!site.isVirtual && (
-            <button className="bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-md transition-colors">
+            <button onClick={() => onManage(site)} className="bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-md transition-colors">
                 {t('manageSite')}
             </button>
         )}

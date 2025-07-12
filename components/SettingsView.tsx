@@ -1,4 +1,5 @@
 
+
 import React, { useState, useContext, useEffect } from 'react';
 import { LanguageContextType, Notification } from '../types';
 import { LanguageContext } from '../App';
@@ -32,13 +33,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showNotification }) => {
 
   const phpCodeSnippet = `
 /*
- * AI WP Manager Connection Snippet (v2 - More Resilient)
- * ------------------------------------------------------
+ * AI WP Manager Connection Snippet (v3 - With Performance Stats)
+ * -----------------------------------------------------------------
  * Instructions:
  * 1. IMPORTANT: Change 'YOUR_WP_USERNAME' below to your actual WordPress username.
  * 2. Paste this entire snippet into the "Code Snippets" plugin on your WordPress site.
  * 3. Save and activate the snippet. This should resolve CORS or connection errors.
- * 4. In the AI WP Manager app, add your site using your username and ANY non-empty password.
+ * 4. This version adds performance tracking (Views, Comments). Ensure you have a post
+ *    view counter plugin active that uses 'post_views_count' meta key for best results.
  */
 
 // --- Part 1: Allow connection without a real application password ---
@@ -55,30 +57,25 @@ add_filter( 'wp_authenticate_application_password_errors', function( $errors, $u
 }, 10, 3 );
 
 
-// --- Part 2: Robust CORS handling to allow the app to communicate with your site ---
+// --- Part 2: REST API Enhancements (CORS & Custom Fields) ---
 add_action( 'rest_api_init', function() {
+    // --- Sub-part A: Robust CORS handling ---
     // Remove default WordPress CORS headers to prevent conflicts
     remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
     
-    // Add custom, more robust CORS headers
     add_filter( 'rest_pre_serve_request', function( $value ) {
         $origin = get_http_origin();
         if ($origin) {
-            // Reflect the origin of the request to satisfy browser security
             header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
         } else {
-            // Fallback for requests without an Origin header
             header( 'Access-Control-Allow-Origin: *' );
         }
         
         header( 'Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE' );
         header( 'Access-Control-Allow-Credentials: true' );
-        // Define the headers that are allowed in the actual request from the app
         header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
-        // Define the headers that the app is allowed to read from the response
         header( 'Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link' );
 
-        // Handle the browser's preflight 'OPTIONS' request and exit early
         if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
             status_header( 200 );
             exit();
@@ -86,6 +83,28 @@ add_action( 'rest_api_init', function() {
 
         return $value;
     });
+
+    // --- Sub-part B: Expose Performance Stats (NEW) ---
+    register_rest_field( 'post', 'performance_stats', array(
+        'get_callback' => function( $post_arr ) {
+            // Assumes a post view counter plugin is saving data to 'post_views_count' meta key.
+            $views = get_post_meta( $post_arr['id'], 'post_views_count', true );
+            $comments_count = get_comments_number( $post_arr['id'] );
+
+            return array(
+                'views' => $views ? (int) $views : 0,
+                'comments' => (int) $comments_count,
+            );
+        },
+        'schema' => array(
+            'description' => 'Post performance statistics.',
+            'type'        => 'object',
+            'properties'  => array(
+                'views' => array('type' => 'integer'),
+                'comments' => array('type' => 'integer'),
+            ),
+        ),
+    ) );
 }, 15 );
 `.trim();
 

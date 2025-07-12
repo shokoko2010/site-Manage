@@ -12,6 +12,7 @@ import SettingsView from './components/SettingsView';
 import Spinner from './components/common/Spinner';
 
 const NewContentView = React.lazy(() => import('./components/NewContentView'));
+const SiteDetailView = React.lazy(() => import('./components/SiteDetailView'));
 
 export const LanguageContext = createContext<LanguageContextType | null>(null);
 
@@ -23,6 +24,7 @@ export default function App() {
   const [notification, setNotification] = useState<NotificationType | null>(null);
   const [language, setLanguage] = useState<LanguageCode>((localStorage.getItem('app_language') as LanguageCode) || 'en');
   const [editingContent, setEditingContent] = useState<ArticleContent | null>(null);
+  const [activeSite, setActiveSite] = useState<WordPressSite | null>(null);
   
   const t = getT(language);
 
@@ -90,7 +92,7 @@ export default function App() {
     setContentLibrary(prev => prev.map(item => item.id === contentId ? { ...item, ...updates } as GeneratedContent : item));
   };
   
-  const editFromLibrary = (content: ArticleContent) => {
+  const editContent = (content: ArticleContent) => {
     setEditingContent(content);
     setCurrentView(View.NewContent);
   };
@@ -121,31 +123,53 @@ export default function App() {
   };
 
   const navigateTo = (view: View) => {
-      if (currentView === View.NewContent && view !== View.NewContent) {
-        // When navigating away from the new content page, clear any item being edited.
+      if (view !== View.NewContent) {
         setEditingContent(null);
+      }
+      if (view !== View.SiteDetail) {
+        setActiveSite(null);
       }
       setCurrentView(view);
     };
 
+  const navigateToSiteDetail = (site: WordPressSite) => {
+    setActiveSite(site);
+    setCurrentView(View.SiteDetail);
+  };
+
   const renderView = () => {
+    const fallback = <div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>;
+    
     switch (currentView) {
       case View.Dashboard:
-        return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} />;
+        return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} />;
       case View.NewContent:
         return (
-            <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>}>
-                <NewContentView onContentGenerated={addToLibrary} onStrategyGenerated={addMultipleToLibrary} sites={sites} showNotification={showNotification} initialContent={editingContent} />
+            <Suspense fallback={fallback}>
+                <NewContentView 
+                    onContentGenerated={addToLibrary} 
+                    onStrategyGenerated={addMultipleToLibrary} 
+                    sites={sites} 
+                    showNotification={showNotification} 
+                    initialContent={editingContent}
+                    onUpdateComplete={() => navigateTo(View.SiteDetail)}
+                />
             </Suspense>
         );
       case View.ContentLibrary:
-        return <ContentLibraryView library={contentLibrary} sites={sites} onRemoveFromLibrary={removeFromLibrary} showNotification={showNotification} onEdit={editFromLibrary} onScheduleAll={scheduleAllUnscheduled} />;
+        return <ContentLibraryView library={contentLibrary} sites={sites} onRemoveFromLibrary={removeFromLibrary} showNotification={showNotification} onEdit={editContent} onScheduleAll={scheduleAllUnscheduled} />;
       case View.Calendar:
         return <CalendarView library={contentLibrary} sites={sites} showNotification={showNotification} onUpdateLibraryItem={updateLibraryItem} onRemoveFromLibrary={removeFromLibrary} />;
       case View.Settings:
           return <SettingsView showNotification={showNotification} />;
+      case View.SiteDetail:
+          return (
+            <Suspense fallback={fallback}>
+                {activeSite ? <SiteDetailView site={activeSite} onEdit={editContent} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} />}
+            </Suspense>
+          );
       default:
-        return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} />;
+        return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} />;
     }
   };
 
