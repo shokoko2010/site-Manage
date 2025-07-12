@@ -35,11 +35,23 @@ add_filter( 'wp_authenticate_application_password_errors', function( $errors, $u
 add_action( 'rest_api_init', function() {
     remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
     add_filter( 'rest_pre_serve_request', function( $value ) {
-        header( 'Access-Control-Allow-Origin: *' );
+        // Dynamically set Allow-Origin to the requesting domain
+        if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+            header( 'Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN'] );
+        } else {
+            // Fallback for requests without an Origin header
+            header( 'Access-Control-Allow-Origin: *' );
+        }
         header( 'Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE' );
         header( 'Access-Control-Allow-Credentials: true' );
         header( 'Access-Control-Allow-Headers: Authorization, Content-Type');
         header( 'Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
+
+        // Handle preflight OPTIONS request explicitly
+        if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
+            status_header( 200 );
+            exit();
+        }
 
         return $value;
     });
