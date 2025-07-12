@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
@@ -430,5 +431,46 @@ export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalys
     } catch (error) {
         console.error("Error analyzing SEO:", error);
         throw new Error("Failed to get SEO analysis from AI. The model may have returned an invalid format.");
+    }
+};
+
+export const modifyText = async (
+    text: string,
+    instruction: string,
+    language: Language,
+): Promise<string> => {
+    const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+
+    const systemInstruction = `You are an AI text editor. Your sole purpose is to modify the given text based on the user's instruction.
+    - Return ONLY the modified text.
+    - Do NOT add any extra explanations, greetings, comments, or markdown formatting like \`\`\`.
+    - Preserve the original language of the text, which is ${language}.
+    - If the original text uses markdown, preserve it in your output.`;
+    
+    const userPrompt = `
+        Instruction: "${instruction}"
+
+        Text to modify:
+        ---
+        ${text}
+        ---
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: userPrompt,
+            config: {
+                systemInstruction,
+            }
+        });
+
+        // We expect a plain text response, so we just return it.
+        return response.text.trim();
+
+    } catch(error) {
+        console.error("Error modifying text:", error);
+        throw new Error("Failed to modify text with AI. The service might be unavailable.");
     }
 };

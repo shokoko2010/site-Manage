@@ -1,17 +1,26 @@
 
 
 
-import React, { useState, useEffect, useContext } from 'react';
+
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle } from '../services/geminiService';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle, modifyText } from '../services/geminiService';
 import Spinner from './common/Spinner';
 import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon } from '../constants';
 import { getSiteContext, publishContent } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
+import InlineAiMenu from './InlineAiMenu';
+
+type SelectionInfo = {
+    text: string;
+    top: number;
+    left: number;
+    field: 'body' | 'longDescription' | 'shortDescription';
+};
 
 interface NewContentViewProps {
     onContentGenerated: (content: GeneratedContent) => void;
@@ -58,6 +67,11 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     // Refinement states
     const [isRefining, setIsRefining] = useState(false);
     const [refinementPrompt, setRefinementPrompt] = useState('');
+
+    // Inline AI Edit states
+    const resultViewRef = useRef<HTMLDivElement>(null);
+    const [selection, setSelection] = useState<SelectionInfo | null>(null);
+    const [isModifyingText, setIsModifyingText] = useState(false);
     
     const selectedSite = sites.find(s => s.id === selectedSiteId);
 
@@ -77,23 +91,62 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             setSeoAnalysis(null);
             setGeneratedStrategy(null);
             setRefinementPrompt('');
+            setSelection(null);
             
             if(initialContent.siteId) {
                 setSelectedSiteId(initialContent.siteId);
             }
-            // Pre-fill the "generate" form with the topic of the edited article
-            // This allows the user to easily regenerate a completely new article on the same topic if desired
             if (initialContent.type === ContentType.Article) {
                 setArticleTopic(initialContent.title);
                 setArticleKeywords('');
-                // Set the language state from the content being edited
                 setLanguage(initialContent.language);
             }
         } else {
-            // If there's no initial content, clear the result.
             setGeneratedResult(null);
         }
     }, [initialContent]);
+
+    // Effect for handling text selection for inline AI menu
+    useEffect(() => {
+        const handleMouseUp = (event: MouseEvent) => {
+            if (isModifyingText) return;
+
+            const currentSelection = window.getSelection();
+            const selectedText = currentSelection?.toString().trim();
+
+            if (selectedText && resultViewRef.current?.contains(currentSelection.anchorNode)) {
+                 const range = currentSelection.getRangeAt(0);
+                 const rect = range.getBoundingClientRect();
+                 const containerRect = resultViewRef.current.getBoundingClientRect();
+
+                 // Find which editor the selection is in
+                 const targetElement = event.target as HTMLElement;
+                 const editorContainer = targetElement.closest('[data-editor-field]')
+                 const field = editorContainer?.getAttribute('data-editor-field') as SelectionInfo['field'] | undefined;
+
+                 if (field) {
+                    setSelection({
+                        text: selectedText,
+                        top: rect.top - containerRect.top + window.scrollY,
+                        left: rect.left - containerRect.left + window.scrollX,
+                        field: field,
+                    });
+                 }
+            } else {
+                setSelection(null);
+            }
+        };
+
+        const handleScroll = () => setSelection(null);
+
+        document.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('scroll', handleScroll, true);
+
+        return () => {
+            document.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('scroll', handleScroll, true);
+        };
+    }, [isModifyingText]);
 
 
     const handleGenerate = async (e: React.FormEvent) => {
@@ -104,6 +157,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setGeneratedStrategy(null);
         setSeoAnalysis(null);
         setRefinementPrompt('');
+        setSelection(null);
 
         try {
             if (activeTab === ContentType.Article) {
@@ -212,11 +266,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
     const handleSaveToLibrary = () => {
         if (generatedResult) {
-            // If editing, this will save a *new* copy. This is intended behavior for now,
-            // allowing users to create variations. A true "update" would require more state management.
             onContentGenerated(generatedResult);
             setGeneratedResult(null);
-            // Reset forms
             setArticleTopic('');
             setArticleKeywords('');
             setProductName('');
@@ -280,6 +331,35 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             showNotification({ message, type: 'error' });
         } finally {
             setIsRefining(false);
+        }
+    };
+
+    const handleAiTextModify = async (instruction: string) => {
+        if (!selection || !generatedResult) return;
+        
+        setIsModifyingText(true);
+        
+        try {
+            const modifiedText = await modifyText(selection.text, instruction, language);
+            
+            setGeneratedResult(prevResult => {
+                if (!prevResult) return null;
+                // Create a mutable copy
+                const newResult = { ...prevResult };
+                const currentText = (newResult as any)[selection.field] as string;
+                // Replace only the first instance of the selection to avoid errors
+                const newContent = currentText.replace(selection.text, modifiedText);
+
+                (newResult as any)[selection.field] = newContent;
+                return newResult as GeneratedContent;
+            });
+
+        } catch (err) {
+            const message = err instanceof Error ? err.message : t('errorUnknown');
+            showNotification({ message, type: 'error' });
+        } finally {
+            setIsModifyingText(false);
+            setSelection(null);
         }
     };
 
@@ -495,7 +575,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                          </div>
                          <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">{t('articleBody')}</label>
-                            <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
+                            <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="body">
                                 <MDEditor
                                     value={generatedResult.body}
                                     onChange={(val) => handleResultChange('body', val || '')}
@@ -542,7 +622,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
-                             <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
+                             <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
                                 <MDEditor
                                     value={(generatedResult as ProductContent).longDescription}
                                     onChange={(val) => handleResultChange('longDescription', val || '')}
@@ -557,7 +637,9 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
-                            <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <div data-editor-field="shortDescription">
+                                <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -648,7 +730,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     </button>
                 </form>
 
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 relative" ref={resultViewRef}>
                     {(() => {
                         if (isLoading) {
                             return (
@@ -677,6 +759,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                             </div>
                         );
                     })()}
+                    {selection && (
+                        <InlineAiMenu
+                            position={{ top: selection.top, left: selection.left }}
+                            onAction={handleAiTextModify}
+                            isLoading={isModifyingText}
+                        />
+                    )}
                 </div>
             </div>
             {isPublishModalOpen && generatedResult && (

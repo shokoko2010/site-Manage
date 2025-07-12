@@ -93,6 +93,17 @@ export const translations = {
     seoScore: 'SEO Score',
     seoSuggestions: 'Suggestions for Improvement',
     
+    // AI Magic Edit Menu
+    aiMagicMenu: {
+        improve: 'Improve Writing',
+        shorter: 'Shorter',
+        longer: 'Longer',
+        tone: 'Change Tone',
+        professional: 'Professional',
+        casual: 'Casual',
+        friendly: 'Friendly',
+    },
+
     // ContentLibraryView
     libraryTitle: 'Content Library',
     libraryHint: 'Review, edit, and publish your AI-generated content drafts.',
@@ -270,6 +281,17 @@ export const translations = {
     analyzingSEO: 'جاري تحليل أداء السيو...',
     seoScore: 'درجة السيو',
     seoSuggestions: 'اقتراحات للتحسين',
+
+    // AI Magic Edit Menu
+    aiMagicMenu: {
+        improve: 'تحسين الكتابة',
+        shorter: 'أقصر',
+        longer: 'أطول',
+        tone: 'تغيير النبرة',
+        professional: 'احترافي',
+        casual: 'غير رسمي',
+        friendly: 'ودي',
+    },
 
     // ContentLibraryView
     libraryTitle: 'مكتبة المحتوى',
