@@ -1,10 +1,26 @@
-import React, { useState, useContext } from 'react';
-import { LanguageContextType } from '../types';
+
+import React, { useState, useContext, useEffect } from 'react';
+import { LanguageContextType, Notification } from '../types';
 import { LanguageContext } from '../App';
 
-const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  showNotification: (notification: Notification) => void;
+}
+
+const SettingsView: React.FC<SettingsViewProps> = ({ showNotification }) => {
   const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gemini_api_key') || '';
+    setApiKey(storedKey);
+  }, []);
+
+  const handleSaveApiKey = () => {
+    localStorage.setItem('gemini_api_key', apiKey);
+    showNotification({ message: t('apiKeySaved'), type: 'success' });
+  };
 
   const phpCodeSnippet = `
 /*
@@ -80,6 +96,31 @@ add_action( 'rest_api_init', function() {
       </header>
 
       <div className="space-y-8 max-w-4xl">
+        {/* Gemini API Settings */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-green-500/50">
+          <h2 className="text-xl font-semibold text-white mb-2">{t('apiSettingsTitle')}</h2>
+          <p className="text-gray-400 mb-4">{t('apiSettingsDesc')}</p>
+          <div className="flex items-center space-x-4 rtl:space-x-reverse">
+            <div className="flex-grow">
+              <label htmlFor="gemini-api-key" className="sr-only">{t('geminiApiKey')}</label>
+              <input
+                id="gemini-api-key"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={t('geminiApiKeyPlaceholder')}
+                className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={handleSaveApiKey}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
+            >
+              {t('save')}
+            </button>
+          </div>
+        </div>
+        
         {/* Method 1: App Password */}
         <div className="bg-gray-800 p-6 rounded-lg">
           <h2 className="text-xl font-semibold text-white mb-2">{t('method1Title')}</h2>

@@ -1,23 +1,27 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength } from '../types';
+
+const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
 
 /**
  * Lazily initializes the AI client.
  * Returns null if the API key is missing, allowing for graceful error handling in the UI.
  */
 const getAiClient = (): GoogleGenAI | null => {
-    if (!process.env.API_KEY) {
+    const apiKey = localStorage.getItem(GEMINI_API_KEY_STORAGE);
+    if (!apiKey) {
         return null;
     }
     try {
-        return new GoogleGenAI({ apiKey: process.env.API_KEY });
+        return new GoogleGenAI({ apiKey });
     } catch (e) {
         console.error("Error initializing GoogleGenAI:", e);
         return null;
     }
 };
 
-const MISSING_KEY_ERROR = "Gemini API Key is not configured. Please set the API_KEY environment variable in your deployment platform's settings.";
+const MISSING_KEY_ERROR = "Gemini API Key is not configured. Please go to the Settings page to add it.";
 
 const articleSchema = {
     type: Type.OBJECT,

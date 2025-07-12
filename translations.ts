@@ -116,8 +116,13 @@ export const translations = {
     allItemsScheduled: 'All drafts have been scheduled on the calendar!',
 
     // Settings View
-    settingsTitle: 'Connection Settings',
-    settingsHint: 'Manage how the application connects to your WordPress sites.',
+    settingsTitle: 'Settings',
+    settingsHint: 'Manage connections and API keys.',
+    apiSettingsTitle: "Gemini API Settings",
+    apiSettingsDesc: "Enter your Gemini API key below. The key is stored securely in your browser's local storage and is never shared.",
+    geminiApiKey: "Gemini API Key",
+    geminiApiKeyPlaceholder: "Enter your key here...",
+    save: "Save",
     method1Title: 'Method 1: Application Password (Recommended)',
     method1Desc: 'This is the standard, secure method for connecting applications to your site. You generate a unique password for this app within your WordPress user profile. This is the method used on the Dashboard page.',
     method2Title: 'Method 2: Code Snippet (Alternative)',
@@ -131,6 +136,8 @@ export const translations = {
     codeCopied: 'Copied!',
 
     // Notifications & Errors
+    apiKeySaved: 'API Key saved successfully!',
+    apiKeyMissingError: 'Gemini API Key is not configured. Please go to the Settings page to add it.',
     siteAdded: 'Site "{{name}}" added successfully!',
     siteRemoved: 'Site removed.',
     contentSaved: '"{{title}}" saved to library.',
@@ -265,8 +272,13 @@ export const translations = {
     allItemsScheduled: 'تمت جدولة جميع المسودات في التقويم!',
 
     // Settings View
-    settingsTitle: 'إعدادات الاتصال',
-    settingsHint: 'إدارة كيفية اتصال التطبيق بمواقع ووردبريس الخاصة بك.',
+    settingsTitle: 'الإعدادات',
+    settingsHint: 'إدارة الاتصالات ومفاتيح الواجهة البرمجية (API).',
+    apiSettingsTitle: "إعدادات Gemini API",
+    apiSettingsDesc: "أدخل مفتاح Gemini API الخاص بك أدناه. يتم تخزين المفتاح بشكل آمن في التخزين المحلي للمتصفح ولا يتم مشاركته أبدًا.",
+    geminiApiKey: "مفتاح Gemini API",
+    geminiApiKeyPlaceholder: "أدخل مفتاحك هنا...",
+    save: "حفظ",
     method1Title: 'الطريقة الأولى: كلمة مرور التطبيق (موصى بها)',
     method1Desc: 'هذه هي الطريقة القياسية والآمنة لربط التطبيقات بموقعك. تقوم بإنشاء كلمة مرور فريدة لهذا التطبيق من خلال ملفك الشخصي في ووردبريس. هذه هي الطريقة المستخدمة في صفحة لوحة التحكم.',
     method2Title: 'الطريقة الثانية: كود برمجي (بديل)',
@@ -280,6 +292,8 @@ export const translations = {
     codeCopied: 'تم النسخ!',
 
     // Notifications & Errors
+    apiKeySaved: 'تم حفظ مفتاح API بنجاح!',
+    apiKeyMissingError: 'مفتاح Gemini API غير مُعد. يرجى الذهاب إلى صفحة الإعدادات لإضافته.',
     siteAdded: 'تمت إضافة الموقع "{{name}}" بنجاح!',
     siteRemoved: 'تمت إزالة الموقع.',
     contentSaved: 'تم حفظ "{{title}}" في المكتبة.',

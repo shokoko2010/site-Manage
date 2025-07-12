@@ -135,7 +135,7 @@ export default function App() {
       case View.Calendar:
         return <CalendarView library={contentLibrary} sites={sites} showNotification={showNotification} onUpdateLibraryItem={updateLibraryItem} onRemoveFromLibrary={removeFromLibrary} />;
       case View.Settings:
-          return <SettingsView />;
+          return <SettingsView showNotification={showNotification} />;
       default:
         return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} />;
     }
