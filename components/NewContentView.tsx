@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useContext } from 'react';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, WritingTone, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType } from '../types';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone } from '../types';
 import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon } from '../constants';
 import { getSiteContext, publishContent } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
@@ -22,6 +22,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [generatedResult, setGeneratedResult] = useState<GeneratedContent | null>(null);
+    const [generatedStrategy, setGeneratedStrategy] = useState<ArticleContent[] | null>(null);
 
     // Form states
     const [articleTopic, setArticleTopic] = useState('');
@@ -62,11 +63,17 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
     useEffect(() => {
         if (initialContent) {
-            setGeneratedResult(initialContent);
             setActiveTab(initialContent.type);
+            setGeneratedResult(initialContent);
             setSeoAnalysis(null);
+            setGeneratedStrategy(null);
+            
             if(initialContent.siteId) {
                 setSelectedSiteId(initialContent.siteId);
+            }
+            if (initialContent.type === ContentType.Article) {
+                setArticleTopic(initialContent.title);
+                setArticleKeywords('');
             }
         }
     }, [initialContent]);
@@ -77,7 +84,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setIsLoading(true);
         setError('');
         setGeneratedResult(null);
-        setSeoAnalysis(null); // Clear previous SEO analysis
+        setGeneratedStrategy(null);
+        setSeoAnalysis(null);
 
         try {
             if (activeTab === ContentType.Article) {
@@ -128,8 +136,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             return { ...article, siteId: selectedSiteId, scheduledFor: undefined };
         });
 
-        onStrategyGenerated(scheduledArticles);
-        setStrategyTopic('');
+        setGeneratedStrategy(scheduledArticles);
     };
     
     const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
@@ -220,6 +227,20 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         }
     };
     
+    const handleSaveStrategy = () => {
+        if (generatedStrategy) {
+            onStrategyGenerated(generatedStrategy);
+            setGeneratedStrategy(null);
+        }
+    };
+    
+    const handleStrategyTitleChange = (index: number, newTitle: string) => {
+        if (!generatedStrategy) return;
+        const updatedStrategy = [...generatedStrategy];
+        updatedStrategy[index].title = newTitle;
+        setGeneratedStrategy(updatedStrategy);
+    };
+
     const renderForm = () => {
         const commonFields = (
              <>
@@ -412,66 +433,91 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     }
 
     const renderResult = () => {
-        if (isLoading && activeTab !== ContentType.Strategy) {
-            return <div className="text-center p-10 bg-gray-800 rounded-lg"><Spinner /><p className="mt-4 text-lg text-gray-300 animate-pulse">{t('generating')}</p></div>
-        }
-        if (error && !generatedResult) {
-            return <div className="text-center p-10 bg-red-900/20 border border-red-500 rounded-lg"><p className="text-red-400">{error}</p></div>
-        }
-        if (generatedResult) {
-            const contentSite = sites.find(s => s.id === generatedResult.siteId);
-            const isForVirtualSite = contentSite?.isVirtual === true;
+        if (!generatedResult) return null;
 
-            return (
-                <div className="bg-gray-800 rounded-lg p-6 animate-fade-in">
-                    <h3 className="text-2xl font-bold text-white mb-4">{t('generatedContent')}</h3>
-                    {generatedResult.type === ContentType.Article ? (
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
-                                <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                             <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Meta Description</label>
-                                <textarea value={generatedResult.metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
-                             </div>
-                             <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Body (Markdown)</label>
-                                <textarea value={generatedResult.body} onChange={e => handleResultChange('body', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-96 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
-                             </div>
-                             {renderImageGenerator()}
-                             {renderSeoAnalyzer()}
+        const contentSite = sites.find(s => s.id === generatedResult.siteId);
+        const isForVirtualSite = contentSite?.isVirtual === true;
+
+        return (
+            <div className="bg-gray-800 rounded-lg p-6 animate-fade-in">
+                <h3 className="text-2xl font-bold text-white mb-4">{t('generatedContent')}</h3>
+                {generatedResult.type === ContentType.Article ? (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
+                            <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
-                    ) : (
-                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Product Name</label>
-                                <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Long Description (Markdown)</label>
-                                <textarea value={generatedResult.longDescription} onChange={e => handleResultChange('longDescription', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-64 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
-                                <textarea value={generatedResult.shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                        </div>
-                    )}
-                    <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
-                         <button onClick={handleSaveToLibrary} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                            {t('saveToLibrary')}
-                        </button>
-                        {!isForVirtualSite && (
-                            <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                                {t('publish')}
-                            </button>
-                        )}
+                         <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Meta Description</label>
+                            <textarea value={generatedResult.metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
+                         </div>
+                         <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Body (Markdown)</label>
+                            <textarea value={generatedResult.body} onChange={e => handleResultChange('body', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-96 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                         </div>
+                         {renderImageGenerator()}
+                         {renderSeoAnalyzer()}
                     </div>
+                ) : (
+                     <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Product Name</label>
+                            <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Long Description (Markdown)</label>
+                            <textarea value={generatedResult.longDescription} onChange={e => handleResultChange('longDescription', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-64 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
+                            <textarea value={generatedResult.shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+                    </div>
+                )}
+                <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
+                     <button onClick={handleSaveToLibrary} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                        {t('saveToLibrary')}
+                    </button>
+                    {!isForVirtualSite && (
+                        <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                            {t('publish')}
+                        </button>
+                    )}
                 </div>
-            )
-        }
-        return null;
+            </div>
+        )
+    }
+    
+    const renderStrategyResult = () => {
+        if (!generatedStrategy) return null;
+
+        return (
+            <div className="bg-gray-800 rounded-lg p-6 animate-fade-in">
+                <h3 className="text-2xl font-bold text-white mb-2">{t('generatedStrategy')}</h3>
+                <p className="text-gray-400 mb-4 text-sm">{t('reviewStrategyHint')}</p>
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {generatedStrategy.map((article, index) => (
+                        <div key={article.id} className="flex items-center gap-4">
+                            <span className="text-gray-400 font-bold">{index + 1}.</span>
+                            <input 
+                                type="text"
+                                value={article.title}
+                                onChange={e => handleStrategyTitleChange(index, e.target.value)}
+                                className="text-base font-medium w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
+                    <button onClick={() => setGeneratedStrategy(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                        {t('discard')}
+                    </button>
+                    <button onClick={handleSaveStrategy} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center">
+                        <LibraryIcon /> <span className="ms-2">{t('saveStrategyToLibrary')}</span>
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     const buttonText = activeTab === ContentType.Strategy ? t('generateStrategy') : t('generateContent');
@@ -516,15 +562,34 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                 </form>
 
                 <div className="lg:col-span-1">
-                    {renderResult() || (
-                        <div className="flex items-center justify-center h-full bg-gray-800/50 border-2 border-dashed border-gray-700 rounded-lg">
-                            <div className="text-center p-4">
-                                 <SparklesIcon />
-                                <h3 className="mt-2 text-sm font-medium text-gray-300">{t('yourContentHere')}</h3>
-                                <p className="mt-1 text-sm text-gray-500">{t('yourContentHereHint')}</p>
+                    {(() => {
+                        if (isLoading) {
+                            return (
+                                <div className="text-center p-10 bg-gray-800 rounded-lg flex flex-col items-center justify-center h-full">
+                                    <Spinner size="lg"/>
+                                    <p className="mt-4 text-lg text-gray-300 animate-pulse">{t('generating')}</p>
+                                </div>
+                            );
+                        }
+                        if (activeTab === ContentType.Strategy && generatedStrategy) {
+                            return renderStrategyResult();
+                        }
+                        if (error && !generatedResult) {
+                             return <div className="text-center p-10 bg-red-900/20 border border-red-500 rounded-lg flex items-center justify-center h-full"><p className="text-red-400">{error}</p></div>
+                        }
+                        if (generatedResult) {
+                            return renderResult();
+                        }
+                        return (
+                            <div className="flex items-center justify-center h-full bg-gray-800/50 border-2 border-dashed border-gray-700 rounded-lg">
+                                <div className="text-center p-4">
+                                     <SparklesIcon />
+                                    <h3 className="mt-2 text-sm font-medium text-gray-300">{t('yourContentHere')}</h3>
+                                    <p className="mt-1 text-sm text-gray-500">{t('yourContentHereHint')}</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
             </div>
             {isPublishModalOpen && generatedResult && (

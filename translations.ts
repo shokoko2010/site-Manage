@@ -66,6 +66,10 @@ export const translations = {
     yourContentHereHint: 'Fill out the form and click "Generate".',
     saveToLibrary: 'Save to Library',
     publish: 'Publish...',
+    generatedStrategy: 'Generated Content Strategy',
+    reviewStrategyHint: 'Review and edit the article titles below. The full content will be saved to your library.',
+    discard: 'Discard & Start Over',
+    saveStrategyToLibrary: 'Save Strategy to Library',
     
     // Image Generator
     featuredImage: 'Featured Image',
@@ -233,6 +237,10 @@ export const translations = {
     yourContentHereHint: 'املأ النموذج وانقر على "توليد".',
     saveToLibrary: 'حفظ في المكتبة',
     publish: 'نشر...',
+    generatedStrategy: 'استراتيجية المحتوى المقترحة',
+    reviewStrategyHint: 'راجع وعدّل عناوين المقالات أدناه. سيتم حفظ المحتوى الكامل في مكتبتك.',
+    discard: 'تجاهل والبدء من جديد',
+    saveStrategyToLibrary: 'حفظ الاستراتيجية في المكتبة',
 
     // Image Generator
     featuredImage: 'الصورة البارزة',

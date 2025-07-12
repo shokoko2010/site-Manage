@@ -120,6 +120,14 @@ export default function App() {
       showNotification({ message: t('allItemsScheduled'), type: 'success' });
   };
 
+  const navigateTo = (view: View) => {
+      if (currentView === View.NewContent && view !== View.NewContent) {
+        // When navigating away from the new content page, clear any item being edited.
+        setEditingContent(null);
+      }
+      setCurrentView(view);
+    };
+
   const renderView = () => {
     switch (currentView) {
       case View.Dashboard:
@@ -145,7 +153,7 @@ export default function App() {
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       <div className="flex h-screen bg-gray-900 text-gray-100 font-sans">
         <Notification notification={notification} onClose={() => setNotification(null)} />
-        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
+        <Sidebar currentView={currentView} setCurrentView={navigateTo} />
         <main className="flex-1 overflow-y-auto">
           {renderView()}
         </main>
