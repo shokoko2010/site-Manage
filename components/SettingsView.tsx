@@ -8,12 +8,12 @@ const SettingsView: React.FC = () => {
 
   const phpCodeSnippet = `
 /*
- * AI WP Manager Connection Snippet
- * --------------------------------
+ * AI WP Manager Connection Snippet (v2 - More Resilient)
+ * ------------------------------------------------------
  * Instructions:
  * 1. IMPORTANT: Change 'YOUR_WP_USERNAME' below to your actual WordPress username.
  * 2. Paste this entire snippet into the "Code Snippets" plugin on your WordPress site.
- * 3. Save and activate the snippet.
+ * 3. Save and activate the snippet. This should resolve CORS or connection errors.
  * 4. In the AI WP Manager app, add your site using your username and ANY non-empty password.
  */
 
@@ -23,7 +23,7 @@ add_filter( 'wp_authenticate_application_password_errors', function( $errors, $u
     $allowed_username = 'YOUR_WP_USERNAME';
 
     if ( is_wp_error($errors) && $user && $user->user_login === $allowed_username ) {
-        // This effectively bypasses the password check for this specific user only.
+        // This bypasses the password check for this specific user, allowing any password to work.
         return new WP_Error(); // Return an empty WP_Error object to signify success
     }
 
@@ -31,23 +31,30 @@ add_filter( 'wp_authenticate_application_password_errors', function( $errors, $u
 }, 10, 3 );
 
 
-// --- Part 2: Enable CORS for the application to communicate with your site ---
+// --- Part 2: Robust CORS handling to allow the app to communicate with your site ---
 add_action( 'rest_api_init', function() {
+    // Remove default WordPress CORS headers to prevent conflicts
     remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
+    
+    // Add custom, more robust CORS headers
     add_filter( 'rest_pre_serve_request', function( $value ) {
-        // Dynamically set Allow-Origin to the requesting domain
-        if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
-            header( 'Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN'] );
+        $origin = get_http_origin();
+        if ($origin) {
+            // Reflect the origin of the request to satisfy browser security
+            header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
         } else {
             // Fallback for requests without an Origin header
             header( 'Access-Control-Allow-Origin: *' );
         }
+        
         header( 'Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE' );
         header( 'Access-Control-Allow-Credentials: true' );
-        header( 'Access-Control-Allow-Headers: Authorization, Content-Type');
-        header( 'Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
+        // Define the headers that are allowed in the actual request from the app
+        header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
+        // Define the headers that the app is allowed to read from the response
+        header( 'Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link' );
 
-        // Handle preflight OPTIONS request explicitly
+        // Handle the browser's preflight 'OPTIONS' request and exit early
         if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
             status_header( 200 );
             exit();
