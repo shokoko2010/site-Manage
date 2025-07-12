@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -83,6 +84,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             if (initialContent.type === ContentType.Article) {
                 setArticleTopic(initialContent.title);
                 setArticleKeywords('');
+                // Set the language state from the content being edited
+                setLanguage(initialContent.language);
             }
         } else {
             // If there's no initial content, clear the result.

@@ -35,6 +35,7 @@ export interface ArticleContent {
   body: string;
   status: 'draft';
   createdAt: Date;
+  language: Language;
   siteId?: string; // ID of the site it was generated for
   featuredImage?: string; // Selected Base64 image string
   generatedImageOptions?: string[]; // Array of Base64 strings for user to choose from

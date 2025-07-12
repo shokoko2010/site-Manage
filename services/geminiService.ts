@@ -162,6 +162,7 @@ For context, here is some information about the website this article will be pub
       body: parsed.body,
       status: 'draft',
       createdAt: new Date(),
+      language: language,
     };
   } catch (error) {
     console.error("Error generating article:", error);
@@ -305,6 +306,7 @@ export const generateContentStrategy = async (
                 body: parsed.body,
                 status: 'draft',
                 createdAt: new Date(),
+                language: language,
             };
         }).filter((article): article is ArticleContent => article !== null);
 
