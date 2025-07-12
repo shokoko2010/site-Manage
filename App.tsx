@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
 import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult } from './types';
 import Sidebar from './components/Sidebar';
@@ -140,7 +141,8 @@ export default function App() {
   };
 
   const navigateTo = (view: View) => {
-      if (view !== View.NewContent) {
+      // Clean up states when navigating away from a specific view
+      if (currentView === View.NewContent) {
         setEditingContent(null);
         setNewContentType(undefined);
         setInitialTitleForNewContent(undefined);
