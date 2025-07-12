@@ -51,14 +51,25 @@ export const translations = {
     ideaJustification: 'Why this is a good idea:',
     noDataForIdeas: 'Not enough performance data to generate ideas. Publish more content and get some views!',
 
-    // NewContentView (Wizard)
+    // NewContentView (Writer's Studio)
     step1_brief_title: 'Step 1: The Brief',
     step1_brief_hint: 'Tell the AI what you want to create.',
     step2_generating_title: 'Generating Your Content...',
     step2_generating_hint: 'The AI is working its magic. This can take up to a minute.',
-    step3_editor_title: 'Step 3: Edit & Refine',
-    step3_editor_hint: 'Your content is ready. Use the AI Toolkit to make it perfect.',
     aiToolkit: 'AI Toolkit',
+    editAndImprove: 'Edit & Improve',
+    words: 'Words',
+
+    // Professional Editor Toolbar
+    bold: 'Bold',
+    italic: 'Italic',
+    heading2: 'Heading 2',
+    heading3: 'Heading 3',
+    heading4: 'Heading 4',
+    bulletList: 'Bulleted List',
+    numberedList: 'Numbered List',
+    quote: 'Quote',
+    addLink: 'Add Link',
     
     createNewContent: 'Create New Content',
     createNewContentHint: 'Use AI to generate single articles, products, or a full content strategy.',
@@ -106,6 +117,7 @@ export const translations = {
     refiningArticle: 'Refining the article with AI...',
     articleBody: 'Article Body',
     longDescription: 'Long Description (Markdown)',
+    shortDescription: 'Short Description',
     
     // Image Generator
     featuredImage: 'Featured Image',
@@ -165,7 +177,6 @@ export const translations = {
     postDate: 'Date',
     views: 'Views',
     comments: 'Comments',
-    editAndImprove: 'Edit & Improve',
     fetchingPosts: 'Fetching posts...',
     noPostsFound: 'No posts found on this site.',
 
@@ -294,14 +305,25 @@ export const translations = {
     ideaJustification: 'لماذا هذه فكرة جيدة:',
     noDataForIdeas: 'لا توجد بيانات أداء كافية لتوليد الأفكار. انشر المزيد من المحتوى واحصل على بعض المشاهدات!',
 
-    // NewContentView (Wizard)
+    // NewContentView (Writer's Studio)
     step1_brief_title: 'الخطوة 1: الملخص',
     step1_brief_hint: 'أخبر الذكاء الاصطناعي بما تريد إنشاءه.',
     step2_generating_title: 'جاري إنشاء المحتوى...',
     step2_generating_hint: 'الذكاء الاصطناعي يعمل الآن. قد يستغرق الأمر دقيقة.',
-    step3_editor_title: 'الخطوة 3: التحرير والتحسين',
-    step3_editor_hint: 'المحتوى جاهز. استخدم مجموعة أدوات الذكاء الاصطناعي لجعله مثاليًا.',
     aiToolkit: 'صندوق أدوات الذكاء الاصطناعي',
+    editAndImprove: 'تحرير وتحسين',
+    words: 'كلمات',
+
+    // Professional Editor Toolbar
+    bold: 'عريض',
+    italic: 'مائل',
+    heading2: 'عنوان 2',
+    heading3: 'عنوان 3',
+    heading4: 'عنوان 4',
+    bulletList: 'قائمة نقطية',
+    numberedList: 'قائمة رقمية',
+    quote: 'اقتباس',
+    addLink: 'إضافة رابط',
 
     createNewContent: 'إنشاء محتوى جديد',
     createNewContentHint: 'استخدم الذكاء الاصطناعي لإنشاء مقالات فردية أو منتجات أو استراتيجية محتوى كاملة.',
@@ -349,6 +371,7 @@ export const translations = {
     refiningArticle: 'جاري تحسين المقال بالذكاء الاصطناعي...',
     articleBody: 'محتوى المقال',
     longDescription: 'الوصف المطول (ماركداون)',
+    shortDescription: 'الوصف القصير',
 
     // Image Generator
     featuredImage: 'الصورة البارزة',
@@ -396,9 +419,8 @@ export const translations = {
     libraryEmpty: 'مكتبة المحتوى فارغة.',
     libraryEmptyHint: 'اذهب إلى "محتوى جديد" لإنشاء أول قطعة لك.',
     delete: 'حذف',
-    edit: 'تحرير وتحسين',
     scheduleAll: 'جدولة كل المسودات',
-
+    
     // Site Detail View
     siteDetailTitle: 'مستكشف محتوى الموقع',
     siteDetailHint: 'عرض وتعديل وتحسين جميع المقالات الموجودة على موقعك.',
@@ -408,7 +430,6 @@ export const translations = {
     postDate: 'التاريخ',
     views: 'المشاهدات',
     comments: 'التعليقات',
-    editAndImprove: 'تحرير وتحسين',
     fetchingPosts: 'جاري جلب المقالات...',
     noPostsFound: 'لم يتم العثور على مقالات في هذا الموقع.',
 

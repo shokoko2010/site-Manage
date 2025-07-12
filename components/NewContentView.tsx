@@ -1,15 +1,27 @@
-import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, NewContentViewProps, CampaignGenerationResult } from '../types';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, CampaignGenerationResult } from '../types';
 import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon, ArrowUturnLeftIcon, Bars3Icon, HeadingIcon, BoldIcon, ItalicIcon, ListBulletIcon, QuoteIcon, PublishIcon } from '../constants';
 import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
 import InlineAiMenu from './InlineAiMenu';
+
+interface NewContentViewProps {
+    onContentGenerated: (content: GeneratedContent) => void;
+    onCampaignGenerated: (campaignResult: CampaignGenerationResult) => void;
+    sites: WordPressSite[];
+    showNotification: (notification: Notification) => void;
+    initialContent?: ArticleContent | null;
+    onExit: () => void;
+    newContentType?: ContentType;
+    initialTitle?: string;
+}
+
 
 type SelectionInfo = { text: string; top: number; left: number; field: 'body' | 'longDescription' | 'shortDescription'; };
 type WizardStep = 'brief' | 'generating' | 'editor' | 'campaign_result';
@@ -55,7 +67,7 @@ const RefineTool = ({ article, contentLanguage, showNotification, onRefined }: {
             <p className="text-sm text-gray-400">{t('refineWithAIHint')}</p>
             <textarea value={refinementPrompt} onChange={e => setRefinementPrompt(e.target.value)} placeholder={t('refinementPlaceholder')} className="w-full text-sm bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} disabled={isRefining} />
             <button onClick={handleRefineArticle} disabled={isRefining} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50">
-                {isRefining ? <Spinner size="sm"/> : <><ArrowPathIcon className="me-2 h-4 w-4"/> {t('refineArticle')}</>}
+                {isRefining ? <Spinner size="sm"/> : <><SparklesIcon className="me-2 h-4 w-4"/> {t('refineArticle')}</>}
             </button>
         </div>
     );
@@ -155,7 +167,7 @@ const InternalLinkerTool = ({ article, suggestions, onLinkApplied }: { article: 
 };
 
 // Main Component
-const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onCampaignGenerated, sites, showNotification, initialContent, newContentType, onUpdateComplete, initialTitle }) => {
+const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onCampaignGenerated, sites, showNotification, initialContent, newContentType, onExit, initialTitle }) => {
     const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [wizardStep, setWizardStep] = useState<WizardStep>('brief');
 
@@ -163,6 +175,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const [error, setError] = useState('');
     const [generatedResult, setGeneratedResult] = useState<GeneratedContent | null>(null);
     const [generatedCampaign, setGeneratedCampaign] = useState<CampaignGenerationResult | null>(null);
+    const editorRef = useRef<any>(null);
+
 
     // Form states
     const [activeTab, setActiveTab] = useState<ContentType>(ContentType.Article);
@@ -178,13 +192,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const [selectedSiteId, setSelectedSiteId] = useState<string | undefined>(sites.length > 0 ? sites[0].id : undefined);
     const [useGoogleSearch, setUseGoogleSearch] = useState(true);
 
-    // Toolkit & Result states
+    // Toolkit, Editor & Result states
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
     const [selection, setSelection] = useState<SelectionInfo | null>(null);
     const [isModifyingText, setIsModifyingText] = useState(false);
     const resultViewRef = useRef<HTMLDivElement>(null);
-    const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
+    const [isToolkitOpen, setIsToolkitOpen] = useState(true);
     
     // Proactive AI Co-pilot State
     const [isSeoToolkitOpen, setIsSeoToolkitOpen] = useState(true);
@@ -193,7 +207,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
     const [linkSuggestions, setLinkSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
     const [isSuggestingLinks, setIsSuggestingLinks] = useState(false);
-
+    
+    const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
     const selectedSite = sites.find(s => s.id === selectedSiteId);
 
     // Set initial state from props (for new content or editing existing content)
@@ -221,60 +236,31 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
 
 
     // Proactive AI handlers
-    const handleAnalyzeSeoProactive = useCallback(async () => {
-        if (!articleForAnalysis || isAnalyzingSeo) return;
-        setIsAnalyzingSeo(true);
-        try {
-            const result = await analyzeSeo(articleForAnalysis.title, articleForAnalysis.body);
-            setSeoAnalysis(result);
-        } catch(err) {
-            console.error("Proactive SEO analysis failed:", err);
-        } finally {
-            setIsAnalyzingSeo(false);
-        }
-    }, [articleForAnalysis, isAnalyzingSeo]);
-
-    const handleSuggestLinksProactive = useCallback(async () => {
-        const siteForLinks = sites.find(s => s.id === selectedSiteId);
-        if (!articleForAnalysis || !siteForLinks || siteForLinks.isVirtual || isSuggestingLinks) return;
-
-        setIsSuggestingLinks(true);
-        try {
-            const siteContext = await getSiteContext(siteForLinks);
-            if (siteContext.recentPosts && siteContext.recentPosts.length > 0) {
-                 const suggestions = await generateInternalLinks(articleForAnalysis.body, siteContext);
-                 // Only update if the content hasn't changed since the request was made
-                 setLinkSuggestions(prev => {
-                     const currentArticle = generatedResult as ArticleContent;
-                     if (currentArticle?.body === articleForAnalysis.body) {
-                         return suggestions;
-                     }
-                     return prev; // Stale request, ignore.
-                 });
-            } else {
-                setLinkSuggestions([]);
-            }
-        } catch (err) {
-            console.warn("Proactive link suggestion failed:", err);
-            setLinkSuggestions([]);
-        } finally {
-            setIsSuggestingLinks(false);
-        }
-    }, [articleForAnalysis, sites, selectedSiteId, isSuggestingLinks, generatedResult]);
-
-    // Debounced effect for proactive analysis
     useEffect(() => {
-        if (wizardStep !== 'editor' || !articleForAnalysis?.body) {
-            return;
-        }
+        if (wizardStep !== 'editor' || !articleForAnalysis?.body) return;
 
-        const handler = setTimeout(() => {
-            if (isSeoToolkitOpen) handleAnalyzeSeoProactive();
-            if (isLinkToolkitOpen) handleSuggestLinksProactive();
-        }, 2000); // 2-second delay after user stops typing
+        const handleProactiveAnalysis = () => {
+             if (isSeoToolkitOpen && !isAnalyzingSeo) {
+                analyzeSeo(articleForAnalysis.title, articleForAnalysis.body).then(setSeoAnalysis).catch(console.warn).finally(() => setIsAnalyzingSeo(false));
+                setIsAnalyzingSeo(true);
+             }
+             if (isLinkToolkitOpen && !isSuggestingLinks) {
+                const siteForLinks = sites.find(s => s.id === selectedSiteId);
+                if (siteForLinks && !siteForLinks.isVirtual) {
+                    setIsSuggestingLinks(true);
+                    getSiteContext(siteForLinks).then(context => {
+                        if (context.recentPosts?.length > 0) {
+                           return generateInternalLinks(articleForAnalysis.body, context);
+                        }
+                        return [];
+                    }).then(setLinkSuggestions).catch(console.warn).finally(() => setIsSuggestingLinks(false));
+                }
+             }
+        };
 
+        const handler = setTimeout(handleProactiveAnalysis, 2000);
         return () => clearTimeout(handler);
-    }, [articleForAnalysis?.body, articleForAnalysis?.title, wizardStep, isSeoToolkitOpen, isLinkToolkitOpen, handleAnalyzeSeoProactive, handleSuggestLinksProactive]);
+    }, [articleForAnalysis?.body, articleForAnalysis?.title, wizardStep, isSeoToolkitOpen, isLinkToolkitOpen, sites, selectedSiteId]);
 
     // Handle site selection changes
     useEffect(() => {
@@ -359,7 +345,6 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const handleGenerateCampaign = async () => {
         if (!campaignTopic || !selectedSiteId) throw new Error(t('errorAllFieldsRequired'));
         const campaignResult = await generateContentCampaign(campaignTopic, numArticles, language);
-        // Assign site ID to all generated articles
         const updatedPillar = { ...campaignResult.pillarPost, siteId: selectedSiteId };
         const updatedClusters = campaignResult.clusterPosts.map(c => ({...c, siteId: selectedSiteId}));
         setGeneratedCampaign({ pillarPost: updatedPillar, clusterPosts: updatedClusters });
@@ -370,7 +355,6 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         if (!generatedResult) return;
         setGeneratedResult(prev => {
              if (!prev) return null;
-             // When body or title changes, reset proactive suggestions to indicate they are stale
              if (field === 'body' || field === 'title') {
                  setSeoAnalysis(null);
                  setLinkSuggestions(null);
@@ -387,8 +371,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             const result = await publishContent(siteToPublish, generatedResult, options);
             showNotification({ message: t('publishSuccess', { url: result.postUrl }), type: 'success' });
             setIsPublishModalOpen(false);
-            setGeneratedResult(null); 
-            setWizardStep('brief');
+            onExit();
         } catch (err) {
             showNotification({ message: t('publishFail', { error: err instanceof Error ? err.message : String(err) }), type: 'error' });
         } finally {
@@ -405,45 +388,28 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             const result = await updatePost(siteToUpdate, article.postId, article, options);
             showNotification({ message: t('updateSuccess', { url: result.postUrl }), type: 'success' });
             setIsPublishModalOpen(false);
-            setGeneratedResult(null);
-            if(onUpdateComplete) onUpdateComplete();
+            onExit();
         } catch (err) {
             showNotification({ message: t('updateFail', { error: err instanceof Error ? err.message : String(err) }), type: 'error' });
         } finally {
             setIsPublishing(false);
         }
     };
-
-    const handleSaveToLibrary = () => {
-        if (generatedResult) {
-            onContentGenerated(generatedResult);
-            setGeneratedResult(null);
-            setWizardStep('brief');
-        }
-    };
-
+    
     const handleSaveCampaign = () => {
         if (generatedCampaign) {
             onCampaignGenerated(generatedCampaign);
-            setGeneratedCampaign(null);
-            setWizardStep('brief');
+            onExit();
         }
     };
     
     const handleCampaignArticleTitleChange = (type: 'pillar' | 'cluster', index: number, newTitle: string) => {
         if (!generatedCampaign) return;
-        
         const updatedCampaign = { ...generatedCampaign };
-        
-        if (type === 'pillar') {
-            updatedCampaign.pillarPost.title = newTitle;
-        } else {
-            updatedCampaign.clusterPosts[index].title = newTitle;
-        }
-        
+        if (type === 'pillar') updatedCampaign.pillarPost.title = newTitle;
+        else updatedCampaign.clusterPosts[index].title = newTitle;
         setGeneratedCampaign(updatedCampaign);
     };
-
 
     const handleAiTextModify = async (instruction: string) => {
         if (!selection || !generatedResult) return;
@@ -469,10 +435,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const handleApplyLinkSuggestion = (suggestion: InternalLinkSuggestion) => {
         if (!articleForAnalysis) return;
         const newBody = articleForAnalysis.body.replace(suggestion.textToLink, `[${suggestion.textToLink}](${suggestion.linkTo})`);
-        
         handleResultChange('body', newBody);
-        
-        // Remove the applied suggestion from the current list to avoid re-applying
         setLinkSuggestions(prev => prev ? prev.filter(s => s.textToLink !== suggestion.textToLink) : null);
     };
 
@@ -518,73 +481,75 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         );
 
         return(
-        <div className="max-w-4xl mx-auto p-8">
-            <header className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-white">{t('step1_brief_title')}</h1>
-                <p className="text-gray-400 mt-1">{t('step1_brief_hint')}</p>
-            </header>
-            <div className="bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-700/50">
-                <form onSubmit={handleGenerate}>
-                    <div className="flex border-b border-gray-700 mb-6">
-                        <TabButton id={ContentType.Article} label={t('article')} icon={<ArticleIcon />} />
-                        <TabButton id={ContentType.Product} label={t('product')} icon={<ProductIcon />} />
-                        <TabButton id={ContentType.Campaign} label={t('campaign')} icon={<CampaignIcon />} />
-                    </div>
-                    <div className="space-y-6 mb-8">
-                    {activeTab === ContentType.Article && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {contextSelector}
-                            <div className="md:col-span-2">
-                                <label htmlFor="article-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('topicTitle')}</label>
-                                <input type="text" id="article-topic" value={articleTopic} onChange={e => setArticleTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('topicTitlePlaceholder')} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="article-keywords" className="block text-sm font-medium text-gray-300 mb-1">{t('keywords')}</label>
-                                <input type="text" id="article-keywords" value={articleKeywords} onChange={e => setArticleKeywords(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('keywordsPlaceholder')} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="articleLength" className="block text-sm font-medium text-gray-300 mb-1">{t('articleLength')}</label>
-                                <select id="articleLength" value={articleLength} onChange={(e) => setArticleLength(e.target.value as ArticleLength)} className="block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm text-white">
-                                    {Object.values(ArticleLength).map(l => <option key={l} value={l}>{l}</option>)}
-                                </select>
-                            </div>
-                            {commonFields}
+        <div className="w-full h-full flex items-center justify-center p-4 overflow-y-auto">
+            <div className="max-w-4xl w-full">
+                <header className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-white">{t('step1_brief_title')}</h1>
+                    <p className="text-gray-400 mt-1">{t('step1_brief_hint')}</p>
+                </header>
+                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-700/50">
+                    <form onSubmit={handleGenerate}>
+                        <div className="flex border-b border-gray-700 mb-6">
+                            <TabButton id={ContentType.Article} label={t('article')} icon={<ArticleIcon />} />
+                            <TabButton id={ContentType.Product} label={t('product')} icon={<ProductIcon />} />
+                            <TabButton id={ContentType.Campaign} label={t('campaign')} icon={<CampaignIcon />} />
                         </div>
-                    )}
-                    {activeTab === ContentType.Product && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2">
-                                <label htmlFor="product-name" className="block text-sm font-medium text-gray-300 mb-1">{t('productName')}</label>
-                                <input type="text" id="product-name" value={productName} onChange={e => setProductName(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('productNamePlaceholder')} />
+                        <div className="space-y-6 mb-8">
+                        {activeTab === ContentType.Article && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {contextSelector}
+                                <div className="md:col-span-2">
+                                    <label htmlFor="article-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('topicTitle')}</label>
+                                    <input type="text" id="article-topic" value={articleTopic} onChange={e => setArticleTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('topicTitlePlaceholder')} />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label htmlFor="article-keywords" className="block text-sm font-medium text-gray-300 mb-1">{t('keywords')}</label>
+                                    <input type="text" id="article-keywords" value={articleKeywords} onChange={e => setArticleKeywords(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('keywordsPlaceholder')} />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label htmlFor="articleLength" className="block text-sm font-medium text-gray-300 mb-1">{t('articleLength')}</label>
+                                    <select id="articleLength" value={articleLength} onChange={(e) => setArticleLength(e.target.value as ArticleLength)} className="block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm text-white">
+                                        {Object.values(ArticleLength).map(l => <option key={l} value={l}>{l}</option>)}
+                                    </select>
+                                </div>
+                                {commonFields}
                             </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="product-features" className="block text-sm font-medium text-gray-300 mb-1">{t('productFeatures')}</label>
-                                <textarea id="product-features" rows={4} value={productFeatures} onChange={e => setProductFeatures(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('productFeaturesPlaceholder')}></textarea>
+                        )}
+                        {activeTab === ContentType.Product && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="md:col-span-2">
+                                    <label htmlFor="product-name" className="block text-sm font-medium text-gray-300 mb-1">{t('productName')}</label>
+                                    <input type="text" id="product-name" value={productName} onChange={e => setProductName(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('productNamePlaceholder')} />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label htmlFor="product-features" className="block text-sm font-medium text-gray-300 mb-1">{t('productFeatures')}</label>
+                                    <textarea id="product-features" rows={4} value={productFeatures} onChange={e => setProductFeatures(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('productFeaturesPlaceholder')}></textarea>
+                                </div>
+                                {commonFields}
                             </div>
-                            {commonFields}
+                        )}
+                        {activeTab === ContentType.Campaign && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {contextSelector}
+                                <div className="md:col-span-2">
+                                    <label htmlFor="campaign-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('mainTopic')}</label>
+                                    <input type="text" id="campaign-topic" value={campaignTopic} onChange={e => setCampaignTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('mainTopicPlaceholder')} />
+                                </div>
+                                <div>
+                                    <label htmlFor="num-articles" className="block text-sm font-medium text-gray-300 mb-1">{t('numArticles')}</label>
+                                    <input type="number" id="num-articles" value={numArticles} min="1" max="10" onChange={e => setNumArticles(parseInt(e.target.value, 10))} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                </div>
+                                {commonFields}
+                            </div>
+                        )}
                         </div>
-                    )}
-                    {activeTab === ContentType.Campaign && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {contextSelector}
-                            <div className="md:col-span-2">
-                                <label htmlFor="campaign-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('mainTopic')}</label>
-                                <input type="text" id="campaign-topic" value={campaignTopic} onChange={e => setCampaignTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('mainTopicPlaceholder')} />
-                            </div>
-                            <div>
-                                <label htmlFor="num-articles" className="block text-sm font-medium text-gray-300 mb-1">{t('numArticles')}</label>
-                                <input type="number" id="num-articles" value={numArticles} min="1" max="10" onChange={e => setNumArticles(parseInt(e.target.value, 10))} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                            </div>
-                            {commonFields}
-                        </div>
-                    )}
-                    </div>
-                    <button type="submit" disabled={isLoading} className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <SparklesIcon />
-                        <span className="ms-2">{activeTab === ContentType.Campaign ? t('generateCampaign') : t('generateContent')}</span>
-                    </button>
-                    {error && <p className="text-red-400 mt-4 text-sm text-center">{error}</p>}
-                </form>
+                        <button type="submit" disabled={isLoading} className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <SparklesIcon />
+                            <span className="ms-2">{activeTab === ContentType.Campaign ? t('generateCampaign') : t('generateContent')}</span>
+                        </button>
+                        {error && <p className="text-red-400 mt-4 text-sm text-center">{error}</p>}
+                    </form>
+                </div>
             </div>
         </div>
         );
@@ -606,47 +571,80 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     );
 
     const renderEditorStep = () => {
-        if (!generatedResult) return <div className="flex items-center justify-center h-full"><Spinner /></div>;
+        if (!generatedResult) return <div className="fixed inset-0 bg-gray-900 z-40 flex items-center justify-center"><Spinner /></div>;
         
-        const isForVirtualSite = selectedSite?.isVirtual === true;
         const isEditingSyncedPost = (generatedResult as ArticleContent)?.origin === 'synced';
+        const isForVirtualSite = selectedSite?.isVirtual === true;
 
-        const actionButtonText = isEditingSyncedPost ? t('updatePost') : t('publish');
-        const handleAction = () => setIsPublishModalOpen(true);
-        
+        const handleFormat = (command: any) => {
+            if (editorRef.current) {
+                editorRef.current.executeCommand(command, command.replace('title',''));
+            }
+        };
+
+        const wordCount = useMemo(() => {
+            if (generatedResult.type !== ContentType.Article) return 0;
+            const body = (generatedResult as ArticleContent).body;
+            return body ? body.trim().split(/\s+/).filter(Boolean).length : 0;
+        }, [generatedResult]);
+
         return(
-            <div className="h-full flex flex-col">
-                <header className="px-8 pt-6 pb-4">
-                    <h1 className="text-2xl font-bold text-white">{isEditingSyncedPost ? t('editAndImprove') : t('step3_editor_title')}</h1>
-                    <p className="text-gray-400 mt-1">{isEditingSyncedPost ? (generatedResult as ArticleContent).title : t('step3_editor_hint')}</p>
+            <div className="fixed inset-0 bg-gray-900 z-40 flex flex-col animate-fade-in-fast">
+                {/* Editor Header */}
+                <header className="flex-shrink-0 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                        <button onClick={onExit} className="p-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+                            <ArrowUturnLeftIcon/>
+                        </button>
+                        <div className="w-px h-6 bg-gray-700"></div>
+                        <input 
+                           type="text"
+                           value={generatedResult.title}
+                           onChange={e => handleResultChange('title', e.target.value)}
+                           placeholder={t('tableTitle')}
+                           className="text-lg font-bold bg-transparent text-white focus:outline-none w-full max-w-lg"
+                        />
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        <button onClick={() => setIsToolkitOpen(p => !p)} className={`p-2 rounded-md ${isToolkitOpen ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'} transition-colors`} title={t('aiToolkit')}>
+                            <Bars3Icon />
+                        </button>
+                        {!isForVirtualSite && (
+                            <button onClick={() => setIsPublishModalOpen(true)} className="btn-gradient text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center transition-transform hover:scale-105">
+                                <PublishIcon />
+                                <span className="ms-2">{isEditingSyncedPost ? t('updatePost') : t('publish')}</span>
+                            </button>
+                        )}
+                    </div>
                 </header>
-                <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 px-8 pb-6 overflow-hidden">
-                    {/* Main Editor */}
-                    <div className="lg:col-span-2 bg-gray-800 rounded-xl border border-gray-700/50 flex flex-col overflow-hidden" ref={resultViewRef}>
+
+                {/* Editor Body */}
+                <div className="flex-grow flex items-stretch overflow-hidden">
+                    {/* Main Content Area */}
+                    <main ref={resultViewRef} className="flex-grow flex flex-col p-4 md:p-6 lg:p-8">
                         {generatedResult.type === ContentType.Article ? (
-                             <div className="p-4 space-y-3 flex-grow flex flex-col">
-                                 <div>
-                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('tableTitle')}</label>
-                                    <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700/50 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+                             <>
+                                <div className="flex-shrink-0 mb-2">
+                                    <EditorToolbar onFormat={handleFormat} />
                                 </div>
-                                 <div className="flex-grow flex flex-col" data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="body">
+                                <div className="flex-grow relative" data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="body">
                                     <MDEditor
+                                        ref={editorRef}
                                         value={(generatedResult as ArticleContent).body}
                                         onChange={(val) => handleResultChange('body', val || '')}
                                         preview="live"
                                         previewOptions={{ remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSanitize] }}
-                                        className="flex-grow"
+                                        className="!h-full !w-full !flex !flex-col"
+                                        style={{ background: 'transparent' }}
                                         height="100%"
-                                        style={{height: '100%'}}
                                     />
                                 </div>
-                             </div>
-                        ) : (
-                             <div className="p-4 space-y-3">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('productName')}</label>
-                                    <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700/50 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                <div className="flex-shrink-0 text-right mt-2 text-sm text-gray-500">
+                                    {wordCount} {t('words')}
                                 </div>
+                            </>
+                        ) : (
+                            <div className="overflow-y-auto space-y-4">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
                                     <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
@@ -654,21 +652,22 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('shortDescription')}</label>
                                     <div data-editor-field="shortDescription">
-                                        <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700/50 p-2 rounded-lg h-24 text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                        <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-800 border border-gray-700 p-2 rounded-lg h-24 text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
                                     </div>
                                 </div>
                             </div>
                         )}
-                        {selection && (
+                         {selection && (
                             <InlineAiMenu position={{ top: selection.top, left: selection.left }} onAction={handleAiTextModify} isLoading={isModifyingText} />
                         )}
-                    </div>
-                    {/* AI Toolkit */}
-                    <div className="lg:col-span-1 bg-gray-800 rounded-xl border border-gray-700/50 p-4 overflow-y-auto">
-                        <h3 className="text-lg font-bold text-white mb-4">{t('aiToolkit')}</h3>
-                        <div className="space-y-4">
+                    </main>
+
+                    {/* AI Toolkit Sidebar */}
+                    <aside className={`flex-shrink-0 bg-gray-800 border-l border-gray-700/50 transition-all duration-300 overflow-y-auto ${isToolkitOpen ? 'w-96 p-4' : 'w-0'}`}>
+                         <div className={`space-y-4 ${!isToolkitOpen && 'hidden'}`}>
+                            <h3 className="text-lg font-bold text-white">{t('aiToolkit')}</h3>
                             {generatedResult.type === ContentType.Article && (
                                 <>
                                     <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}}>
@@ -687,28 +686,48 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                     )}
                                 </>
                             )}
-                        </div>
-                        <div className="mt-6 flex flex-col space-y-3">
                              {!isEditingSyncedPost && (
-                                <button onClick={handleSaveToLibrary} className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                                   {t('saveToLibrary')}
+                                <button onClick={() => onContentGenerated(generatedResult)} className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                                   <LibraryIcon/> <span className="ms-2">{t('saveToLibrary')}</span>
                                </button>
                             )}
-                            {!isForVirtualSite && (
-                                 <button onClick={handleAction} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                                    {actionButtonText}
-                                 </button>
-                            )}
                         </div>
-                    </div>
+                    </aside>
                 </div>
             </div>
         );
     };
+    
+    const EditorToolbar = ({ onFormat }: { onFormat: (cmd: any) => void}) => {
+        const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+        const buttons = [
+            { cmd: 'title2', title: 'H2', icon: <HeadingIcon/>},
+            { cmd: 'title3', title: 'H3', icon: <HeadingIcon/>},
+            { cmd: 'title4', title: 'H4', icon: <HeadingIcon/>},
+            { separator: true },
+            { cmd: 'bold', title: t('bold'), icon: <BoldIcon/>},
+            { cmd: 'italic', title: t('italic'), icon: <ItalicIcon/>},
+            { separator: true },
+            { cmd: 'unordered-list', title: t('bulletList'), icon: <ListBulletIcon/>},
+            { cmd: 'ordered-list', title: t('numberedList'), icon: <ListBulletIcon/>},
+            { cmd: 'quote', title: t('quote'), icon: <QuoteIcon/>},
+            { cmd: 'link', title: t('addLink'), icon: <LinkIcon/>},
+        ];
+        
+        return (
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-1 flex items-center space-x-1 mb-2">
+                {buttons.map((btn, i) => btn.separator ? 
+                    <div key={`sep-${i}`} className="w-px h-5 bg-gray-600 mx-1"></div> :
+                    <button key={btn.cmd} onClick={() => onFormat(btn.cmd)} title={btn.title} className="p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors">
+                        {btn.icon}
+                    </button>
+                )}
+            </div>
+        )
+    };
 
     const renderCampaignResultStep = () => {
         if (!generatedCampaign) return null;
-
         return (
             <div className="max-w-4xl mx-auto p-8">
                 <header className="text-center mb-8">
@@ -717,45 +736,28 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                 </header>
                 <div className="bg-gray-800 rounded-lg p-6 animate-fade-in border border-gray-700/50">
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto p-2">
-                        {/* Pillar Post */}
                         <div className="bg-gray-700/50 p-4 rounded-lg border-l-4 border-indigo-400">
                              <div className="flex justify-between items-center mb-2">
                                 <h4 className="text-lg font-bold text-white">Pillar Post</h4>
                                 <span className="text-xs bg-indigo-600/50 text-indigo-300 font-semibold py-1 px-2 rounded-full">Pillar</span>
                              </div>
-                             <input 
-                                type="text"
-                                value={generatedCampaign.pillarPost.title}
-                                onChange={e => handleCampaignArticleTitleChange('pillar', 0, e.target.value)}
-                                className="text-base font-medium w-full bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
+                             <input type="text" value={generatedCampaign.pillarPost.title} onChange={e => handleCampaignArticleTitleChange('pillar', 0, e.target.value)} className="text-base font-medium w-full bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"/>
                         </div>
-                        
-                        {/* Cluster Posts */}
                         <div>
                              <h4 className="text-lg font-bold text-white mb-2 mt-6">Cluster Posts</h4>
                              <div className="space-y-3">
                                 {generatedCampaign.clusterPosts.map((article, index) => (
                                     <div key={article.id} className="flex items-center gap-4">
                                         <span className="text-gray-400 font-bold">{index + 1}.</span>
-                                        <input 
-                                            type="text"
-                                            value={article.title}
-                                            onChange={e => handleCampaignArticleTitleChange('cluster', index, e.target.value)}
-                                            className="text-base font-medium w-full bg-gray-700 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        />
+                                        <input type="text" value={article.title} onChange={e => handleCampaignArticleTitleChange('cluster', index, e.target.value)} className="text-base font-medium w-full bg-gray-700 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"/>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     </div>
                     <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
-                        <button onClick={() => setWizardStep('brief')} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                            {t('discard')}
-                        </button>
-                        <button onClick={handleSaveCampaign} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center">
-                            <LibraryIcon /> <span className="ms-2">{t('saveCampaignToLibrary')}</span>
-                        </button>
+                        <button onClick={() => setWizardStep('brief')} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('discard')}</button>
+                        <button onClick={handleSaveCampaign} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center"><LibraryIcon /> <span className="ms-2">{t('saveCampaignToLibrary')}</span></button>
                     </div>
                 </div>
             </div>

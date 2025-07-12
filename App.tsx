@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
 import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult } from './types';
 import Sidebar from './components/Sidebar';
@@ -154,29 +155,22 @@ export default function App() {
     setActiveSite(site);
     setCurrentView(View.SiteDetail);
   };
+  
+  const handleEditorExit = () => {
+    // Logic for where to go after exiting the editor
+    const destination = activeSite ? View.SiteDetail : View.ContentLibrary;
+    navigateTo(destination);
+  };
+
 
   const renderView = () => {
     const fallback = <div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>;
     const sortedActivity = [...contentLibrary].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    switch (currentView) {
-      case View.Dashboard:
+    // The NewContentView is rendered outside the switch to allow it to overlay the entire screen.
+    if (currentView === View.NewContent) {
         return (
-          <Suspense fallback={fallback}>
-            <DashboardView 
-              sites={sites} 
-              onAddSite={addSite} 
-              onRemoveSite={removeSite} 
-              isLoading={isLoading} 
-              onManageSite={navigateToSiteDetail}
-              onNavigateToNewContent={createNew}
-              recentActivity={sortedActivity.slice(0, 5)}
-            />
-          </Suspense>
-        );
-      case View.NewContent:
-        return (
-            <Suspense fallback={fallback}>
+             <Suspense fallback={fallback}>
                 <NewContentView 
                     onContentGenerated={addToLibrary} 
                     onCampaignGenerated={handleCampaignGenerated} 
@@ -185,70 +179,93 @@ export default function App() {
                     initialContent={editingContent}
                     newContentType={newContentType}
                     initialTitle={initialTitleForNewContent}
-                    onUpdateComplete={() => navigateTo(activeSite ? View.SiteDetail : View.ContentLibrary)}
+                    onExit={handleEditorExit}
                 />
             </Suspense>
-        );
-      case View.ContentLibrary:
-        return (
-            <Suspense fallback={fallback}>
-              <ContentLibraryView 
-                library={contentLibrary} 
-                sites={sites} 
-                onRemoveFromLibrary={removeFromLibrary} 
-                showNotification={showNotification} 
-                onEdit={editFromLibrary} 
-                onScheduleAll={scheduleAllUnscheduled} 
-              />
-            </Suspense>
-        );
-      case View.Calendar:
-        return (
-            <Suspense fallback={fallback}>
-              <CalendarView 
-                library={contentLibrary} 
-                sites={sites} 
-                showNotification={showNotification} 
-                onUpdateLibraryItem={updateLibraryItem} 
-                onRemoveFromLibrary={removeFromLibrary} 
-              />
-            </Suspense>
-        );
-      case View.Settings:
-          return (
-            <Suspense fallback={fallback}>
-              <SettingsView showNotification={showNotification} />
-            </Suspense>
-          );
-      case View.SiteDetail:
-          return (
-            <Suspense fallback={fallback}>
-                {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} recentActivity={sortedActivity.slice(0,5)} />}
-            </Suspense>
-          );
-      default:
-        return (
-          <Suspense fallback={fallback}>
-            <DashboardView 
-              sites={sites} 
-              onAddSite={addSite} 
-              onRemoveSite={removeSite} 
-              isLoading={isLoading} 
-              onManageSite={navigateToSiteDetail}
-              onNavigateToNewContent={createNew}
-              recentActivity={sortedActivity.slice(0, 5)}
-            />
-          </Suspense>
-        );
+        )
     }
+
+    return (
+       <div className="flex-1 overflow-y-auto">
+        {(() => {
+            switch (currentView) {
+              case View.Dashboard:
+                return (
+                  <Suspense fallback={fallback}>
+                    <DashboardView 
+                      sites={sites} 
+                      onAddSite={addSite} 
+                      onRemoveSite={removeSite} 
+                      isLoading={isLoading} 
+                      onManageSite={navigateToSiteDetail}
+                      onNavigateToNewContent={createNew}
+                      recentActivity={sortedActivity.slice(0, 5)}
+                    />
+                  </Suspense>
+                );
+              case View.ContentLibrary:
+                return (
+                    <Suspense fallback={fallback}>
+                      <ContentLibraryView 
+                        library={contentLibrary} 
+                        sites={sites} 
+                        onRemoveFromLibrary={removeFromLibrary} 
+                        showNotification={showNotification} 
+                        onEdit={editFromLibrary} 
+                        onScheduleAll={scheduleAllUnscheduled} 
+                      />
+                    </Suspense>
+                );
+              case View.Calendar:
+                return (
+                    <Suspense fallback={fallback}>
+                      <CalendarView 
+                        library={contentLibrary} 
+                        sites={sites} 
+                        showNotification={showNotification} 
+                        onUpdateLibraryItem={updateLibraryItem} 
+                        onRemoveFromLibrary={removeFromLibrary} 
+                      />
+                    </Suspense>
+                );
+              case View.Settings:
+                  return (
+                    <Suspense fallback={fallback}>
+                      <SettingsView showNotification={showNotification} />
+                    </Suspense>
+                  );
+              case View.SiteDetail:
+                  return (
+                    <Suspense fallback={fallback}>
+                        {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} recentActivity={sortedActivity.slice(0,5)} />}
+                    </Suspense>
+                  );
+              default:
+                return (
+                  <Suspense fallback={fallback}>
+                    <DashboardView 
+                      sites={sites} 
+                      onAddSite={addSite} 
+                      onRemoveSite={removeSite} 
+                      isLoading={isLoading} 
+                      onManageSite={navigateToSiteDetail}
+                      onNavigateToNewContent={createNew}
+                      recentActivity={sortedActivity.slice(0, 5)}
+                    />
+                  </Suspense>
+                );
+            }
+        })()}
+        </div>
+    );
   };
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       <div className="flex h-screen bg-gray-900 text-gray-100 font-sans">
         <Notification notification={notification} onClose={() => setNotification(null)} />
-        <Sidebar currentView={currentView} setCurrentView={navigateTo} onQuickAction={createNew} />
-        <main className="flex-1 overflow-y-auto">
+        {currentView !== View.NewContent && <Sidebar currentView={currentView} setCurrentView={navigateTo} onQuickAction={createNew} />}
+        <main className="flex-1 flex flex-col">
           {renderView()}
         </main>
       </div>
