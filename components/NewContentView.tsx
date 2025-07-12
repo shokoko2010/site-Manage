@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useContext } from 'react';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, WritingTone, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy } from '../services/geminiService';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, WritingTone, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType } from '../types';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon } from '../constants';
 import { getSiteContext, publishContent } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
@@ -45,6 +45,10 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
     
+    // SEO Analysis states
+    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
+    const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
+    
     const selectedSite = sites.find(s => s.id === selectedSiteId);
 
     useEffect(() => {
@@ -60,6 +64,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         if (initialContent) {
             setGeneratedResult(initialContent);
             setActiveTab(initialContent.type);
+            setSeoAnalysis(null);
             if(initialContent.siteId) {
                 setSelectedSiteId(initialContent.siteId);
             }
@@ -72,6 +77,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setIsLoading(true);
         setError('');
         setGeneratedResult(null);
+        setSeoAnalysis(null); // Clear previous SEO analysis
 
         try {
             if (activeTab === ContentType.Article) {
@@ -124,6 +130,30 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
         onStrategyGenerated(scheduledArticles);
         setStrategyTopic('');
+    };
+    
+    const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
+        if (!generatedResult) return;
+        setGeneratedResult(prev => {
+            if (!prev) return null;
+            return { ...prev, [field]: value } as GeneratedContent;
+        });
+    };
+
+    const handleAnalyzeSeo = async () => {
+        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
+        setIsAnalyzingSeo(true);
+        setSeoAnalysis(null);
+        showNotification({ message: t('analyzingSEO'), type: 'info' });
+        try {
+            const result = await analyzeSeo(generatedResult.title, generatedResult.body);
+            setSeoAnalysis(result);
+        } catch(err) {
+            const message = err instanceof Error ? err.message : t('errorUnknown');
+            showNotification({ message, type: 'error' });
+        } finally {
+            setIsAnalyzingSeo(false);
+        }
     };
 
 
@@ -334,6 +364,52 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             </div>
         );
     }
+    
+    const renderSeoAnalyzer = () => {
+        if (!generatedResult || generatedResult.type !== ContentType.Article) return null;
+        const scoreColor = seoAnalysis && seoAnalysis.score >= 80 ? 'text-green-400' : seoAnalysis && seoAnalysis.score >= 50 ? 'text-yellow-400' : 'text-red-400';
+
+        return (
+            <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                <h4 className="text-lg font-semibold text-gray-200 mb-3">{t('seoAnalysis')}</h4>
+                
+                {isAnalyzingSeo && (
+                     <div className="flex flex-col items-center justify-center h-24">
+                        <Spinner />
+                    </div>
+                )}
+
+                {!isAnalyzingSeo && !seoAnalysis && (
+                    <button onClick={handleAnalyzeSeo} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors">
+                        <SeoIcon />
+                        <span className="ms-2">{t('analyzeSeo')}</span>
+                    </button>
+                )}
+
+                {seoAnalysis && (
+                    <div className="animate-fade-in space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold">{t('seoScore')}</span>
+                             <div className="flex items-center">
+                                <span className={`text-2xl font-bold ${scoreColor}`}>{seoAnalysis.score}</span>
+                                <span className="text-sm text-gray-400">/100</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 className="font-semibold mb-2">{t('seoSuggestions')}</h5>
+                            <ul className="list-disc list-inside space-y-2 text-sm text-gray-300">
+                                {seoAnalysis.suggestions.map((s, i) => <li key={i}>{s}</li>)}
+                            </ul>
+                        </div>
+                         <button onClick={handleAnalyzeSeo} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors">
+                            <SparklesIcon />
+                            <span className="ms-2">{t('regenerate')}</span>
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     const renderResult = () => {
         if (isLoading && activeTab !== ContentType.Strategy) {
@@ -351,18 +427,35 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     <h3 className="text-2xl font-bold text-white mb-4">{t('generatedContent')}</h3>
                     {generatedResult.type === ContentType.Article ? (
                         <div className="space-y-4">
-                            <input type="text" value={generatedResult.title} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white" />
-                            <textarea value={generatedResult.metaDescription} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300" rows={2} />
-                            <textarea value={generatedResult.body} className="text-base w-full bg-gray-700 p-2 rounded-md h-96 text-gray-200 leading-relaxed font-mono" />
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
+                                <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                             <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Meta Description</label>
+                                <textarea value={generatedResult.metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
+                             </div>
+                             <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Body (Markdown)</label>
+                                <textarea value={generatedResult.body} onChange={e => handleResultChange('body', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-96 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                             </div>
                              {renderImageGenerator()}
+                             {renderSeoAnalyzer()}
                         </div>
                     ) : (
                          <div className="space-y-4">
-                            <input type="text" value={generatedResult.title} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white" />
-                            <h4 className="text-lg font-semibold text-gray-300 mt-4 border-b border-gray-600 pb-1">Long Description</h4>
-                            <textarea value={generatedResult.longDescription} className="text-base w-full bg-gray-700 p-2 rounded-md h-64 text-gray-200 leading-relaxed font-mono" />
-                            <h4 className="text-lg font-semibold text-gray-300 mt-4 border-b border-gray-600 pb-1">Short Description</h4>
-                            <textarea value={generatedResult.shortDescription} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono" />
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Product Name</label>
+                                <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Long Description (Markdown)</label>
+                                <textarea value={generatedResult.longDescription} onChange={e => handleResultChange('longDescription', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-64 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
+                                <textarea value={generatedResult.shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
                         </div>
                     )}
                     <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">

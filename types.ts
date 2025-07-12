@@ -108,3 +108,8 @@ export interface LanguageContextType {
     setLanguage: (lang: LanguageCode) => void;
     t: Translator;
 }
+
+export interface SeoAnalysis {
+  score: number;
+  suggestions: string[];
+}

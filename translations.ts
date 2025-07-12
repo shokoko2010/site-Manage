@@ -74,6 +74,13 @@ export const translations = {
     selectAnImage: 'Select an image:',
     regenerate: 'Regenerate',
     
+    // SEO Analyzer
+    seoAnalysis: 'SEO Analysis',
+    analyzeSeo: 'Analyze SEO',
+    analyzingSEO: 'Analyzing SEO performance...',
+    seoScore: 'SEO Score',
+    seoSuggestions: 'Suggestions for Improvement',
+    
     // ContentLibraryView
     libraryTitle: 'Content Library',
     libraryHint: 'Review, edit, and publish your AI-generated content drafts.',
@@ -122,6 +129,10 @@ export const translations = {
     apiSettingsDesc: "Enter your Gemini API key below. The key is stored securely in your browser's local storage and is never shared.",
     geminiApiKey: "Gemini API Key",
     geminiApiKeyPlaceholder: "Enter your key here...",
+    brandVoice: "Brand Voice",
+    brandVoiceHint: "Describe your brand's personality, tone, and writing style. The AI will adopt this voice for all generated content to ensure consistency.",
+    brandVoicePlaceholder: "e.g., Friendly, witty, and slightly informal. We use simple language and avoid jargon. We often use emojis.",
+    brandVoiceSaved: "Brand Voice saved successfully!",
     save: "Save",
     method1Title: 'Method 1: Application Password (Recommended)',
     method1Desc: 'This is the standard, secure method for connecting applications to your site. You generate a unique password for this app within your WordPress user profile. This is the method used on the Dashboard page.',
@@ -229,6 +240,13 @@ export const translations = {
     generatingImages: 'يقوم الذكاء الاصطناعي بإنشاء الصور...',
     selectAnImage: 'اختر صورة:',
     regenerate: 'إعادة التوليد',
+    
+    // SEO Analyzer
+    seoAnalysis: 'تحليل السيو',
+    analyzeSeo: 'تحليل السيو',
+    analyzingSEO: 'جاري تحليل أداء السيو...',
+    seoScore: 'درجة السيو',
+    seoSuggestions: 'اقتراحات للتحسين',
 
     // ContentLibraryView
     libraryTitle: 'مكتبة المحتوى',
@@ -278,6 +296,10 @@ export const translations = {
     apiSettingsDesc: "أدخل مفتاح Gemini API الخاص بك أدناه. يتم تخزين المفتاح بشكل آمن في التخزين المحلي للمتصفح ولا يتم مشاركته أبدًا.",
     geminiApiKey: "مفتاح Gemini API",
     geminiApiKeyPlaceholder: "أدخل مفتاحك هنا...",
+    brandVoice: "صوت العلامة التجارية",
+    brandVoiceHint: "صف شخصية علامتك التجارية ونبرتها وأسلوب كتابتها. سيتبنى الذكاء الاصطناعي هذا الصوت في كل المحتوى الذي يتم إنشاؤه لضمان الاتساق.",
+    brandVoicePlaceholder: "مثال: ودود، بارع، وغير رسمي إلى حد ما. نستخدم لغة بسيطة ونتجنب المصطلحات المعقدة. غالبًا ما نستخدم الرموز التعبيرية.",
+    brandVoiceSaved: "تم حفظ صوت العلامة التجارية بنجاح!",
     save: "حفظ",
     method1Title: 'الطريقة الأولى: كلمة مرور التطبيق (موصى بها)',
     method1Desc: 'هذه هي الطريقة القياسية والآمنة لربط التطبيقات بموقعك. تقوم بإنشاء كلمة مرور فريدة لهذا التطبيق من خلال ملفك الشخصي في ووردبريس. هذه هي الطريقة المستخدمة في صفحة لوحة التحكم.',

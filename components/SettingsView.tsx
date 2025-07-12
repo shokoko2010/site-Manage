@@ -11,15 +11,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showNotification }) => {
   const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
   const [codeCopied, setCodeCopied] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [brandVoice, setBrandVoice] = useState('');
 
   useEffect(() => {
     const storedKey = localStorage.getItem('gemini_api_key') || '';
     setApiKey(storedKey);
+    const storedBrandVoice = localStorage.getItem('brand_voice') || '';
+    setBrandVoice(storedBrandVoice);
   }, []);
 
   const handleSaveApiKey = () => {
     localStorage.setItem('gemini_api_key', apiKey);
     showNotification({ message: t('apiKeySaved'), type: 'success' });
+  };
+  
+  const handleSaveBrandVoice = () => {
+    localStorage.setItem('brand_voice', brandVoice);
+    showNotification({ message: t('brandVoiceSaved'), type: 'success' });
   };
 
   const phpCodeSnippet = `
@@ -121,15 +129,35 @@ add_action( 'rest_api_init', function() {
           </div>
         </div>
         
-        {/* Method 1: App Password */}
+        {/* Brand Voice Settings */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-purple-500/50">
+          <h2 className="text-xl font-semibold text-white mb-2">{t('brandVoice')}</h2>
+          <p className="text-gray-400 mb-4">{t('brandVoiceHint')}</p>
+          <textarea
+            value={brandVoice}
+            onChange={(e) => setBrandVoice(e.target.value)}
+            placeholder={t('brandVoicePlaceholder')}
+            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            rows={4}
+          />
+          <div className="flex justify-end mt-4">
+              <button
+                onClick={handleSaveBrandVoice}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
+              >
+                {t('save')}
+              </button>
+          </div>
+        </div>
+
+        {/* Connection Methods */}
+        <h2 className="text-2xl font-bold text-white pt-4 border-t border-gray-700">{t('method1Title')}</h2>
         <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-semibold text-white mb-2">{t('method1Title')}</h2>
           <p className="text-gray-400">{t('method1Desc')}</p>
         </div>
 
-        {/* Method 2: Code Snippet */}
         <div className="bg-gray-800 p-6 rounded-lg border border-blue-500/50">
-          <h2 className="text-xl font-semibold text-white mb-2">{t('method2Title')}</h2>
+          <h3 className="text-xl font-semibold text-white mb-2">{t('method2Title')}</h3>
           <p className="text-gray-400 mb-4">{t('method2Desc')}</p>
           
           <ol className="list-decimal list-inside space-y-2 text-gray-300 mb-6">

@@ -1,8 +1,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength } from '../types';
+import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
 const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
+const BRAND_VOICE_STORAGE_KEY = 'brand_voice';
 
 /**
  * Lazily initializes the AI client.
@@ -48,6 +49,19 @@ const contentStrategySchema = {
     items: articleSchema
 };
 
+const seoAnalysisSchema = {
+    type: Type.OBJECT,
+    properties: {
+        score: { type: Type.INTEGER, description: "An overall SEO score from 0 to 100 for the article, based on keyword usage, readability, structure, and title quality." },
+        suggestions: {
+            type: Type.ARRAY,
+            description: "A list of 3-5 concrete, actionable suggestions for improving the article's SEO.",
+            items: { type: Type.STRING }
+        },
+    },
+    required: ["score", "suggestions"],
+};
+
 const extractJsonFromText = (text: string): any => {
     const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
     const match = text.match(jsonRegex);
@@ -78,6 +92,7 @@ export const generateArticle = async (
 ): Promise<ArticleContent> => {
   const ai = getAiClient();
   if (!ai) throw new Error(MISSING_KEY_ERROR);
+  const brandVoice = localStorage.getItem(BRAND_VOICE_STORAGE_KEY) || '';
   
   const systemInstruction = `You are an expert SEO content writer and a WordPress specialist. Your goal is to create high-quality, engaging, and well-structured articles that are optimized for search engines. Always follow the instructions precisely and return the content in the specified JSON format.`;
 
@@ -99,6 +114,7 @@ For context, here is some information about the website this article will be pub
     - Topic/Title Idea: "${topic}"
     - Keywords to include naturally: "${keywords}"
     - Tone of voice: ${tone}
+    ${brandVoice ? `- Brand Voice Guidelines: "${brandVoice}"` : ''}
     - Language: ${language}
     - Desired Length: ${articleLength}. Adhere to this length as closely as possible.
     - Structure Requirements: The article 'body' must be written in markdown and have an introduction, an appropriate number of distinct and relevant H2 (##) subheadings for the requested length, and a conclusion.
@@ -163,6 +179,7 @@ export const generateProduct = async (
 ): Promise<ProductContent> => {
     const ai = getAiClient();
     if (!ai) throw new Error(MISSING_KEY_ERROR);
+    const brandVoice = localStorage.getItem(BRAND_VOICE_STORAGE_KEY) || '';
 
     const prompt = `
         Generate complete product page content for a WooCommerce store. The output MUST be a valid JSON object matching the provided schema.
@@ -171,6 +188,7 @@ export const generateProduct = async (
         - Key Features and Specifications: 
           ${features.split('\n').map(f => `- ${f}`).join('\n')}
         - Language: ${language}
+        ${brandVoice ? `- Brand Voice Guidelines: "${brandVoice}"` : ''}
 
         Create compelling copy that persuades customers to buy. Use markdown for formatting in the descriptions.
     `;
@@ -241,6 +259,7 @@ export const generateContentStrategy = async (
 ): Promise<ArticleContent[]> => {
     const ai = getAiClient();
     if (!ai) throw new Error(MISSING_KEY_ERROR);
+    const brandVoice = localStorage.getItem(BRAND_VOICE_STORAGE_KEY) || '';
     
     const systemInstruction = `You are an expert content strategist and SEO writer. Your task is to generate a complete content plan for a given topic. You must generate a JSON array containing the specified number of full, ready-to-publish articles. Each article object in the array must conform to the provided schema.`;
 
@@ -250,6 +269,7 @@ export const generateContentStrategy = async (
         The output MUST be a single, valid JSON array of article objects. Do not include any text outside of the JSON array.
         Each object in the array must strictly adhere to this schema: { title, metaDescription, body }.
         The language for all articles must be ${language}.
+        ${brandVoice ? `Adhere to this Brand Voice Guideline for all articles: "${brandVoice}"` : ''}
         The body of each article must be formatted in markdown and be well-structured with an introduction, H2 subheadings, and a conclusion.
     `;
 
@@ -290,5 +310,57 @@ export const generateContentStrategy = async (
     } catch (error) {
         console.error("Error generating content strategy:", error);
         throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format or the service is unavailable.");
+    }
+};
+
+export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalysis> => {
+    const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+
+    const systemInstruction = `You are a world-class SEO expert. Your task is to analyze an article and provide an SEO score and actionable feedback. The response must be a valid JSON object matching the provided schema.`;
+
+    const userPrompt = `
+        Please analyze the following article for its Search Engine Optimization (SEO) quality.
+        Provide a score out of 100 and a list of specific, actionable suggestions for improvement.
+
+        **Article Title:**
+        "${title}"
+
+        **Article Body:**
+        ---
+        ${body}
+        ---
+
+        Evaluate based on factors like:
+        - Readability and structure (headings, paragraphs, lists).
+        - How well the title reflects the content.
+        - Potential for ranking on search engines.
+        - Natural integration of potential keywords.
+
+        Return your analysis as a single, valid JSON object.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: userPrompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: seoAnalysisSchema,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const parsed = JSON.parse(jsonText) as SeoAnalysis;
+
+        if (typeof parsed.score !== 'number' || !Array.isArray(parsed.suggestions)) {
+            throw new Error("AI response is missing required SEO analysis fields.");
+        }
+        return parsed;
+
+    } catch (error) {
+        console.error("Error analyzing SEO:", error);
+        throw new Error("Failed to get SEO analysis from AI. The model may have returned an invalid format.");
     }
 };
