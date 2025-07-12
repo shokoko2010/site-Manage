@@ -39,17 +39,27 @@ const apiFetch = async (url: string, options: RequestInit) => {
     try {
         const response = await fetch(url, options);
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: response.statusText }));
-            // WooCommerce can return 'code' and 'message' in an object
-            const errorMessage = errorData.message || (errorData.data ? `${errorData.code}: ${errorData.data.status}` : `Request failed with status ${response.status}`);
+            // Try to parse the error response from WordPress
+            const errorData = await response.json().catch(() => ({}));
+            let errorMessage = errorData.message || response.statusText || 'An unknown error occurred.';
+
+            // Provide more helpful messages for common statuses
+            if (response.status === 401 || response.status === 403) {
+                 errorMessage = `Authentication failed. Please check your credentials and user permissions on the WordPress site. Ensure the connection snippet from Settings is active. (Status: ${response.status})`;
+            } else if (response.status === 404) {
+                 errorMessage = `Not found. Please check if the site URL is correct and the REST API is enabled. (Status: ${response.status})`;
+            }
+            
             throw new Error(errorMessage);
         }
         return response;
     } catch (error) {
-        if (error instanceof TypeError) { // Network error
-            throw new Error(`Network error or CORS issue when trying to connect to the site. Ensure the site is accessible and CORS is configured.`);
+        // Handle network errors (like CORS, DNS, etc.) that prevent the request from completing
+        if (error instanceof TypeError) {
+            throw new Error(`Network error or CORS issue. Please check your internet connection, the site URL, and ensure the connection snippet from Settings is active on your WordPress site.`);
         }
-        throw error; // Re-throw other errors
+        // Re-throw errors from the try block (like the ones we created for bad statuses) or other unexpected errors
+        throw error;
     }
 };
 
