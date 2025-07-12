@@ -1,47 +1,30 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion } from '../types';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, NewContentViewProps } from '../types';
 import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon, LinkIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, StrategyIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon } from '../constants';
 import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
 import InlineAiMenu from './InlineAiMenu';
 
-type SelectionInfo = {
-    text: string;
-    top: number;
-    left: number;
-    field: 'body' | 'longDescription' | 'shortDescription';
-};
+type SelectionInfo = { text: string; top: number; left: number; field: 'body' | 'longDescription' | 'shortDescription'; };
+type WizardStep = 'brief' | 'generating' | 'editor' | 'strategy_result';
 
-interface NewContentViewProps {
-    onContentGenerated: (content: GeneratedContent) => void;
-    onStrategyGenerated: (contents: ArticleContent[]) => void;
-    sites: WordPressSite[];
-    showNotification: (notification: Notification) => void;
-    initialContent?: ArticleContent | null;
-    onUpdateComplete?: () => void;
-}
-
-const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent, onUpdateComplete }) => {
+const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent, newContentType, onUpdateComplete }) => {
     const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    const [activeTab, setActiveTab] = useState<ContentType>(ContentType.Article);
+    const [wizardStep, setWizardStep] = useState<WizardStep>('brief');
+
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [generatedResult, setGeneratedResult] = useState<GeneratedContent | ArticleContent | null>(null);
+    const [generatedResult, setGeneratedResult] = useState<GeneratedContent | null>(null);
     const [generatedStrategy, setGeneratedStrategy] = useState<ArticleContent[] | null>(null);
 
     // Form states
+    const [activeTab, setActiveTab] = useState<ContentType>(ContentType.Article);
     const [articleTopic, setArticleTopic] = useState('');
     const [articleKeywords, setArticleKeywords] = useState('');
     const [articleLength, setArticleLength] = useState<ArticleLength>(ArticleLength.Medium);
@@ -51,37 +34,33 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [numArticles, setNumArticles] = useState(4);
     const [tone, setTone] = useState<WritingTone>(WritingTone.Professional);
     const [language, setLanguage] = useState<Language>(Language.English);
-
-    // Site context states
     const [selectedSiteId, setSelectedSiteId] = useState<string | undefined>(sites.length > 0 ? sites[0].id : undefined);
     const [useGoogleSearch, setUseGoogleSearch] = useState(true);
-    
-    // Image generation states
-    const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-    
-    // Publishing states
+
+    // Toolkit & Result states
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
-    
-    // SEO Analysis states
-    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
-    const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
-
-    // Internal Linking states
-    const [linkSuggestions, setLinkSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
-    const [isSuggestingLinks, setIsSuggestingLinks] = useState(false);
-
-    // Refinement states
-    const [isRefining, setIsRefining] = useState(false);
-    const [refinementPrompt, setRefinementPrompt] = useState('');
-
-    // Inline AI Edit states
-    const resultViewRef = useRef<HTMLDivElement>(null);
     const [selection, setSelection] = useState<SelectionInfo | null>(null);
     const [isModifyingText, setIsModifyingText] = useState(false);
-    
+    const resultViewRef = useRef<HTMLDivElement>(null);
+
     const selectedSite = sites.find(s => s.id === selectedSiteId);
 
+    // Set initial state from props (for new content or editing existing content)
+    useEffect(() => {
+        if (initialContent) {
+            setGeneratedResult(initialContent);
+            setActiveTab(initialContent.type);
+            setSelectedSiteId(initialContent.siteId);
+            setLanguage(initialContent.language);
+            setWizardStep('editor');
+        } else if (newContentType) {
+            setActiveTab(newContentType);
+            setWizardStep('brief');
+        }
+    }, [initialContent, newContentType]);
+
+    // Handle site selection changes
     useEffect(() => {
         if (!selectedSiteId && sites.length > 0) {
             setSelectedSiteId(sites[0].id);
@@ -91,34 +70,10 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         }
     }, [sites, selectedSiteId, selectedSite?.isVirtual]);
 
-    useEffect(() => {
-        if (initialContent) {
-            setActiveTab(initialContent.type);
-            setGeneratedResult(initialContent);
-            setSeoAnalysis(null);
-            setLinkSuggestions(null);
-            setGeneratedStrategy(null);
-            setRefinementPrompt('');
-            setSelection(null);
-            
-            if(initialContent.siteId) {
-                setSelectedSiteId(initialContent.siteId);
-            }
-            if (initialContent.type === ContentType.Article) {
-                setArticleTopic(initialContent.title);
-                setArticleKeywords('');
-                setLanguage(initialContent.language);
-            }
-        } else {
-            setGeneratedResult(null);
-        }
-    }, [initialContent]);
-
     // Effect for handling text selection for inline AI menu
     useEffect(() => {
         const handleMouseUp = (event: MouseEvent) => {
             if (isModifyingText) return;
-
             const currentSelection = window.getSelection();
             const selectedText = currentSelection?.toString().trim();
 
@@ -126,47 +81,28 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                  const range = currentSelection.getRangeAt(0);
                  const rect = range.getBoundingClientRect();
                  const containerRect = resultViewRef.current.getBoundingClientRect();
-
-                 // Find which editor the selection is in
-                 const targetElement = event.target as HTMLElement;
-                 const editorContainer = targetElement.closest('[data-editor-field]')
-                 const field = editorContainer?.getAttribute('data-editor-field') as SelectionInfo['field'] | undefined;
-
+                 const field = (event.target as HTMLElement).closest('[data-editor-field]')?.getAttribute('data-editor-field') as SelectionInfo['field'] | undefined;
                  if (field) {
-                    setSelection({
-                        text: selectedText,
-                        top: rect.top - containerRect.top + window.scrollY,
-                        left: rect.left - containerRect.left + window.scrollX,
-                        field: field,
-                    });
+                    setSelection({ text: selectedText, top: rect.top - containerRect.top, left: rect.left - containerRect.left + rect.width / 2, field: field });
                  }
             } else {
                 setSelection(null);
             }
         };
-
         const handleScroll = () => setSelection(null);
-
         document.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('scroll', handleScroll, true);
-
         return () => {
             document.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('scroll', handleScroll, true);
         };
     }, [isModifyingText]);
 
-
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
         setError('');
-        setGeneratedResult(null);
-        setGeneratedStrategy(null);
-        setSeoAnalysis(null);
-        setLinkSuggestions(null);
-        setRefinementPrompt('');
-        setSelection(null);
+        setIsLoading(true);
+        setWizardStep('generating');
 
         try {
             if (activeTab === ContentType.Article) {
@@ -180,145 +116,55 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             const message = err instanceof Error ? err.message : t('errorUnknown');
             setError(message);
             showNotification({ message, type: 'error' });
+            setWizardStep('brief'); // Go back to form on error
         } finally {
             setIsLoading(false);
         }
     };
     
-    const handleGenerateInternalLinks = async (articleBody: string, siteContext: SiteContext) => {
-        setIsSuggestingLinks(true);
-        setLinkSuggestions(null);
-        try {
-            const suggestions = await generateInternalLinks(articleBody, siteContext);
-            setLinkSuggestions(suggestions);
-        } catch (err) {
-            console.warn("Failed to generate internal links", err);
-            // Don't show a blocking error, just log it.
-        } finally {
-            setIsSuggestingLinks(false);
-        }
-    };
-
     const handleGenerateArticle = async () => {
         if (!articleTopic) throw new Error(t('errorAllFieldsRequired'));
-        
         let siteContext: SiteContext | undefined = undefined;
         if (selectedSite && !selectedSite.isVirtual) {
-            try {
-                siteContext = await getSiteContext(selectedSite);
-            } catch (err) {
-                console.warn("Could not fetch site context, continuing without it.", err);
-                showNotification({ message: t('contextFail'), type: 'info' });
-            }
+            try { siteContext = await getSiteContext(selectedSite); } catch (err) { console.warn("Could not fetch site context", err); }
         }
         const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, siteContext);
         setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
-        
-        // After generating the article, fetch internal link suggestions
-        if (siteContext && result.body) {
-            handleGenerateInternalLinks(result.body, siteContext);
-        }
+        setWizardStep('editor');
     };
 
     const handleGenerateProduct = async () => {
         if (!productName) throw new Error(t('errorAllFieldsRequired'));
         const result = await generateProduct(productName, productFeatures, language);
         setGeneratedResult({ ...result, siteId: selectedSiteId });
+        setWizardStep('editor');
     };
     
     const handleGenerateStrategy = async () => {
         if (!strategyTopic || !selectedSiteId) throw new Error(t('errorAllFieldsRequired'));
-        showNotification({ message: t('generatingStrategy'), type: 'info' });
-
         const articles = await generateContentStrategy(strategyTopic, numArticles, language);
-        
-        const scheduledArticles = articles.map((article) => {
-            return { ...article, siteId: selectedSiteId, scheduledFor: undefined };
-        });
-
+        const scheduledArticles = articles.map((article) => ({ ...article, siteId: selectedSiteId, scheduledFor: undefined }));
         setGeneratedStrategy(scheduledArticles);
+        setWizardStep('strategy_result');
     };
-    
+
     const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
         if (!generatedResult) return;
-        setSeoAnalysis(null); // Invalidate SEO analysis on manual change
-        setGeneratedResult(prev => {
-            if (!prev) return null;
-            return { ...prev, [field]: value } as GeneratedContent;
-        });
+        setGeneratedResult(prev => prev ? { ...prev, [field]: value } as GeneratedContent : null);
     };
-
-    const handleAnalyzeSeo = async () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
-        setIsAnalyzingSeo(true);
-        setSeoAnalysis(null);
-        showNotification({ message: t('analyzingSEO'), type: 'info' });
-        try {
-            const result = await analyzeSeo(generatedResult.title, generatedResult.body);
-            setSeoAnalysis(result);
-        } catch(err) {
-            const message = err instanceof Error ? err.message : t('errorUnknown');
-            showNotification({ message, type: 'error' });
-        } finally {
-            setIsAnalyzingSeo(false);
-        }
-    };
-
-
-    const handleGenerateImages = async () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
-        
-        setIsGeneratingImages(true);
-        showNotification({ message: t('imageGenStarted'), type: 'info' });
-        try {
-            const imagePrompt = `A high-quality, professional blog post image for an article titled: "${generatedResult.title}". The image should be visually appealing and relevant to the topic.`;
-            const images = await generateFeaturedImage(imagePrompt);
-            setGeneratedResult(prev => {
-                if (!prev || prev.type !== ContentType.Article) return prev;
-                return { ...prev, generatedImageOptions: images, featuredImage: images[0] }; // Auto-select the first image
-            });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : t('imageGenFail');
-            showNotification({ message, type: 'error' });
-        } finally {
-            setIsGeneratingImages(false);
-        }
-    };
-
-    const handleSelectImage = (imageBase64: string) => {
-        setGeneratedResult(prev => {
-            if (!prev || prev.type !== ContentType.Article) return prev;
-            return { ...prev, featuredImage: imageBase64 };
-        });
-    };
-
-    const handleSaveToLibrary = () => {
-        if (generatedResult) {
-            onContentGenerated(generatedResult);
-            setGeneratedResult(null);
-            setArticleTopic('');
-            setArticleKeywords('');
-            setProductName('');
-            setProductFeatures('');
-        }
-    }
 
     const handlePublish = async (options: PublishingOptions) => {
         const siteToPublish = sites.find(s => s.id === options.siteId);
-        if (!generatedResult || !siteToPublish) {
-            showNotification({ message: 'Selected site not found.', type: 'error' });
-            return;
-        }
+        if (!generatedResult || !siteToPublish) return;
         setIsPublishing(true);
-
         try {
             const result = await publishContent(siteToPublish, generatedResult, options);
             showNotification({ message: t('publishSuccess', { url: result.postUrl }), type: 'success' });
             setIsPublishModalOpen(false);
-            setGeneratedResult(null); // Clear the result after publishing
+            setGeneratedResult(null); 
+            setWizardStep('brief');
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : t('errorUnknown');
-            showNotification({ message: t('publishFail', { error: errorMessage }), type: 'error' });
+            showNotification({ message: t('publishFail', { error: err instanceof Error ? err.message : String(err) }), type: 'error' });
         } finally {
             setIsPublishing(false);
         }
@@ -327,31 +173,34 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const handleUpdate = async (options: PublishingOptions) => {
         const siteToUpdate = sites.find(s => s.id === options.siteId);
         const article = generatedResult as ArticleContent;
-
-        if (!article?.postId || !siteToUpdate) {
-            showNotification({ message: 'Post ID or site not found for update.', type: 'error' });
-            return;
-        }
+        if (!article?.postId || !siteToUpdate) return;
         setIsPublishing(true);
-        
         try {
             const result = await updatePost(siteToUpdate, article.postId, article, options);
             showNotification({ message: t('updateSuccess', { url: result.postUrl }), type: 'success' });
             setIsPublishModalOpen(false);
             setGeneratedResult(null);
-            if(onUpdateComplete) onUpdateComplete(); // Navigate back
+            if(onUpdateComplete) onUpdateComplete();
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : t('errorUnknown');
-            showNotification({ message: t('updateFail', { error: errorMessage }), type: 'error' });
+            showNotification({ message: t('updateFail', { error: err instanceof Error ? err.message : String(err) }), type: 'error' });
         } finally {
             setIsPublishing(false);
         }
     };
-    
+
+    const handleSaveToLibrary = () => {
+        if (generatedResult) {
+            onContentGenerated(generatedResult);
+            setGeneratedResult(null);
+            setWizardStep('brief');
+        }
+    };
+
     const handleSaveStrategy = () => {
         if (generatedStrategy) {
             onStrategyGenerated(generatedStrategy);
             setGeneratedStrategy(null);
+            setWizardStep('brief');
         }
     };
     
@@ -362,104 +211,61 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
         setGeneratedStrategy(updatedStrategy);
     };
 
-     const handleRefineArticle = async () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
-        
-        setIsRefining(true);
-        showNotification({ message: t('refiningArticle'), type: 'info' });
-        
-        try {
-            const refinedData = await refineArticle(generatedResult, refinementPrompt, language);
-            setGeneratedResult(prev => {
-                if (!prev) return null;
-                return {
-                    ...prev,
-                    ...refinedData,
-                } as GeneratedContent;
-            });
-            setSeoAnalysis(null); // SEO analysis is now outdated.
-        } catch(err) {
-            const message = err instanceof Error ? err.message : t('errorUnknown');
-            showNotification({ message, type: 'error' });
-        } finally {
-            setIsRefining(false);
-        }
-    };
-
-    const handleApplyLink = (suggestion: InternalLinkSuggestion) => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article) return;
-
-        const { textToLink, linkTo } = suggestion;
-        const newBody = generatedResult.body.replace(textToLink, `[${textToLink}](${linkTo})`);
-        
-        handleResultChange('body', newBody);
-
-        // Remove the applied suggestion from the list
-        setLinkSuggestions(prev => prev ? prev.filter(s => s.textToLink !== textToLink) : null);
-    };
-
     const handleAiTextModify = async (instruction: string) => {
         if (!selection || !generatedResult) return;
-        
         setIsModifyingText(true);
-        
         try {
             const modifiedText = await modifyText(selection.text, instruction, language);
-            
             setGeneratedResult(prevResult => {
                 if (!prevResult) return null;
-                // Create a mutable copy
                 const newResult = { ...prevResult };
                 const currentText = (newResult as any)[selection.field] as string;
-                // Replace only the first instance of the selection to avoid errors
                 const newContent = currentText.replace(selection.text, modifiedText);
-
                 (newResult as any)[selection.field] = newContent;
                 return newResult as GeneratedContent;
             });
-
         } catch (err) {
-            const message = err instanceof Error ? err.message : t('errorUnknown');
-            showNotification({ message, type: 'error' });
+            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
         } finally {
             setIsModifyingText(false);
             setSelection(null);
         }
     };
 
-    const renderForm = () => {
-        const isEditingSyncedPost = initialContent?.origin === 'synced';
-        if (isEditingSyncedPost) {
-            return <div className="text-center text-gray-400 p-4 bg-gray-900/50 rounded-lg">{t('editAndImprove')}</div>;
-        }
-
+    const renderBriefStep = () => {
         const commonFields = (
              <>
-                <div className="md:col-span-2">
-                    <label htmlFor="language" className="block text-sm font-medium text-gray-300">{t('language')}</label>
-                    <select id="language" value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white">
+                <div className="md:col-span-1">
+                    <label htmlFor="language" className="block text-sm font-medium text-gray-300 mb-1">{t('language')}</label>
+                    <select id="language" value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm text-white">
                         {Object.values(Language).map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                </div>
+                 <div className="md:col-span-1">
+                    <label htmlFor="tone" className="block text-sm font-medium text-gray-300 mb-1">{t('writingTone')}</label>
+                    <select id="tone" value={tone} onChange={(e) => setTone(e.target.value as WritingTone)} className="block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm text-white">
+                        {Object.values(WritingTone).map(tVal => <option key={tVal} value={tVal}>{t(tVal.toLowerCase() as any) || tVal}</option>)}
                     </select>
                 </div>
             </>
         );
 
         const contextSelector = (
-            <div className="md:col-span-2 bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+            <div className="md:col-span-2 bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
                 <label htmlFor="site-select" className="block text-sm font-medium text-gray-300 mb-2">{t('generateForSite')}</label>
                 <select 
                     id="site-select" 
                     value={selectedSiteId} 
                     onChange={e => setSelectedSiteId(e.target.value)} 
                     disabled={sites.length === 0}
-                    className="block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white disabled:bg-gray-800 disabled:cursor-not-allowed"
+                    className="block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white disabled:bg-gray-800 disabled:cursor-not-allowed"
                 >
                     {sites.length > 0 ? sites.map(site => <option key={site.id} value={site.id}>{site.name}</option>) : <option>{t('noSitesAvailable')}</option>}
                 </select>
                 
                 <div className="mt-4">
-                    <label className={`flex items-center ${selectedSite?.isVirtual ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input type="checkbox" checked={useGoogleSearch || selectedSite?.isVirtual} onChange={e => setUseGoogleSearch(e.target.checked)} className="h-4 w-4 rounded border-gray-500 text-blue-600 focus:ring-blue-500 bg-gray-700" disabled={!selectedSiteId || selectedSite?.isVirtual} />
+                    <label className={`flex items-center ${selectedSite?.isVirtual ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
+                        <input type="checkbox" checked={useGoogleSearch || selectedSite?.isVirtual} onChange={e => setUseGoogleSearch(e.target.checked)} className="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500 bg-gray-700" disabled={!selectedSiteId || selectedSite?.isVirtual} />
                         <span className="ms-2 text-sm text-gray-300">{t('useGoogleSearch')}</span>
                     </label>
                      <p className="text-xs text-gray-500 mt-1 ms-6">{t('useGoogleSearchHint')}</p>
@@ -467,444 +273,418 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             </div>
         );
 
-        if (activeTab === ContentType.Article) {
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {contextSelector}
-                    <div className="md:col-span-2">
-                        <label htmlFor="article-topic" className="block text-sm font-medium text-gray-300">{t('topicTitle')}</label>
-                        <input type="text" id="article-topic" value={articleTopic} onChange={e => setArticleTopic(e.target.value)} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder={t('topicTitlePlaceholder')} />
+        return(
+        <div className="max-w-4xl mx-auto p-8">
+            <header className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white">{t('step1_brief_title')}</h1>
+                <p className="text-gray-400 mt-1">{t('step1_brief_hint')}</p>
+            </header>
+            <div className="bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-700/50">
+                <form onSubmit={handleGenerate}>
+                    <div className="flex border-b border-gray-700 mb-6">
+                        <TabButton id={ContentType.Article} label={t('article')} icon={<ArticleIcon />} />
+                        <TabButton id={ContentType.Product} label={t('product')} icon={<ProductIcon />} />
+                        <TabButton id={ContentType.Strategy} label={t('contentStrategy')} icon={<StrategyIcon />} />
                     </div>
-                    <div className="md:col-span-2">
-                        <label htmlFor="article-keywords" className="block text-sm font-medium text-gray-300">{t('keywords')}</label>
-                        <input type="text" id="article-keywords" value={articleKeywords} onChange={e => setArticleKeywords(e.target.value)} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder={t('keywordsPlaceholder')} />
-                    </div>
-                     <div className="md:col-span-1">
-                        <label htmlFor="tone" className="block text-sm font-medium text-gray-300">{t('writingTone')}</label>
-                        <select id="tone" value={tone} onChange={(e) => setTone(e.target.value as WritingTone)} className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white">
-                            {Object.values(WritingTone).map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                    </div>
-                    <div className="md:col-span-1">
-                        <label htmlFor="articleLength" className="block text-sm font-medium text-gray-300">{t('articleLength')}</label>
-                        <select id="articleLength" value={articleLength} onChange={(e) => setArticleLength(e.target.value as ArticleLength)} className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white">
-                            {Object.values(ArticleLength).map(l => <option key={l} value={l}>{l}</option>)}
-                        </select>
-                    </div>
-                    {commonFields}
-                </div>
-            );
-        }
-        if (activeTab === ContentType.Product) {
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                        <label htmlFor="product-name" className="block text-sm font-medium text-gray-300">{t('productName')}</label>
-                        <input type="text" id="product-name" value={productName} onChange={e => setProductName(e.target.value)} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder={t('productNamePlaceholder')} />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label htmlFor="product-features" className="block text-sm font-medium text-gray-300">{t('productFeatures')}</label>
-                        <textarea id="product-features" rows={4} value={productFeatures} onChange={e => setProductFeatures(e.target.value)} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder={t('productFeaturesPlaceholder')}></textarea>
-                    </div>
-                     <div className="col-span-1 md:col-span-2">
-                        <label htmlFor="tone" className="block text-sm font-medium text-gray-300">{t('writingTone')}</label>
-                        <select id="tone" value={tone} onChange={(e) => setTone(e.target.value as WritingTone)} className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white">
-                            {Object.values(WritingTone).map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                    </div>
-                    {commonFields}
-                </div>
-            );
-        }
-        if (activeTab === ContentType.Strategy) {
-             return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {contextSelector}
-                    <div className="md:col-span-2">
-                        <label htmlFor="strategy-topic" className="block text-sm font-medium text-gray-300">{t('mainTopic')}</label>
-                        <input type="text" id="strategy-topic" value={strategyTopic} onChange={e => setStrategyTopic(e.target.value)} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder={t('mainTopicPlaceholder')} />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label htmlFor="num-articles" className="block text-sm font-medium text-gray-300">{t('numArticles')}</label>
-                        <input type="number" id="num-articles" value={numArticles} min="1" max="30" onChange={e => setNumArticles(parseInt(e.target.value, 10))} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
-                    </div>
-                    {commonFields}
-                </div>
-            );
-        }
-        return null;
-    }
-
-    const renderImageGenerator = () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article) return null;
-        const article = generatedResult as ArticleContent;
-
-        return (
-            <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="text-lg font-semibold text-gray-200 mb-3">{t('featuredImage')}</h4>
-                
-                {isGeneratingImages ? (
-                    <div className="flex flex-col items-center justify-center h-48">
-                        <Spinner />
-                        <p className="mt-2 text-sm text-gray-400">{t('generatingImages')}</p>
-                    </div>
-                ) : !article.generatedImageOptions || article.generatedImageOptions.length === 0 ? (
-                    <button onClick={handleGenerateImages} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors">
-                        <CameraIcon />
-                        <span className="ms-2">{t('generateImage')}</span>
-                    </button>
-                ) : (
-                    <div>
-                        <p className="text-sm text-gray-400 mb-3">{t('selectAnImage')}</p>
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                            {article.generatedImageOptions.map((imgSrc, index) => (
-                                <img
-                                    key={index}
-                                    src={`data:image/jpeg;base64,${imgSrc}`}
-                                    alt={`Generated image option ${index + 1}`}
-                                    className={`rounded-lg cursor-pointer transition-all duration-200 ${article.featuredImage === imgSrc ? 'ring-4 ring-blue-500 shadow-lg' : 'ring-2 ring-transparent hover:ring-blue-500'}`}
-                                    onClick={() => handleSelectImage(imgSrc)}
-                                />
-                            ))}
-                        </div>
-                        <button onClick={handleGenerateImages} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors">
-                            <SparklesIcon />
-                            <span className="ms-2">{t('regenerate')}</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-        );
-    }
-    
-    const renderSeoAnalyzer = () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article) return null;
-        const scoreColor = seoAnalysis && seoAnalysis.score >= 80 ? 'text-green-400' : seoAnalysis && seoAnalysis.score >= 50 ? 'text-yellow-400' : 'text-red-400';
-
-        return (
-            <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="text-lg font-semibold text-gray-200 mb-3">{t('seoAnalysis')}</h4>
-                
-                {isAnalyzingSeo && (
-                     <div className="flex flex-col items-center justify-center h-24">
-                        <Spinner />
-                    </div>
-                )}
-
-                {!isAnalyzingSeo && !seoAnalysis && (
-                    <button onClick={handleAnalyzeSeo} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors">
-                        <SeoIcon />
-                        <span className="ms-2">{t('analyzeSeo')}</span>
-                    </button>
-                )}
-
-                {seoAnalysis && (
-                    <div className="animate-fade-in space-y-4">
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold">{t('seoScore')}</span>
-                             <div className="flex items-center">
-                                <span className={`text-2xl font-bold ${scoreColor}`}>{seoAnalysis.score}</span>
-                                <span className="text-sm text-gray-400">/100</span>
+                    <div className="space-y-6 mb-8">
+                    {activeTab === ContentType.Article && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {contextSelector}
+                            <div className="md:col-span-2">
+                                <label htmlFor="article-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('topicTitle')}</label>
+                                <input type="text" id="article-topic" value={articleTopic} onChange={e => setArticleTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('topicTitlePlaceholder')} />
                             </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="article-keywords" className="block text-sm font-medium text-gray-300 mb-1">{t('keywords')}</label>
+                                <input type="text" id="article-keywords" value={articleKeywords} onChange={e => setArticleKeywords(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('keywordsPlaceholder')} />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="articleLength" className="block text-sm font-medium text-gray-300 mb-1">{t('articleLength')}</label>
+                                <select id="articleLength" value={articleLength} onChange={(e) => setArticleLength(e.target.value as ArticleLength)} className="block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm text-white">
+                                    {Object.values(ArticleLength).map(l => <option key={l} value={l}>{l}</option>)}
+                                </select>
+                            </div>
+                            {commonFields}
                         </div>
-                        <div>
-                            <h5 className="font-semibold mb-2">{t('seoSuggestions')}</h5>
-                            <ul className="list-disc list-inside space-y-2 text-sm text-gray-300">
-                                {seoAnalysis.suggestions.map((s, i) => <li key={i}>{s}</li>)}
-                            </ul>
+                    )}
+                    {activeTab === ContentType.Product && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2">
+                                <label htmlFor="product-name" className="block text-sm font-medium text-gray-300 mb-1">{t('productName')}</label>
+                                <input type="text" id="product-name" value={productName} onChange={e => setProductName(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('productNamePlaceholder')} />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="product-features" className="block text-sm font-medium text-gray-300 mb-1">{t('productFeatures')}</label>
+                                <textarea id="product-features" rows={4} value={productFeatures} onChange={e => setProductFeatures(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('productFeaturesPlaceholder')}></textarea>
+                            </div>
+                            {commonFields}
                         </div>
-                         <button onClick={handleAnalyzeSeo} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors">
-                            <SparklesIcon />
-                            <span className="ms-2">{t('regenerate')}</span>
-                        </button>
+                    )}
+                    {activeTab === ContentType.Strategy && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {contextSelector}
+                            <div className="md:col-span-2">
+                                <label htmlFor="strategy-topic" className="block text-sm font-medium text-gray-300 mb-1">{t('mainTopic')}</label>
+                                <input type="text" id="strategy-topic" value={strategyTopic} onChange={e => setStrategyTopic(e.target.value)} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('mainTopicPlaceholder')} />
+                            </div>
+                            <div>
+                                <label htmlFor="num-articles" className="block text-sm font-medium text-gray-300 mb-1">{t('numArticles')}</label>
+                                <input type="number" id="num-articles" value={numArticles} min="1" max="30" onChange={e => setNumArticles(parseInt(e.target.value, 10))} className="block w-full bg-gray-700 border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            </div>
+                            {commonFields}
+                        </div>
+                    )}
                     </div>
-                )}
+                    <button type="submit" disabled={isLoading} className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <SparklesIcon />
+                        <span className="ms-2">{activeTab === ContentType.Strategy ? t('generateStrategy') : t('generateContent')}</span>
+                    </button>
+                    {error && <p className="text-red-400 mt-4 text-sm text-center">{error}</p>}
+                </form>
             </div>
-        );
-    }
-
-    const renderInternalLinker = () => {
-        if (!generatedResult || generatedResult.type !== ContentType.Article || selectedSite?.isVirtual) return null;
-
-        return (
-             <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="text-lg font-semibold text-gray-200 mb-2 flex items-center">
-                    <LinkIcon /> <span className="ms-2">{t('internalLinkAssistant')}</span>
-                </h4>
-                <p className="text-sm text-gray-400 mb-3">{t('internalLinkAssistantHint')}</p>
-
-                {isSuggestingLinks && (
-                     <div className="flex flex-col items-center justify-center h-24">
-                        <Spinner />
-                        <p className="mt-2 text-sm text-gray-400">{t('generatingLinks')}</p>
-                    </div>
-                )}
-                
-                {!isSuggestingLinks && linkSuggestions && (
-                    <div className="space-y-3">
-                        {linkSuggestions.length === 0 ? (
-                            <p className="text-sm text-center text-gray-500 py-4">{t('noLinksFound')}</p>
-                        ) : (
-                            linkSuggestions.map((suggestion, index) => (
-                                <div key={index} className="bg-gray-700 p-3 rounded-md flex items-center justify-between gap-4">
-                                    <p className="text-sm text-gray-300 leading-relaxed flex-1">
-                                       {t('linkSuggestionText', {
-                                            textToLink: `<strong>“${suggestion.textToLink}”</strong>`,
-                                            postTitle: `<strong>“${suggestion.postTitle}”</strong>`
-                                        }).split(/<strong>(.*?)<\/strong>/g).map((part, i) => 
-                                            i % 2 === 1 ? <strong key={i} className="font-semibold text-white">{part.replace(/“|”/g, '')}</strong> : <span key={i}>{part}</span>
-                                        )}
-                                    </p>
-                                    <button 
-                                        onClick={() => handleApplyLink(suggestion)}
-                                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 text-xs rounded-md transition-colors flex-shrink-0"
-                                    >
-                                        {t('applyLink')}
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                )}
-            </div>
+        </div>
         );
     };
 
-    const renderResult = () => {
-        if (!generatedResult) return null;
+    const TabButton = ({id, label, icon}: {id: ContentType, label: string, icon: React.ReactNode}) => (
+        <button type="button" onClick={() => setActiveTab(id)} className={`flex-1 flex items-center justify-center space-x-2 py-3 text-sm font-semibold transition-all duration-200 ${activeTab === id ? 'text-white border-b-2 border-indigo-500' : 'text-gray-400 hover:text-white'}`}>
+            {icon}
+            <span>{label}</span>
+        </button>
+    );
 
+    const renderGeneratingStep = () => (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <Spinner size="lg"/>
+            <h1 className="text-3xl font-bold text-white mt-6">{t('step2_generating_title')}</h1>
+            <p className="text-gray-400 mt-2">{t('step2_generating_hint')}</p>
+        </div>
+    );
+
+    const renderEditorStep = () => {
+        if (!generatedResult) return <div className="flex items-center justify-center h-full"><Spinner /></div>;
+        
         const contentSite = sites.find(s => s.id === generatedResult.siteId);
         const isForVirtualSite = contentSite?.isVirtual === true;
         const isEditingSyncedPost = (generatedResult as ArticleContent)?.origin === 'synced';
 
-        const actionButton = isEditingSyncedPost ? (
-            <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                {t('updatePost')}
-            </button>
-        ) : (
-             <button onClick={() => setIsPublishModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                {t('publish')}
-            </button>
-        );
-
-        return (
-            <div className="bg-gray-800 rounded-lg p-6 animate-fade-in">
-                <h3 className="text-2xl font-bold text-white mb-4">{t('generatedContent')}</h3>
-                {generatedResult.type === ContentType.Article ? (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('tableTitle')}</label>
-                            <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                        </div>
-                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Meta Description</label>
-                            <textarea value={(generatedResult as ArticleContent).metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
-                         </div>
-                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('articleBody')}</label>
-                            <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="body">
-                                <MDEditor
-                                    value={(generatedResult as ArticleContent).body}
-                                    onChange={(val) => handleResultChange('body', val || '')}
-                                    height={500}
-                                    preview="live"
-                                    previewOptions={{
-                                        remarkPlugins: [remarkGfm],
-                                        rehypePlugins: [rehypeSanitize],
-                                    }}
-                                />
+        const actionButtonText = isEditingSyncedPost ? t('updatePost') : t('publish');
+        const handleAction = () => setIsPublishModalOpen(true);
+        
+        return(
+            <div className="h-full flex flex-col">
+                <header className="px-8 pt-6 pb-4">
+                    <h1 className="text-2xl font-bold text-white">{isEditingSyncedPost ? t('editAndImprove') : t('step3_editor_title')}</h1>
+                    <p className="text-gray-400 mt-1">{isEditingSyncedPost ? (generatedResult as ArticleContent).title : t('step3_editor_hint')}</p>
+                </header>
+                <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 px-8 pb-6 overflow-hidden">
+                    {/* Main Editor */}
+                    <div className="lg:col-span-2 bg-gray-800 rounded-xl border border-gray-700/50 flex flex-col overflow-hidden" ref={resultViewRef}>
+                        {generatedResult.type === ContentType.Article ? (
+                             <div className="p-4 space-y-3 flex-grow flex flex-col">
+                                 <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('tableTitle')}</label>
+                                    <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700/50 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                </div>
+                                 <div className="flex-grow flex flex-col" data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="body">
+                                    <MDEditor
+                                        value={(generatedResult as ArticleContent).body}
+                                        onChange={(val) => handleResultChange('body', val || '')}
+                                        preview="live"
+                                        previewOptions={{ remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSanitize] }}
+                                        className="flex-grow"
+                                        height="100%"
+                                        style={{height: '100%'}}
+                                    />
+                                </div>
+                             </div>
+                        ) : (
+                             <div className="p-4 space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('productName')}</label>
+                                    <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700/50 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
+                                    <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
+                                        <MDEditor value={(generatedResult as ProductContent).longDescription} onChange={(val) => handleResultChange('longDescription', val || '')} height={300} preview="live" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
+                                    <div data-editor-field="shortDescription">
+                                        <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700/50 p-2 rounded-lg h-24 text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                    </div>
+                                </div>
                             </div>
-                         </div>
-                         <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-blue-500/50">
-                            <h4 className="text-lg font-semibold text-gray-200 mb-2 flex items-center">
-                                <SparklesIcon /> <span className="ms-2">{t('refineWithAI')}</span>
-                            </h4>
-                            <p className="text-sm text-gray-400 mb-3">{t('refineWithAIHint')}</p>
-                            <div className="space-y-3">
-                                <input 
-                                    type="text"
-                                    value={refinementPrompt}
-                                    onChange={e => setRefinementPrompt(e.target.value)}
-                                    placeholder={t('refinementPlaceholder')}
-                                    className="w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    disabled={isRefining}
-                                />
-                                <button 
-                                    onClick={handleRefineArticle} 
-                                    disabled={isRefining}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center transition-colors disabled:bg-blue-800 disabled:cursor-not-allowed"
-                                >
-                                    {isRefining ? <Spinner size="sm"/> : t('refineArticle')}
-                                </button>
-                            </div>
-                        </div>
-                         {renderImageGenerator()}
-                         {renderSeoAnalyzer()}
-                         {renderInternalLinker()}
+                        )}
+                        {selection && (
+                            <InlineAiMenu position={{ top: selection.top, left: selection.left }} onAction={handleAiTextModify} isLoading={isModifyingText} />
+                        )}
                     </div>
-                ) : (
-                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('productName')}</label>
-                            <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                    {/* AI Toolkit */}
+                    <div className="lg:col-span-1 bg-gray-800 rounded-xl border border-gray-700/50 p-4 overflow-y-auto">
+                        <h3 className="text-lg font-bold text-white mb-4">{t('aiToolkit')}</h3>
+                        <div className="space-y-4">
+                           <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>}>
+                                <RefineTool article={generatedResult as ArticleContent} language={language} showNotification={showNotification} onRefined={setGeneratedResult} />
+                           </AIToolkitSection>
+                            {generatedResult.type === ContentType.Article && (
+                                <>
+                                    <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>}>
+                                        <ImageGeneratorTool article={generatedResult as ArticleContent} showNotification={showNotification} onImageChange={setGeneratedResult} />
+                                    </AIToolkitSection>
+                                    <AIToolkitSection title={t('seoAnalysis')} icon={<SeoIcon/>}>
+                                        <SeoAnalyzerTool article={generatedResult as ArticleContent} showNotification={showNotification} />
+                                    </AIToolkitSection>
+                                    {!selectedSite?.isVirtual && (
+                                        <AIToolkitSection title={t('internalLinkAssistant')} icon={<LinkIcon/>}>
+                                            <InternalLinkerTool article={generatedResult as ArticleContent} site={selectedSite} onLinkApplied={(body) => handleResultChange('body', body)} />
+                                        </AIToolkitSection>
+                                    )}
+                                </>
+                            )}
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
-                             <div data-color-mode="dark" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
-                                <MDEditor
-                                    value={(generatedResult as ProductContent).longDescription}
-                                    onChange={(val) => handleResultChange('longDescription', val || '')}
-                                    height={400}
-                                    preview="live"
-                                    previewOptions={{
-                                        remarkPlugins: [remarkGfm],
-                                        rehypePlugins: [rehypeSanitize],
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
-                            <div data-editor-field="shortDescription">
-                                <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
+                        <div className="mt-6 flex flex-col space-y-3">
+                             {!isEditingSyncedPost && (
+                                <button onClick={handleSaveToLibrary} className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                                   {t('saveToLibrary')}
+                               </button>
+                            )}
+                            {!isForVirtualSite && (
+                                 <button onClick={handleAction} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                                    {actionButtonText}
+                                 </button>
+                            )}
                         </div>
                     </div>
-                )}
-                <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
-                     {!isEditingSyncedPost && (
-                        <button onClick={handleSaveToLibrary} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                           {t('saveToLibrary')}
-                       </button>
-                    )}
-                    {!isForVirtualSite && actionButton}
                 </div>
             </div>
-        )
-    }
-    
-    const renderStrategyResult = () => {
+        );
+    };
+
+    const renderStrategyResultStep = () => {
         if (!generatedStrategy) return null;
 
         return (
-            <div className="bg-gray-800 rounded-lg p-6 animate-fade-in">
-                <h3 className="text-2xl font-bold text-white mb-2">{t('generatedStrategy')}</h3>
-                <p className="text-gray-400 mb-4 text-sm">{t('reviewStrategyHint')}</p>
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    {generatedStrategy.map((article, index) => (
-                        <div key={article.id} className="flex items-center gap-4">
-                            <span className="text-gray-400 font-bold">{index + 1}.</span>
-                            <input 
-                                type="text"
-                                value={article.title}
-                                onChange={e => handleStrategyTitleChange(index, e.target.value)}
-                                className="text-base font-medium w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                        </div>
-                    ))}
-                </div>
-                <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
-                    <button onClick={() => setGeneratedStrategy(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                        {t('discard')}
-                    </button>
-                    <button onClick={handleSaveStrategy} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center">
-                        <LibraryIcon /> <span className="ms-2">{t('saveStrategyToLibrary')}</span>
-                    </button>
+            <div className="max-w-4xl mx-auto p-8">
+                <header className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-white">{t('generatedStrategy')}</h1>
+                    <p className="text-gray-400 mt-1">{t('reviewStrategyHint')}</p>
+                </header>
+                <div className="bg-gray-800 rounded-lg p-6 animate-fade-in border border-gray-700/50">
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto p-2">
+                        {generatedStrategy.map((article, index) => (
+                            <div key={article.id} className="flex items-center gap-4">
+                                <span className="text-indigo-400 font-bold">{index + 1}.</span>
+                                <input 
+                                    type="text"
+                                    value={article.title}
+                                    onChange={e => handleStrategyTitleChange(index, e.target.value)}
+                                    className="text-base font-medium w-full bg-gray-700 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-6 flex items-center justify-end space-x-4 rtl:space-x-reverse">
+                        <button onClick={() => setWizardStep('brief')} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            {t('discard')}
+                        </button>
+                        <button onClick={handleSaveStrategy} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center">
+                            <LibraryIcon /> <span className="ms-2">{t('saveStrategyToLibrary')}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         );
     }
-
-    const buttonText = activeTab === ContentType.Strategy ? t('generateStrategy') : t('generateContent');
-    const buttonIcon = activeTab === ContentType.Strategy ? <StrategyIcon /> : <SparklesIcon />;
-    const isEditingSyncedPost = initialContent?.origin === 'synced';
-
+    
     return (
-        <div className="p-8 h-full">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-white">{isEditingSyncedPost ? t('editAndImprove') : t('createNewContent')}</h1>
-                <p className="text-gray-400 mt-1">{isEditingSyncedPost ? initialContent.title : t('createNewContentHint')}</p>
-            </header>
+        <div className="h-full">
+            {wizardStep === 'brief' && renderBriefStep()}
+            {wizardStep === 'generating' && renderGeneratingStep()}
+            {wizardStep === 'editor' && renderEditorStep()}
+            {wizardStep === 'strategy_result' && renderStrategyResultStep()}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <form onSubmit={handleGenerate} className={`bg-gray-800 p-6 rounded-lg shadow-lg ${isEditingSyncedPost ? 'hidden' : ''}`}>
-                    <div className="mb-6">
-                        <div className="flex border-b border-gray-700">
-                            <button type="button" onClick={() => setActiveTab(ContentType.Article)} className={`flex items-center space-x-2 py-2 px-4 text-sm font-medium ${activeTab === ContentType.Article ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>
-                                <ArticleIcon />
-                                <span>{t('article')}</span>
-                            </button>
-                            <button type="button" onClick={() => setActiveTab(ContentType.Product)} className={`flex items-center space-x-2 py-2 px-4 text-sm font-medium ${activeTab === ContentType.Product ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>
-                                <ProductIcon />
-                                <span>{t('product')}</span>
-                            </button>
-                             <button type="button" onClick={() => setActiveTab(ContentType.Strategy)} className={`flex items-center space-x-2 py-2 px-4 text-sm font-medium ${activeTab === ContentType.Strategy ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>
-                                <StrategyIcon />
-                                <span>{t('contentStrategy')}</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div className="space-y-4 mb-6">
-                        {renderForm()}
-                    </div>
-                     <button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md flex items-center justify-center transition-colors disabled:bg-blue-800 disabled:cursor-not-allowed">
-                        {isLoading ? <Spinner size="sm" /> : (
-                            <>
-                                {buttonIcon}
-                                <span className="ms-2">{buttonText}</span>
-                            </>
-                        )}
-                    </button>
-                </form>
-
-                <div className={`relative ${isEditingSyncedPost ? 'lg:col-span-2' : 'lg:col-span-1'}`} ref={resultViewRef}>
-                    {(() => {
-                        if (isLoading && !isEditingSyncedPost) {
-                            return (
-                                <div className="text-center p-10 bg-gray-800 rounded-lg flex flex-col items-center justify-center h-full">
-                                    <Spinner size="lg"/>
-                                    <p className="mt-4 text-lg text-gray-300 animate-pulse">{t('generating')}</p>
-                                </div>
-                            );
-                        }
-                        if (activeTab === ContentType.Strategy && generatedStrategy) {
-                            return renderStrategyResult();
-                        }
-                        if (error && !generatedResult) {
-                             return <div className="text-center p-10 bg-red-900/20 border border-red-500 rounded-lg flex items-center justify-center h-full"><p className="text-red-400">{error}</p></div>
-                        }
-                        if (generatedResult) {
-                            return renderResult();
-                        }
-                        return (
-                            <div className="flex items-center justify-center h-full bg-gray-800/50 border-2 border-dashed border-gray-700 rounded-lg">
-                                <div className="text-center p-4">
-                                     <SparklesIcon />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-300">{t('yourContentHere')}</h3>
-                                    <p className="mt-1 text-sm text-gray-500">{t('yourContentHereHint')}</p>
-                                </div>
-                            </div>
-                        );
-                    })()}
-                    {selection && (
-                        <InlineAiMenu
-                            position={{ top: selection.top, left: selection.left }}
-                            onAction={handleAiTextModify}
-                            isLoading={isModifyingText}
-                        />
-                    )}
-                </div>
-            </div>
             {isPublishModalOpen && generatedResult && (
                 <PublishModal
                     content={generatedResult}
                     sites={sites}
                     isOpen={isPublishModalOpen}
                     onClose={() => setIsPublishModalOpen(false)}
-                    onPublish={isEditingSyncedPost ? handleUpdate : handlePublish}
+                    onPublish={((generatedResult as ArticleContent).origin === 'synced') ? handleUpdate : handlePublish}
                     isPublishing={isPublishing}
-                    mode={isEditingSyncedPost ? 'update' : 'publish'}
+                    mode={((generatedResult as ArticleContent).origin === 'synced') ? 'update' : 'publish'}
                 />
+            )}
+        </div>
+    );
+};
+
+// Toolkit Components
+const AIToolkitSection: React.FC<{title: string, icon: React.ReactNode, children: React.ReactNode}> = ({ title, icon, children }) => {
+    const [isOpen, setIsOpen] = useState(true);
+    return (
+        <div className="bg-gray-700/50 rounded-lg border border-gray-600/50">
+            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-3 text-left">
+                <div className="flex items-center">
+                    <span className="text-indigo-400 me-2">{icon}</span>
+                    <h4 className="font-semibold text-gray-200">{title}</h4>
+                </div>
+                {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            </button>
+            {isOpen && <div className="p-3 border-t border-gray-600/50">{children}</div>}
+        </div>
+    );
+};
+
+const RefineTool = ({ article, language, showNotification, onRefined }: { article: ArticleContent, language: Language, showNotification: (n: Notification) => void, onRefined: (content: GeneratedContent) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const [isRefining, setIsRefining] = useState(false);
+    const [refinementPrompt, setRefinementPrompt] = useState('');
+    
+    const handleRefineArticle = async () => {
+        setIsRefining(true);
+        showNotification({ message: t('refiningArticle'), type: 'info' });
+        try {
+            const refinedData = await refineArticle(article, refinementPrompt, language);
+            onRefined({ ...article, ...refinedData });
+        } catch(err) {
+            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
+        } finally {
+            setIsRefining(false);
+        }
+    };
+    
+    return (
+        <div className="space-y-3">
+            <p className="text-sm text-gray-400">{t('refineWithAIHint')}</p>
+            <textarea value={refinementPrompt} onChange={e => setRefinementPrompt(e.target.value)} placeholder={t('refinementPlaceholder')} className="w-full text-sm bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} disabled={isRefining} />
+            <button onClick={handleRefineArticle} disabled={isRefining} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50">
+                {isRefining ? <Spinner size="sm"/> : <><ArrowPathIcon className="me-2 h-4 w-4"/> {t('refineArticle')}</>}
+            </button>
+        </div>
+    );
+};
+
+const ImageGeneratorTool = ({ article, showNotification, onImageChange }: { article: ArticleContent, showNotification: (n: Notification) => void, onImageChange: (content: GeneratedContent) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+    
+    const handleGenerateImages = async () => {
+        setIsGeneratingImages(true);
+        showNotification({ message: t('imageGenStarted'), type: 'info' });
+        try {
+            const imagePrompt = `A high-quality, professional blog post image for an article titled: "${article.title}". The image should be visually appealing and relevant to the topic. Style: photorealistic.`;
+            const images = await generateFeaturedImage(imagePrompt);
+            onImageChange({ ...article, generatedImageOptions: images, featuredImage: images[0] });
+        } catch (err) {
+            showNotification({ message: err instanceof Error ? err.message : t('imageGenFail'), type: 'error' });
+        } finally { setIsGeneratingImages(false); }
+    };
+
+    const handleSelectImage = (imageBase64: string) => {
+        onImageChange({ ...article, featuredImage: imageBase64 });
+    };
+
+    if (isGeneratingImages) return <div className="flex flex-col items-center justify-center h-40"><Spinner /><p className="mt-2 text-sm text-gray-400">{t('generatingImages')}</p></div>;
+    
+    if (!article.generatedImageOptions?.length) return <button onClick={handleGenerateImages} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><CameraIcon /><span className="ms-2">{t('generateImage')}</span></button>;
+
+    return (
+        <div>
+            <p className="text-sm text-gray-400 mb-3">{t('selectAnImage')}</p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+                {article.generatedImageOptions.map((imgSrc, index) => (
+                    <img key={index} src={`data:image/jpeg;base64,${imgSrc}`} alt={`Generated option ${index + 1}`} className={`rounded-lg cursor-pointer transition-all duration-200 ${article.featuredImage === imgSrc ? 'ring-4 ring-sky-500 shadow-lg' : 'ring-2 ring-transparent hover:ring-sky-500'}`} onClick={() => handleSelectImage(imgSrc)} />
+                ))}
+            </div>
+            <button onClick={handleGenerateImages} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><ArrowPathIcon className="h-4 w-4 me-2"/>{t('regenerate')}</button>
+        </div>
+    );
+};
+
+const SeoAnalyzerTool = ({ article, showNotification }: { article: ArticleContent, showNotification: (n: Notification) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
+    const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
+    
+    const handleAnalyzeSeo = async () => {
+        setIsAnalyzingSeo(true); setSeoAnalysis(null);
+        showNotification({ message: t('analyzingSEO'), type: 'info' });
+        try {
+            setSeoAnalysis(await analyzeSeo(article.title, article.body));
+        } catch(err) {
+            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
+        } finally { setIsAnalyzingSeo(false); }
+    };
+    
+    if (isAnalyzingSeo) return <div className="flex justify-center h-24 items-center"><Spinner /></div>;
+    if (!seoAnalysis) return <button onClick={handleAnalyzeSeo} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><SeoIcon /><span className="ms-2">{t('analyzeSeo')}</span></button>;
+    
+    const scoreColor = seoAnalysis.score >= 80 ? 'text-green-400' : seoAnalysis.score >= 50 ? 'text-yellow-400' : 'text-red-400';
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+                <span className="font-semibold text-gray-300">{t('seoScore')}</span>
+                <span className={`text-3xl font-bold ${scoreColor}`}>{seoAnalysis.score}<span className="text-base text-gray-500">/100</span></span>
+            </div>
+            <div className="space-y-2 text-sm">
+                {seoAnalysis.suggestions.map((s, i) => <p key={i} className="flex items-start"><CheckCircleIcon className="h-4 w-4 text-green-400 me-2 mt-0.5 flex-shrink-0" />{s}</p>)}
+            </div>
+            <button onClick={handleAnalyzeSeo} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><ArrowPathIcon className="h-4 w-4 me-2"/>{t('regenerate')}</button>
+        </div>
+    );
+};
+
+const InternalLinkerTool = ({ article, site, onLinkApplied }: { article: ArticleContent, site: WordPressSite | undefined, onLinkApplied: (newBody: string) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const [suggestions, setSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
+    const [isSuggesting, setIsSuggesting] = useState(false);
+
+    const handleSuggestLinks = async () => {
+        if (!site) return;
+        setIsSuggesting(true); setSuggestions(null);
+        try {
+            const siteContext = await getSiteContext(site);
+            setSuggestions(await generateInternalLinks(article.body, siteContext));
+        } catch (err) {
+            console.warn("Failed to generate internal links", err);
+        } finally { setIsSuggesting(false); }
+    };
+
+    const handleApplyLink = (suggestion: InternalLinkSuggestion) => {
+        const newBody = article.body.replace(suggestion.textToLink, `[${suggestion.textToLink}](${suggestion.linkTo})`);
+        onLinkApplied(newBody);
+        setSuggestions(prev => prev ? prev.filter(s => s.textToLink !== suggestion.textToLink) : null);
+    };
+
+    if (isSuggesting) return <div className="flex justify-center h-24 items-center"><Spinner /></div>;
+    if (!suggestions) return <button onClick={handleSuggestLinks} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><LinkIcon /><span className="ms-2">{t('generatingLinks')}</span></button>;
+
+    return (
+        <div className="space-y-2">
+            {suggestions.length === 0 ? (
+                <p className="text-sm text-center text-gray-500 py-4">{t('noLinksFound')}</p>
+            ) : (
+                suggestions.map((suggestion, index) => (
+                    <div key={index} className="bg-gray-600 p-2 rounded-lg">
+                        <p className="text-sm text-gray-300 leading-relaxed">
+                           {t('linkSuggestionText', {
+                                textToLink: `<strong>“${suggestion.textToLink}”</strong>`,
+                                postTitle: `<em>“${suggestion.postTitle}”</em>`
+                            }).split(/<strong>(.*?)<\/strong>|<em>(.*?)<\/em>/g).map((part, i) => {
+                                if (i % 3 === 1) return <strong key={i} className="font-semibold text-white">{part.replace(/“|”/g, '')}</strong>;
+                                if (i % 3 === 2) return <em key={i} className="text-sky-300 not-italic">{part.replace(/“|”/g, '')}</em>;
+                                return <span key={i}>{part}</span>;
+                           })}
+                        </p>
+                        <button onClick={() => handleApplyLink(suggestion)} className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 text-xs rounded-md transition-colors">
+                            {t('applyLink')}
+                        </button>
+                    </div>
+                ))
             )}
         </div>
     );

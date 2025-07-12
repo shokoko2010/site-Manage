@@ -5,7 +5,7 @@ import { WordPressSite, SitePost, LanguageContextType, ArticleContent, ContentTy
 import { fetchAllPosts } from '../services/wordpressService';
 import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
-import { EditIcon } from '../constants';
+import { EditIcon, CheckCircleIcon } from '../constants';
 
 interface SiteDetailViewProps {
     site: WordPressSite;
@@ -97,21 +97,18 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
     };
     
     const handleEditPost = (post: SitePost) => {
-        // Sanitize HTML before converting to prevent any potential XSS from post content
         const sanitizedHtml = DOMPurify.sanitize(post.content.rendered);
-        // Convert the post's HTML content to Markdown for the editor
         const markdown = turndownService.turndown(sanitizedHtml);
 
         const articleForEdit: ArticleContent = {
             id: `synced_${post.id}`,
             type: ContentType.Article,
             title: post.title.rendered,
-            // Meta description isn't typically available, so we leave it blank for the AI to generate if needed.
             metaDescription: '', 
             body: markdown,
-            status: 'draft', // internal status, not WP status
+            status: 'draft',
             createdAt: new Date(post.date),
-            language: site.url.includes('.ar') ? Language.Arabic : Language.English, // Basic language detection
+            language: site.url.includes('.ar') ? Language.Arabic : Language.English,
             siteId: site.id,
             postId: post.id,
             origin: 'synced',
@@ -122,7 +119,7 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
     const SortableHeader = ({ sortKey, label }: { sortKey: SortKey, label: string }) => (
         <th 
             scope="col" 
-            className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600/50 transition-colors"
+            className="px-6 py-3 text-start text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700 transition-colors"
             onClick={() => requestSort(sortKey)}
         >
             <div className="flex items-center">
@@ -139,12 +136,12 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
                     <h1 className="text-3xl font-bold text-white">{t('siteDetailTitle')}</h1>
                     <p className="text-gray-400 mt-1">{t('siteDetailHint')} for <span className="font-semibold text-white">{site.name}</span></p>
                 </div>
-                <button onClick={onBack} className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold py-2 px-3 rounded-md transition-colors">
+                <button onClick={onBack} className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
                     {t('backToDashboard')}
                 </button>
             </header>
 
-            <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700/50">
                  <div className="overflow-x-auto">
                     {isLoading ? (
                          <div className="flex justify-center items-center h-64">
@@ -167,14 +164,15 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
                             </thead>
                              <tbody className="divide-y divide-gray-700">
                                 {sortedPosts.map(post => (
-                                    <tr key={post.id} className="hover:bg-gray-700/50">
+                                    <tr key={post.id} className="hover:bg-gray-700/70">
                                         <td className="px-6 py-4">
-                                            <a href={post.link} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white hover:text-blue-400 transition-colors max-w-xs block truncate">
+                                            <a href={post.link} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white hover:text-sky-400 transition-colors max-w-xs block truncate" title={post.title.rendered}>
                                                 {post.title.rendered}
                                             </a>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-gray-200 capitalize">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${post.status === 'publish' ? 'bg-green-600/50 text-green-300' : 'bg-yellow-600/50 text-yellow-300'}`}>
+                                                {post.status === 'publish' && <CheckCircleIcon className="me-1 h-3 w-3" />}
                                                 {post.status}
                                             </span>
                                         </td>
@@ -188,7 +186,7 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
                                             {post.performance_stats?.comments ?? <span className="text-gray-600">-</span>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
-                                            <button onClick={() => handleEditPost(post)} className="text-blue-400 hover:text-blue-300 transition-colors p-1 rounded-md inline-flex items-center font-semibold">
+                                            <button onClick={() => handleEditPost(post)} className="text-white hover:text-white font-semibold py-1.5 px-3 rounded-lg transition-colors btn-gradient inline-flex items-center">
                                                 <EditIcon />
                                                 <span className="ms-1.5">{t('editAndImprove')}</span>
                                             </button>

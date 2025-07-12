@@ -1,7 +1,9 @@
-
-
 export const translations = {
   en: {
+    // App Name & General
+    appName: 'Zex-Content',
+    loading: 'Loading...',
+
     // Sidebar & Language
     dashboard: 'Dashboard',
     newContent: 'New Content',
@@ -9,11 +11,12 @@ export const translations = {
     calendar: 'Calendar',
     settings: 'Settings',
     switchToLang: 'العربية',
+    quickAction: 'Quick Action',
     
     // DashboardView
     addSite: 'Add Site',
     addNewSite: 'Add New Site',
-    connectSite: 'Connect Site',
+    connectSite: 'Connect WordPress Site',
     addVirtualSite: 'Add Virtual Site',
     siteUrl: 'Site URL',
     siteUrlPlaceholder: 'https://example.com',
@@ -23,16 +26,31 @@ export const translations = {
     usernamePlaceholder: 'Your WP Username',
     appPassword: 'Application Password',
     appPasswordPlaceholder: 'xxxx xxxx xxxx xxxx',
-    connectedSites: 'My Sites',
+    mySites: 'My Sites',
     loadingSites: 'Loading sites...',
     noSites: 'No sites connected yet.',
-    noSitesHint: 'Use the form above to add your first WordPress or virtual site.',
-    manageSite: 'Manage Site',
+    noSitesHint: 'Click "Add New Site" to connect your first WordPress or virtual site.',
+    manageSite: 'Manage',
     virtualSite: 'Virtual',
     virtualSiteDesc: 'Analyze an external site and generate content without connecting to its WordPress admin.',
     virtualSiteInfo: 'This is a virtual site. Content is generated via web analysis. Publishing is manual.',
+    quickActions: 'Quick Actions',
+    recentActivity: 'Recent Activity',
+    performanceSnapshot: 'Performance Snapshot',
+    topPerformingArticle: 'Top Performing Article',
+    noActivity: 'No recent activity yet. Create some content to get started!',
+    viewArticle: 'View Article',
+    createSimilar: 'Create Similar',
 
-    // NewContentView
+    // NewContentView (Wizard)
+    step1_brief_title: 'Step 1: The Brief',
+    step1_brief_hint: 'Tell the AI what you want to create.',
+    step2_generating_title: 'Generating Your Content...',
+    step2_generating_hint: 'The AI is working its magic. This can take up to a minute.',
+    step3_editor_title: 'Step 3: Edit & Refine',
+    step3_editor_hint: 'Your content is ready. Use the AI Toolkit to make it perfect.',
+    aiToolkit: 'AI Toolkit',
+    
     createNewContent: 'Create New Content',
     createNewContentHint: 'Use AI to generate single articles, products, or a full content strategy.',
     article: 'Article',
@@ -48,7 +66,7 @@ export const translations = {
     topicTitlePlaceholder: 'e.g., The Future of Renewable Energy',
     mainTopic: 'Main Topic',
     mainTopicPlaceholder: 'e.g., Digital Marketing Trends',
-    numArticles: 'Number of Articles for the Month',
+    numArticles: 'Number of Articles',
     keywords: 'Keywords (comma-separated)',
     keywordsPlaceholder: 'e.g., solar, wind, sustainable',
     writingTone: 'Writing Tone',
@@ -212,11 +230,12 @@ export const translations = {
     errorInvalidUrl: 'Please enter a valid URL (e.g., https://example.com).',
     errorUrlExists: 'A site with this URL has already been added.',
     errorUnknown: 'An unknown error occurred.',
-    
-    // Generic
-    loading: 'Loading...',
   },
   ar: {
+    // App Name & General
+    appName: 'Zex-Content',
+    loading: 'جاري التحميل...',
+
     // Sidebar & Language
     dashboard: 'لوحة التحكم',
     newContent: 'محتوى جديد',
@@ -224,11 +243,12 @@ export const translations = {
     calendar: 'التقويم',
     settings: 'الإعدادات',
     switchToLang: 'English',
-
+    quickAction: 'إجراء سريع',
+    
     // DashboardView
     addSite: 'إضافة موقع',
     addNewSite: 'إضافة موقع جديد',
-    connectSite: 'ربط موقع',
+    connectSite: 'ربط موقع ووردبريس',
     addVirtualSite: 'إضافة موقع افتراضي',
     siteUrl: 'رابط الموقع',
     siteUrlPlaceholder: 'https://example.com',
@@ -238,16 +258,31 @@ export const translations = {
     usernamePlaceholder: 'اسم المستخدم الخاص بك',
     appPassword: 'كلمة مرور التطبيق',
     appPasswordPlaceholder: 'xxxx xxxx xxxx xxxx',
-    connectedSites: 'مواقعي',
+    mySites: 'مواقعي',
     loadingSites: 'جاري تحميل المواقع...',
     noSites: 'لا توجد مواقع مضافة بعد.',
-    noSitesHint: 'استخدم النموذج أعلاه لإضافة أول موقع ووردبريس أو موقع افتراضي.',
-    manageSite: 'إدارة الموقع',
+    noSitesHint: 'اضغط "إضافة موقع جديد" لربط أول موقع ووردبريس أو موقع افتراضي.',
+    manageSite: 'إدارة',
     virtualSite: 'افتراضي',
     virtualSiteDesc: 'حلل موقعًا خارجيًا وأنشئ محتوى دون الحاجة للاتصال بلوحة تحكم ووردبريس.',
     virtualSiteInfo: 'هذا موقع افتراضي. يتم إنشاء المحتوى عبر تحليل الويب. النشر يتم يدويًا.',
+    quickActions: 'إجراءات سريعة',
+    recentActivity: 'النشاط الأخير',
+    performanceSnapshot: 'لمحة عن الأداء',
+    topPerformingArticle: 'المقال الأفضل أداءً',
+    noActivity: 'لا يوجد نشاط حديث. قم بإنشاء بعض المحتوى للبدء!',
+    viewArticle: 'عرض المقال',
+    createSimilar: 'إنشاء محتوى مشابه',
 
-    // NewContentView
+    // NewContentView (Wizard)
+    step1_brief_title: 'الخطوة 1: الملخص',
+    step1_brief_hint: 'أخبر الذكاء الاصطناعي بما تريد إنشاءه.',
+    step2_generating_title: 'جاري إنشاء المحتوى...',
+    step2_generating_hint: 'الذكاء الاصطناعي يعمل الآن. قد يستغرق الأمر دقيقة.',
+    step3_editor_title: 'الخطوة 3: التحرير والتحسين',
+    step3_editor_hint: 'المحتوى جاهز. استخدم مجموعة أدوات الذكاء الاصطناعي لجعله مثاليًا.',
+    aiToolkit: 'صندوق أدوات الذكاء الاصطناعي',
+
     createNewContent: 'إنشاء محتوى جديد',
     createNewContentHint: 'استخدم الذكاء الاصطناعي لإنشاء مقالات فردية أو منتجات أو استراتيجية محتوى كاملة.',
     article: 'مقالة',
@@ -263,7 +298,7 @@ export const translations = {
     topicTitlePlaceholder: 'مثال: مستقبل الطاقة المتجددة',
     mainTopic: 'الموضوع الرئيسي',
     mainTopicPlaceholder: 'مثال: اتجاهات التسويق الرقمي',
-    numArticles: 'عدد المقالات للشهر',
+    numArticles: 'عدد المقالات',
     keywords: 'الكلمات المفتاحية (مفصولة بفاصلة)',
     keywordsPlaceholder: 'مثال: طاقة شمسية, رياح, استدامة',
     writingTone: 'نبرة الكتابة',
@@ -427,8 +462,5 @@ export const translations = {
     errorInvalidUrl: 'الرجاء إدخال رابط صحيح (مثال: https://example.com).',
     errorUrlExists: 'يوجد موقع بهذا الرابط مضاف بالفعل.',
     errorUnknown: 'حدث خطأ غير معروف.',
-
-    // Generic
-    loading: 'جاري التحميل...',
   },
 };

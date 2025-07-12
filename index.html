@@ -4,11 +4,31 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="https://gemini.google.com/static/images/gemini-sparkle-blue.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI WordPress Manager</title>
+    <title>Zex-Content</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://esm.sh/@uiw/react-md-editor@4.0.4/markdown-editor.css" />
     <link rel="stylesheet" href="https://esm.sh/@uiw/react-md-editor@4.0.4/react-markdown-preview.css" />
     <style>
+      :root {
+        --brand-gradient: linear-gradient(to right, #38bdf8, #818cf8);
+        --brand-text-gradient: -webkit-linear-gradient(left, #38bdf8, #818cf8);
+        --fc-border-color: #374151; /* gray-700 */
+        --fc-daygrid-event-dot-width: 8px;
+        --fc-list-event-dot-width: 10px;
+        --fc-list-event-hover-bg-color: #374151; /* gray-700 */
+        --fc-button-primary-bg: #4f46e5; /* indigo-600 */
+        --fc-button-primary-border: #4338ca; /* indigo-700 */
+        --fc-button-active-bg: #3730a3; /* indigo-800 */
+        --fc-today-bg: rgba(79, 70, 229, 0.2); /* indigo-600 with opacity */
+      }
+      .btn-gradient {
+        background-image: var(--brand-gradient);
+      }
+      .text-gradient {
+        background: var(--brand-text-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
       /* For custom scrollbars to match the dark theme */
       ::-webkit-scrollbar {
         width: 8px;
@@ -25,12 +45,6 @@
         background: #6b7280; /* bg-gray-500 */
       }
       /* FullCalendar Dark Theme Customizations */
-      :root {
-        --fc-border-color: #374151; /* gray-700 */
-        --fc-daygrid-event-dot-width: 8px;
-        --fc-list-event-dot-width: 10px;
-        --fc-list-event-hover-bg-color: #374151; /* gray-700 */
-      }
       .fc {
         color: #d1d5db; /* gray-300 */
       }
@@ -39,16 +53,16 @@
         font-size: 1.5rem;
       }
       .fc .fc-button-primary {
-        background-color: #374151; /* gray-700 */
-        border-color: #4b5563; /* gray-600 */
+        background-color: var(--fc-button-primary-bg);
+        border-color: var(--fc-button-primary-border);
         color: #f3f4f6; /* gray-100 */
       }
       .fc .fc-button-primary:not(:disabled):active, .fc .fc-button-primary:not(:disabled).fc-button-active {
-        background-color: #2563eb; /* blue-600 */
-        border-color: #1d4ed8; /* blue-700 */
+        background-color: var(--fc-button-active-bg);
+        border-color: var(--fc-button-active-bg);
       }
        .fc .fc-daygrid-day.fc-day-today {
-        background-color: rgba(37, 99, 235, 0.15); /* blue-600 with opacity */
+        background-color: var(--fc-today-bg);
       }
       .fc-daygrid-day-number {
         color: #9ca3af; /* gray-400 */

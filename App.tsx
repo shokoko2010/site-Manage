@@ -1,18 +1,19 @@
 
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
-import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent } from './types';
+import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType } from './types';
 import Sidebar from './components/Sidebar';
-import DashboardView from './components/DashboardView';
-import ContentLibraryView from './components/ContentLibraryView';
-import CalendarView from './components/CalendarView';
 import { getSitesFromStorage, saveSitesToStorage } from './services/wordpressService';
 import Notification from './components/Notification';
 import { getT } from './i18n';
-import SettingsView from './components/SettingsView';
 import Spinner from './components/common/Spinner';
 
+const DashboardView = React.lazy(() => import('./components/DashboardView'));
 const NewContentView = React.lazy(() => import('./components/NewContentView'));
+const ContentLibraryView = React.lazy(() => import('./components/ContentLibraryView'));
+const CalendarView = React.lazy(() => import('./components/CalendarView'));
+const SettingsView = React.lazy(() => import('./components/SettingsView'));
 const SiteDetailView = React.lazy(() => import('./components/SiteDetailView'));
+
 
 export const LanguageContext = createContext<LanguageContextType | null>(null);
 
@@ -23,7 +24,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [notification, setNotification] = useState<NotificationType | null>(null);
   const [language, setLanguage] = useState<LanguageCode>((localStorage.getItem('app_language') as LanguageCode) || 'en');
+  
+  // State for editing or creating specific content
   const [editingContent, setEditingContent] = useState<ArticleContent | null>(null);
+  const [newContentType, setNewContentType] = useState<ContentType | undefined>(undefined);
+  
   const [activeSite, setActiveSite] = useState<WordPressSite | null>(null);
   
   const t = getT(language);
@@ -92,8 +97,15 @@ export default function App() {
     setContentLibrary(prev => prev.map(item => item.id === contentId ? { ...item, ...updates } as GeneratedContent : item));
   };
   
-  const editContent = (content: ArticleContent) => {
+  const editFromLibrary = (content: ArticleContent) => {
     setEditingContent(content);
+    setNewContentType(undefined); // Ensure we're in edit mode
+    setCurrentView(View.NewContent);
+  };
+
+  const createNew = (type: ContentType) => {
+    setNewContentType(type);
+    setEditingContent(null);
     setCurrentView(View.NewContent);
   };
   
@@ -125,6 +137,7 @@ export default function App() {
   const navigateTo = (view: View) => {
       if (view !== View.NewContent) {
         setEditingContent(null);
+        setNewContentType(undefined);
       }
       if (view !== View.SiteDetail) {
         setActiveSite(null);
@@ -139,10 +152,23 @@ export default function App() {
 
   const renderView = () => {
     const fallback = <div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>;
+    const sortedActivity = [...contentLibrary].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     switch (currentView) {
       case View.Dashboard:
-        return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} />;
+        return (
+          <Suspense fallback={fallback}>
+            <DashboardView 
+              sites={sites} 
+              onAddSite={addSite} 
+              onRemoveSite={removeSite} 
+              isLoading={isLoading} 
+              onManageSite={navigateToSiteDetail}
+              onNavigateToNewContent={createNew}
+              recentActivity={sortedActivity.slice(0, 5)}
+            />
+          </Suspense>
+        );
       case View.NewContent:
         return (
             <Suspense fallback={fallback}>
@@ -152,24 +178,62 @@ export default function App() {
                     sites={sites} 
                     showNotification={showNotification} 
                     initialContent={editingContent}
-                    onUpdateComplete={() => navigateTo(View.SiteDetail)}
+                    newContentType={newContentType}
+                    onUpdateComplete={() => navigateTo(activeSite ? View.SiteDetail : View.ContentLibrary)}
                 />
             </Suspense>
         );
       case View.ContentLibrary:
-        return <ContentLibraryView library={contentLibrary} sites={sites} onRemoveFromLibrary={removeFromLibrary} showNotification={showNotification} onEdit={editContent} onScheduleAll={scheduleAllUnscheduled} />;
+        return (
+            <Suspense fallback={fallback}>
+              <ContentLibraryView 
+                library={contentLibrary} 
+                sites={sites} 
+                onRemoveFromLibrary={removeFromLibrary} 
+                showNotification={showNotification} 
+                onEdit={editFromLibrary} 
+                onScheduleAll={scheduleAllUnscheduled} 
+              />
+            </Suspense>
+        );
       case View.Calendar:
-        return <CalendarView library={contentLibrary} sites={sites} showNotification={showNotification} onUpdateLibraryItem={updateLibraryItem} onRemoveFromLibrary={removeFromLibrary} />;
+        return (
+            <Suspense fallback={fallback}>
+              <CalendarView 
+                library={contentLibrary} 
+                sites={sites} 
+                showNotification={showNotification} 
+                onUpdateLibraryItem={updateLibraryItem} 
+                onRemoveFromLibrary={removeFromLibrary} 
+              />
+            </Suspense>
+        );
       case View.Settings:
-          return <SettingsView showNotification={showNotification} />;
+          return (
+            <Suspense fallback={fallback}>
+              <SettingsView showNotification={showNotification} />
+            </Suspense>
+          );
       case View.SiteDetail:
           return (
             <Suspense fallback={fallback}>
-                {activeSite ? <SiteDetailView site={activeSite} onEdit={editContent} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} />}
+                {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} recentActivity={sortedActivity.slice(0,5)} />}
             </Suspense>
           );
       default:
-        return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} />;
+        return (
+          <Suspense fallback={fallback}>
+            <DashboardView 
+              sites={sites} 
+              onAddSite={addSite} 
+              onRemoveSite={removeSite} 
+              isLoading={isLoading} 
+              onManageSite={navigateToSiteDetail}
+              onNavigateToNewContent={createNew}
+              recentActivity={sortedActivity.slice(0, 5)}
+            />
+          </Suspense>
+        );
     }
   };
 
@@ -177,7 +241,7 @@ export default function App() {
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       <div className="flex h-screen bg-gray-900 text-gray-100 font-sans">
         <Notification notification={notification} onClose={() => setNotification(null)} />
-        <Sidebar currentView={currentView} setCurrentView={navigateTo} />
+        <Sidebar currentView={currentView} setCurrentView={navigateTo} onQuickAction={createNew} />
         <main className="flex-1 overflow-y-auto">
           {renderView()}
         </main>

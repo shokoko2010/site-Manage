@@ -1,108 +1,45 @@
-
 import React from 'react';
 
-export const AppTitle = "AI WP Manager";
+export const AppTitle = "Zex-Content";
 
-export const DashboardIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-);
+// Sidebar & General Icons
+export const DashboardIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h7.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75v-7.5Zm.75 5.694v1.056h5.5V10.444h-5.5ZM8.75 5.5H3.5v3.444h5.25V5.5ZM12.75 4h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 1 .75-.75ZM13.5 5.5v2.25H17V5.5h-3.5ZM2 15.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5Zm.75 1.5v2.25h3V16.75h-3ZM12 14.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5Zm.75 1.5v2.25h3V16.25h-3Z" clipRule="evenodd" /></svg>);
+export const PlusCircleIcon = ({className}: {className?: string} = {}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${className || ''}`.trim()}><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" /></svg>);
+export const LibraryIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="m2.694 5.224 7.306-2.54a.75.75 0 0 1 .794 0l7.306 2.54a.75.75 0 0 1 .451.696v7.351a.75.75 0 0 1-.451.696l-7.306 2.54a.75.75 0 0 1-.794 0l-7.306-2.54a.75.75 0 0 1-.451-.696V5.92a.75.75 0 0 1 .451-.696ZM15.25 6.45v6.1l-5.25 1.828V8.278l5.25-1.828ZM3.5 12.551v-6.1l5.25 1.828v6.101L3.5 12.55ZM9.5 7.411l-5.25-1.828L9.5 3.75l5.25 1.833-5.25 1.828Z" /></svg>);
+export const CalendarIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5v1.5h10.5v-1.5H4.75Z" clipRule="evenodd" /></svg>);
+export const SettingsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M11.49 3.17a.75.75 0 0 1 1.02.63V4a1 1 0 0 0 1 1h.382a.75.75 0 0 1 .63 1.02l-.276.553a1 1 0 0 0 .223 1.155l.44.44a.75.75 0 0 1 0 1.06l-.44.44a1 1 0 0 0-.223 1.155l.276.553a.75.75 0 0 1-.63 1.02h-.382a1 1 0 0 0-1 1v.199a.75.75 0 0 1-1.02.63l-.553-.276a1 1 0 0 0-1.155.223l-.44.44a.75.75 0 0 1-1.06 0l-.44-.44a1 1 0 0 0-1.155-.223l-.553.276a.75.75 0 0 1-1.02-.63V16a1 1 0 0 0-1-1h-.382a.75.75 0 0 1-.63-1.02l.276-.553a1 1 0 0 0 .223-1.155l-.44-.44a.75.75 0 0 1 0-1.06l.44-.44a1 1 0 0 0 .223-1.155l-.276-.553a.75.75 0 0 1 .63-1.02h.382a1 1 0 0 0 1-1v-.199a.75.75 0 0 1 1.02-.63l.553.276a1 1 0 0 0 1.155-.223l.44.44a.75.75 0 0 1 1.06 0l.44.44a1 1 0 0 0 1.155.223l.553-.276ZM10 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" clipRule="evenodd" /></svg>);
+export const GlobeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm1.5 0a6.5 6.5 0 1 1 11.2 4.937l-1.002-1.735A.75.75 0 0 0 12.196 12h-4.392a.75.75 0 0 0-.644.363l-1.002 1.735A6.47 6.47 0 0 1 3.5 10Z" clipRule="evenodd" /></svg>);
 
-export const PlusCircleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-);
+// Content Type & Action Icons
+export const ArticleIcon = ({className}: {className?: string} = {}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${className || ''}`.trim()}><path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v11.5A2.25 2.25 0 0 0 4.25 18h11.5A2.25 2.25 0 0 0 18 15.75V4.25A2.25 2.25 0 0 0 15.75 2H4.25ZM6.5 6a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Zm0 3.5a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z" clipRule="evenodd" /></svg>);
+export const ProductIcon = ({className}: {className?: string} = {}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${className || ''}`.trim()}><path d="M5.5 16.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" /><path d="M15.5 16.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" /><path fillRule="evenodd" d="M11 2.5a.5.5 0 0 0-1 0V3h-2v.5a.5.5 0 0 0 1 0V3h1v.5a.5.5 0 0 0 1 0V3h1v.5a.5.5 0 0 0 1 0V3h-2v-.5ZM5.98 4.21a.75.75 0 0 1 .73-.51h7.58a.75.75 0 0 1 .73.51l.836 2.507a.75.75 0 0 1-.73.983H5.874a.75.75 0 0 1-.73-.983L5.98 4.21ZM4.25 8.5h11.5a.75.75 0 0 1 .74.65l.556 3.894a1.75 1.75 0 0 1-1.74 1.956H5.694a1.75 1.75 0 0 1-1.74-1.956L4.509 9.15a.75.75 0 0 1 .74-.65Z" clipRule="evenodd" /></svg>);
+export const StrategyIcon = ({className}: {className?: string} = {}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${className || ''}`.trim()}><path fillRule="evenodd" d="M15.91 4.582a.75.75 0 0 1-.092 1.054l-5.333 5a.75.75 0 0 1-1.127 0l-2.667-2.5a.75.75 0 1 1 1.024-1.1l2.106 1.976 4.79-4.5a.75.75 0 0 1 1.054.092ZM6.25 10a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" /><path d="M4.5 2A2.5 2.5 0 0 0 2 4.5v11A2.5 2.5 0 0 0 4.5 18h11a2.5 2.5 0 0 0 2.5-2.5v-11A2.5 2.5 0 0 0 15.5 2h-11ZM3.5 4.5a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-11Z" /></svg>);
+export const SparklesIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.39-3.454 3.232c-.596.562-.25 1.559.642 1.747l5.313.974 2.37 4.847c.368.752 1.436.752 1.804 0l2.37-4.847 5.313-.974c.893-.188 1.238-1.185.642-1.747l-3.454-3.232-4.753-.39-1.83-4.401Z" clipRule="evenodd" /></svg>);
+export const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" /></svg>);
+export const PublishIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10 2a.75.75 0 0 1 .75.75v6.586l1.964-1.964a.75.75 0 1 1 1.06 1.06l-3.244 3.243a.75.75 0 0 1-1.06 0L6.22 8.336a.75.75 0 0 1 1.06-1.06L9.25 9.25V2.75A.75.75 0 0 1 10 2Z" clipRule="evenodd" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5a1.25 1.25 0 0 1-1.25 1.25H4.75A1.25 1.25 0 0 1 3.5 15.25v-2.5Z" /></svg>);
+export const EditIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" /></svg>);
+export const CameraIcon = ({ className }: { className?: string } = {}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${className || ''}`.trim()}><path fillRule="evenodd" d="M1 5.25A2.25 2.25 0 0 1 3.25 3h13.5A2.25 2.25 0 0 1 19 5.25v9.5A2.25 2.25 0 0 1 16.75 17H3.25A2.25 2.25 0 0 1 1 14.75v-9.5Zm1.5 0v9.5c0 .414.336.75.75.75h13.5a.75.75 0 0 0 .75-.75v-9.5a.75.75 0 0 0-.75-.75H3.25a.75.75 0 0 0-.75.75Z" clipRule="evenodd" /><path d="M10 14a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0-1.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /><path d="M3.86 5.542a.5.5 0 0 0-.41.23l-1.028 1.542a.5.5 0 0 0 .41.786h2.466a.5.5 0 0 0 .41-.23l1.028-1.542a.5.5 0 0 0-.41-.786H3.86Z" /></svg>);
+export const SeoIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>);
+export const LinkIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M12.232 4.232a2.5 2.5 0 0 1 3.536 3.536l-1.225 1.224a.75.75 0 0 0 1.061 1.06l1.224-1.224a4 4 0 0 0-5.656-5.656l-3 3a4 4 0 0 0 .225 5.872.75.75 0 0 0 .875-1.207A2.5 2.5 0 0 1 7.768 7.768l3-3Z" /><path d="m7.768 12.232 3 3a2.5 2.5 0 0 1-3.536 3.536l-1.225-1.224a.75.75 0 0 0-1.061 1.06l1.224 1.224a4 4 0 0 0 5.656-5.656l-3-3a4 4 0 0 0-.225-5.872.75.75 0 0 0-.875 1.207 2.5 2.5 0 0 1 3.536 3.536Z" /></svg>);
+export const ChevronUpIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M14.77 12.79a.75.75 0 0 1-1.06 0L10 9.06l-3.71 3.71a.75.75 0 0 1-1.06-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06Z" clipRule="evenodd" /></svg>);
+export const ChevronDownIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06 0L10 10.94l3.71-3.73a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.23 8.27a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>);
+export const CheckCircleIcon = ({ className }: { className?: string } = {}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${className || ''}`.trim()}><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>);
+export const ClockIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clipRule="evenodd" /></svg>);
+export const ArrowPathIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201-4.42 5.5 5.5 0 0 1 10.89 2.166l.248-1.117a.75.75 0 0 1 1.478.33l-1.025 4.613a.75.75 0 0 1-.926.65l-4.613-1.025a.75.75 0 0 1 .33-1.478l1.117.248Zm-2.194-5.025a4 4 0 0 0-7.363 2.954 4 4 0 0 0 7.823-2.06l-.24 1.08a.75.75 0 0 0 1.479.329l.47-2.113a.75.75 0 0 0-.926-.856l-2.113.47a.75.75 0 0 0 .329 1.479l1.08-.24Z" clipRule="evenodd" /></svg>);
+export const ChartPieIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M10 3.75a.75.75 0 0 0-1.5 0v5.5a.75.75 0 0 0 .75.75h5.5a.75.75 0 0 0 0-1.5h-4.75V3.75Z" /><path fillRule="evenodd" d="M9.25 2.016a.75.75 0 0 0-1.5 0v2.463a8.5 8.5 0 0 0-5.733 5.733H-.004a.75.75 0 0 0 0 1.5h2.463a8.5 8.5 0 0 0 5.733 5.733v2.463a.75.75 0 0 0 1.5 0v-2.463a8.5 8.5 0 0 0 5.733-5.733h2.463a.75.75 0 0 0 0-1.5h-2.463a8.5 8.5 0 0 0-5.733-5.733V2.016Zm-7 8.484a7 7 0 0 1 12.352-4.148.75.75 0 0 0-.6-1.154A8.5 8.5 0 0 0 2.25 10.5Z" clipRule="evenodd" /></svg>);
+export const DocumentTextIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v11.5A2.25 2.25 0 0 0 4.25 18h11.5A2.25 2.25 0 0 0 18 15.75V4.25A2.25 2.25 0 0 0 15.75 2H4.25ZM6 6.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5Zm.5 2.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7Z" clipRule="evenodd" /></svg>);
+export const TagIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="m11.121 2.894 4.242 4.243a1 1 0 0 1 0 1.414l-6.364 6.364a1 1 0 0 1-.707.293H3.293a1 1 0 0 1-1-1v-5a1 1 0 0 1 .293-.707l6.364-6.364a1 1 0 0 1 1.414 0l.96.961a1 1 0 1 1-1.414 1.414l-.23.23a.75.75 0 0 0 1.06 1.061l1.157-1.157Zm-2.828 6.364a1 1 0 1 0-1.414-1.414 1 1 0 0 0 1.414 1.414Z" clipRule="evenodd" /></svg>);
 
-export const LibraryIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
-);
+// Inline AI Menu Icons
+export const WandIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.39-3.454 3.232c-.596.562-.25 1.559.642 1.747l5.313.974 2.37 4.847c.368.752 1.436.752 1.804 0l2.37-4.847 5.313-.974c.893-.188 1.238-1.185.642-1.747l-3.454-3.232-4.753-.39-1.83-4.401Z" clipRule="evenodd" /></svg>);
+export const ScissorsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10.879 9.121a2.75 2.75 0 0 1 0 1.757l-4.5 4.5a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0Zm-4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06l-4.5-4.5a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /><path d="M5.5 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" /><path d="M12.5 15.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" /></svg>);
+export const ExpandIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M3 4.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5H4.5v1.75a.75.75 0 0 1-1.5 0V4.25ZM3.75 17a.75.75 0 0 1-.75-.75v-2.5a.75.75 0 0 1 1.5 0V15.5h1.75a.75.75 0 0 1 0 1.5H3.75Zm13.5 0a.75.75 0 0 1-.75-.75V15.5h-1.75a.75.75 0 0 1 0-1.5H17v-1.75a.75.75 0 0 1 1.5 0v2.5a.75.75 0 0 1-.75.75ZM16.25 3a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0V4.5h-1.75a.75.75 0 0 1 0-1.5h2.5Z" clipRule="evenodd" /></svg>);
+export const FaceSmileIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm-2.92-5.412a.75.75 0 0 1 .84-1.182c.49.348 1.1.594 1.77-.594s1.28-.246 1.77-.594a.75.75 0 1 1 .84 1.182A4.5 4.5 0 0 1 10 14a4.5 4.5 0 0 1-2.92-1.412ZM8 7.5a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-1.5 0V8.25A.75.75 0 0 1 8 7.5Zm4.5.75a.75.75 0 0 0-1.5 0v.008a.75.75 0 0 0 1.5 0V8.25Z" clipRule="evenodd" /></svg>);
 
-export const CalendarIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-);
-
-export const SettingsIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-);
-
-export const GlobeIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h10a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.707 4.293l.586-.586a2 2 0 012.828 0l2.121 2.121M12 21a9 9 0 110-18 9 9 0 010 18z" /></svg>
-);
-
-export const ArticleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-);
-
-export const ProductIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-);
-
-export const StrategyIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6m6 0v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z" />
-    </svg>
-);
-
-export const SparklesIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 01-1.414 1.414L13 6l-1.293 1.293a1 1 0 01-1.414-1.414L12 3.828l-1.293-1.293a1 1 0 010-1.414l1.293-1.293L12 0l1.293 1.293a1 1 0 010 1.414L12 3.828zM19 12l-2.293-2.293a1 1 0 00-1.414 1.414L17 14l1.293-1.293a1 1 0 001.414-1.414L21 9.172l1.293 1.293a1 1 0 001.414 0L24 12l-1.293-1.293a1 1 0 00-1.414 0L20 12l1.293 1.293a1 1 0 001.414 0L24 12z" /></svg>
-);
-
-export const TrashIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-);
-
-export const PublishIcon = () => (
-     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-);
-
-export const EditIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-    </svg>
-);
-
-export const CameraIcon = ({ className }: { className?: string } = {}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${className || ''}`.trim()} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-);
-
-export const SeoIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
-
-export const LinkIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-    </svg>
-);
-
-
-// Icons for Inline AI Menu
-export const WandIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10 5l-1 1 5 5-1.5 1.5-5-5-1 1" />
-    </svg>
-);
-
-export const ScissorsIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2V8zM6 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2v-2zM12 10l5-5m0 0l5 5m-5-5v14" />
-    </svg>
-);
-
-export const ExpandIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4" />
-    </svg>
-);
-
-export const FaceSmileIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
+// Misc Icons
+export const CloseIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>);
+export const EyeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.18l.88-1.473a1.65 1.65 0 0 1 1.54-.882H4.48a1.65 1.65 0 0 1 1.54.882l.88 1.473a1.651 1.651 0 0 1 0 1.18l-.88 1.473a1.65 1.65 0 0 1-1.54.882H3.08a1.65 1.65 0 0 1-1.54-.882l-.88-1.473ZM14.48 7.056a1.65 1.65 0 0 1 1.54.882l.88 1.473a1.651 1.651 0 0 1 0 1.18l-.88 1.473a1.65 1.65 0 0 1-1.54.882h-1.4a1.65 1.65 0 0 1-1.54-.882l-.88-1.473a1.651 1.651 0 0 1 0-1.18l.88-1.473a1.65 1.65 0 0 1 1.54-.882h1.4Z" clipRule="evenodd" /></svg>);
+export const ChatBubbleLeftIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M10 2c-4.418 0-8 3.134-8 7 0 2.444 1.254 4.634 3.253 5.923.46.242.688.747.58 1.267l-.433 1.95a.75.75 0 0 0 1.01.817l1.968-.984a.75.75 0 0 1 .65-.034C8.053 17.804 9.006 18 10 18c4.418 0 8-3.134 8-7s-3.582-7-8-7Z" clipRule="evenodd" /></svg>);
+export const ArrowUpRightIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0 .75.75h8.5a.75.75 0 0 0 .75-.75V5.5a.75.75 0 0 0-1.5 0v7.22l-8.22-8.22a.75.75 0 0 0-1.06 1.06L12.94 13.5H5.5a.75.75 0 0 0 0 1.5h10a.75.75 0 0 0 .75-.75V4.25a.75.75 0 0 0-1.5 0v1.25Z" clipRule="evenodd" /></svg>);
+export const ChevronRightIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>);
+export const LanguageIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="m7.875 1.536-1.42 1.42a.75.75 0 0 0 0 1.06l1.42 1.42a.75.75 0 0 0 1.06 0l1.42-1.42a.75.75 0 0 0 0-1.06l-1.42-1.42a.75.75 0 0 0-1.06 0Z" /><path fillRule="evenodd" d="M12.25 4.75a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-1.5 0v-.5a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" /><path fillRule="evenodd" d="M8.25 7.58a6.012 6.012 0 0 0-4.018 2.37C3.04 11.237 2 12.872 2 14.5a.75.75 0 0 0 1.5 0c0-1.258.747-2.54 1.77-3.623a4.512 4.512 0 0 1 3.254-1.783.75.75 0 0 0 .473-1.432l-.248-.06Z" clipRule="evenodd" /><path fillRule="evenodd" d="M12.934 7.647a.75.75 0 0 1 .655.884c-.391 1.543-.136 2.92.596 4.032 1.077 1.636 2.451 2.87 2.56 2.983a.75.75 0 1 1-.9 1.19c-.06-.05-1.28-1.18-2.227-2.651-.83-1.265-.95-2.561-.61-3.923l.03-.117a.75.75 0 0 1 .883-.656Z" clipRule="evenodd" /></svg>);

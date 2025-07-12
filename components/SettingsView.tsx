@@ -1,5 +1,3 @@
-
-
 import React, { useState, useContext, useEffect } from 'react';
 import { LanguageContextType, Notification } from '../types';
 import { LanguageContext } from '../App';
@@ -124,7 +122,7 @@ add_action( 'rest_api_init', function() {
 
       <div className="space-y-8 max-w-4xl">
         {/* Gemini API Settings */}
-        <div className="bg-gray-800 p-6 rounded-lg border border-green-500/50">
+        <div className="bg-gray-800 p-6 rounded-xl border border-sky-500/30">
           <h2 className="text-xl font-semibold text-white mb-2">{t('apiSettingsTitle')}</h2>
           <p className="text-gray-400 mb-4">{t('apiSettingsDesc')}</p>
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
@@ -136,12 +134,12 @@ add_action( 'rest_api_init', function() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder={t('geminiApiKeyPlaceholder')}
-                className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-sky-500 focus:outline-none"
               />
             </div>
             <button
               onClick={handleSaveApiKey}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
             >
               {t('save')}
             </button>
@@ -149,20 +147,20 @@ add_action( 'rest_api_init', function() {
         </div>
         
         {/* Brand Voice Settings */}
-        <div className="bg-gray-800 p-6 rounded-lg border border-purple-500/50">
+        <div className="bg-gray-800 p-6 rounded-xl border border-indigo-500/30">
           <h2 className="text-xl font-semibold text-white mb-2">{t('brandVoice')}</h2>
           <p className="text-gray-400 mb-4">{t('brandVoiceHint')}</p>
           <textarea
             value={brandVoice}
             onChange={(e) => setBrandVoice(e.target.value)}
             placeholder={t('brandVoicePlaceholder')}
-            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             rows={4}
           />
           <div className="flex justify-end mt-4">
               <button
                 onClick={handleSaveBrandVoice}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
               >
                 {t('save')}
               </button>
@@ -171,11 +169,11 @@ add_action( 'rest_api_init', function() {
 
         {/* Connection Methods */}
         <h2 className="text-2xl font-bold text-white pt-4 border-t border-gray-700">{t('method1Title')}</h2>
-        <div className="bg-gray-800 p-6 rounded-lg">
+        <div className="bg-gray-800 p-6 rounded-xl">
           <p className="text-gray-400">{t('method1Desc')}</p>
         </div>
 
-        <div className="bg-gray-800 p-6 rounded-lg border border-blue-500/50">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700/50">
           <h3 className="text-xl font-semibold text-white mb-2">{t('method2Title')}</h3>
           <p className="text-gray-400 mb-4">{t('method2Desc')}</p>
           
@@ -193,7 +191,7 @@ add_action( 'rest_api_init', function() {
             </pre>
             <button
               onClick={handleCopyCode}
-              className="absolute top-2 end-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 text-xs rounded-md transition-colors"
+              className="absolute top-2 end-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 text-xs rounded-lg transition-colors"
             >
               {codeCopied ? t('codeCopied') : t('copyCode')}
             </button>

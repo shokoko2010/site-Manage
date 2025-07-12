@@ -1,6 +1,7 @@
 
+
 import React, { useContext, useState } from 'react';
-import { ExpandIcon, FaceSmileIcon, ScissorsIcon, WandIcon } from '../constants';
+import { WandIcon, ScissorsIcon, ExpandIcon, FaceSmileIcon } from '../constants';
 import { LanguageContext } from '../App';
 import { LanguageContextType, WritingTone } from '../types';
 import Spinner from './common/Spinner';

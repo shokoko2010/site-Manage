@@ -142,3 +142,24 @@ export interface SitePost {
         comments: number;
     };
 }
+
+
+export interface DashboardViewProps {
+  sites: WordPressSite[];
+  onAddSite: (site: WordPressSite) => void;
+  onRemoveSite: (siteId: string) => void;
+  isLoading: boolean;
+  onManageSite: (site: WordPressSite) => void;
+  onNavigateToNewContent: (type: ContentType) => void;
+  recentActivity: GeneratedContent[];
+}
+
+export interface NewContentViewProps {
+    onContentGenerated: (content: GeneratedContent) => void;
+    onStrategyGenerated: (contents: ArticleContent[]) => void;
+    sites: WordPressSite[];
+    showNotification: (notification: Notification) => void;
+    initialContent?: ArticleContent | null;
+    onUpdateComplete?: () => void;
+    newContentType?: ContentType;
+}

@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useContext, useEffect, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -7,6 +6,7 @@ import { GeneratedContent, WordPressSite, Notification, LanguageContextType, Pub
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
 import { publishContent } from '../services/wordpressService';
+import { ArticleIcon, ProductIcon } from '../constants';
 
 interface CalendarViewProps {
     library: GeneratedContent[];
@@ -30,8 +30,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
             start: content.scheduledFor,
             allDay: true,
             display: content.scheduledFor ? 'auto' : 'list-item',
-            backgroundColor: content.type === ContentType.Article ? '#581c87' : '#065f46',
-            borderColor: content.type === ContentType.Article ? '#a855f7' : '#10b981',
+            backgroundColor: content.type === ContentType.Article ? '#4338ca' : '#047857',
+            borderColor: content.type === ContentType.Article ? '#6d28d9' : '#065f46',
             extendedProps: {
                 content,
             },
@@ -47,15 +47,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
             new Draggable(externalEventsRef.current, {
                 itemSelector: '.fc-event-draggable',
                 eventData: function(eventEl) {
+                    const content = library.find(item => item.id === eventEl.dataset.id);
                     return {
                         id: eventEl.dataset.id,
                         title: eventEl.dataset.title,
                         allDay: true,
-                        create: false, // This is a key property
-                        extendedProps: {
-                            // Find the original content to pass along
-                            content: library.find(item => item.id === eventEl.dataset.id)
-                        }
+                        create: false,
+                        backgroundColor: content?.type === ContentType.Article ? '#4338ca' : '#047857',
+                        borderColor: content?.type === ContentType.Article ? '#6d28d9' : '#065f46',
+                        extendedProps: { content }
                     };
                 }
             });
@@ -74,8 +74,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
         const newDate = dropInfo.event.start;
         onUpdateLibraryItem(id, { scheduledFor: newDate.toISOString() });
         showNotification({ message: t('itemScheduled'), type: 'success' });
-        // The event object from the drop is temporary, so we remove it.
-        // FullCalendar will re-render with the updated event from the `events` prop.
         dropInfo.event.remove();
     };
 
@@ -125,10 +123,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
                 <p className="text-gray-400 mt-1">{t('calendarHint')}</p>
             </header>
             
-            <div className="flex-grow grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-3 bg-gray-800 p-4 rounded-lg shadow-lg">
+            <div className="flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-3 bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700/50">
                     <FullCalendar
-                        key={language} // Force re-render on language change
+                        key={language} 
                         plugins={[dayGridPlugin, interactionPlugin]}
                         initialView="dayGridMonth"
                         headerToolbar={{
@@ -138,29 +136,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
                         }}
                         events={events.filter(e => e.start)}
                         editable={true}
-                        droppable={true} // Allow external events to be dropped
+                        droppable={true}
                         eventDrop={handleEventDrop}
                         eventReceive={handleEventReceive}
                         eventClick={handleEventClick}
                         height="100%"
                         locale={language}
-                        firstDay={language === 'ar' ? 6 : 0} // Saturday for Arabic, Sunday for English
+                        firstDay={language === 'ar' ? 6 : 0}
                     />
                 </div>
-                <div className="lg:col-span-1 bg-gray-800 p-4 rounded-lg shadow-lg">
-                    <h2 className="text-lg font-semibold text-white mb-4">{t('unscheduledDrafts')}</h2>
-                    <ul ref={externalEventsRef} className="space-y-2 h-[70vh] overflow-y-auto">
+                <div className="lg:col-span-1 bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700/50 flex flex-col">
+                    <h2 className="text-lg font-semibold text-white mb-4 flex-shrink-0">{t('unscheduledDrafts')}</h2>
+                    <ul ref={externalEventsRef} className="space-y-2 flex-grow overflow-y-auto">
                         {unscheduledEvents.length > 0 ? unscheduledEvents.map(event => (
                             <li 
                                 key={event.id}
                                 data-id={event.id}
                                 data-title={event.title}
-                                className="fc-event-draggable bg-gray-700 p-3 rounded-md text-sm cursor-grab hover:bg-gray-600 transition-colors"
+                                className="fc-event-draggable bg-gray-700 p-3 rounded-lg text-sm cursor-grab hover:bg-gray-600 transition-colors flex items-center"
                             >
-                                {event.title}
+                                <span className="me-2">{event.extendedProps.content.type === ContentType.Article ? <ArticleIcon/> : <ProductIcon/>}</span>
+                                <span className="truncate">{event.title}</span>
                             </li>
                         )) : (
-                            <p className="text-gray-500 text-sm">{t('libraryEmpty')}</p>
+                            <p className="text-gray-500 text-sm text-center py-10">{t('noUnscheduledItems')}</p>
                         )}
                     </ul>
                 </div>
