@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
@@ -187,7 +188,7 @@ For context, here is some information about the website this article will be pub
   const userPrompt = `
     Generate a complete article based on the following specifications.
     ${useGoogleSearch ? 'Use your access to Google Search to find up-to-date, factual, and relevant information to write this article.' : ''}
-    The output MUST be a single valid JSON object ${useGoogleSearch ? 'enclosed in a ```json markdown block' : 'that strictly matches the provided schema'}. Do not include any text outside of the JSON object.
+    The output MUST be a single valid JSON object ${useGoogleSearch ? 'enclosed in a ```json markdown block' : 'that strictly matches the provided schema'}. Do not include any text outside of this JSON structure. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
 
     **Article Specifications:**
     - Topic/Title Idea: "${topic}"
@@ -269,7 +270,7 @@ export const generateProduct = async (
     const brandVoice = localStorage.getItem(BRAND_VOICE_STORAGE_KEY) || '';
 
     const prompt = `
-        Generate complete product page content for a WooCommerce store. The output MUST be a valid JSON object matching the provided schema.
+        Generate complete product page content for a WooCommerce store. The output MUST be a valid JSON object matching the provided schema. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
 
         - Product Name: "${productName}"
         - Key Features and Specifications: 
@@ -356,7 +357,7 @@ export const generateContentStrategy = async (
     const userPrompt = `
         Generate a content strategy consisting of ${numArticles} full articles on the main topic of "${topic}".
         Each article should be unique, target a different sub-topic or keyword, and be engaging for readers.
-        The output MUST be a single, valid JSON array of article objects. Do not include any text outside of the JSON array.
+        The output MUST be a single, valid JSON array of article objects. Do not include any text outside of the JSON array. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
         Each object in the array must strictly adhere to this schema: { title, metaDescription, body }.
         The language for all articles must be ${language}.
         ${brandVoice ? `Adhere to this Brand Voice Guideline for all articles: "${brandVoice}"` : ''}
@@ -437,7 +438,7 @@ export const refineArticle = async (
 
     **Your Task:**
     Apply the instruction to the article. You might need to rewrite sections, add new content, remove content, or change the tone.
-    The output MUST be a single valid JSON object that strictly matches the provided schema, containing the full, updated content for the article.
+    The output MUST be a single valid JSON object that strictly matches the provided schema, containing the full, updated content for the article. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
     The language of the article must remain ${language}.
 
     Return the JSON object with the "title", "metaDescription", and "body" keys.
@@ -499,7 +500,7 @@ export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalys
         - Potential for ranking on search engines.
         - Natural integration of potential keywords.
 
-        Return your analysis as a single, valid JSON object.
+        Return your analysis as a single, valid JSON object. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
     `;
 
     try {
