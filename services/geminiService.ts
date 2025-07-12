@@ -63,22 +63,55 @@ const seoAnalysisSchema = {
 };
 
 const extractJsonFromText = (text: string): any => {
-    const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
-    const match = text.match(jsonRegex);
-    if (match && match[1]) {
+    // 1. First, try to find a JSON object enclosed in ```json ... ```
+    const markdownJsonRegex = /```json\s*([\s\S]*?)\s*```/;
+    const markdownMatch = text.match(markdownJsonRegex);
+
+    if (markdownMatch && markdownMatch[1]) {
         try {
-            return JSON.parse(match[1]);
+            return JSON.parse(markdownMatch[1]);
         } catch (e) {
-             console.error("Failed to parse extracted JSON block:", e);
-             console.error("Original JSON block from AI:", match[1]);
-             throw new Error("AI returned a JSON block that could not be parsed.");
+            console.warn("Could not parse JSON from markdown block, attempting to find JSON in the full response.", e);
+            // Fall through to the next method if parsing the markdown block fails
         }
     }
-    // Fallback for when the model doesn't use a markdown block
+
+    // 2. If no valid markdown block is found, find the largest possible JSON object/array.
+    // This is a fallback for when the AI doesn't use markdown blocks or the block is malformed.
+    const firstBrace = text.indexOf('{');
+    const firstBracket = text.indexOf('[');
+
+    let startIndex = -1;
+    
+    if (firstBrace === -1 && firstBracket === -1) {
+        console.error("Could not find start of JSON ('{' or '[') in the response:", text);
+        throw new Error("AI response does not appear to contain any JSON.");
+    }
+
+    // Determine if it's likely an object or an array that starts first
+    if (firstBrace !== -1 && (firstBrace < firstBracket || firstBracket === -1)) {
+        startIndex = firstBrace;
+    } else {
+        startIndex = firstBracket;
+    }
+
+    const lastBrace = text.lastIndexOf('}');
+    const lastBracket = text.lastIndexOf(']');
+    const endIndex = Math.max(lastBrace, lastBracket);
+
+    if (endIndex === -1 || endIndex < startIndex) {
+        console.error("Could not find a complete JSON structure (e.g. missing closing '}' or ']') in response:", text);
+        throw new Error("AI response contains incomplete JSON.");
+    }
+    
+    const jsonString = text.substring(startIndex, endIndex + 1);
+
     try {
-        return JSON.parse(text);
+        return JSON.parse(jsonString);
     } catch (e) {
-        console.error("Failed to parse the full response as JSON:", text);
+        console.error("Final attempt to parse extracted substring as JSON failed:", e);
+        console.error("Original text from AI:", text);
+        console.error("Substring that was extracted and failed to parse:", jsonString);
         throw new Error("AI returned a response that could not be parsed as JSON.");
     }
 };
@@ -132,8 +165,8 @@ For context, here is some information about the website this article will be pub
   try {
     const config: any = {
         systemInstruction,
-        maxOutputTokens: 16384, // Increased token limit for very long articles
-        thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
+        maxOutputTokens: 32768, // Increased token limit for very long articles
+        thinkingConfig: { thinkingBudget: 4096 }, // Reserve tokens for thinking
     };
     
     if (useGoogleSearch) {
@@ -367,8 +400,8 @@ export const refineArticle = async (
             systemInstruction,
             responseMimeType: "application/json",
             responseSchema: articleSchema,
-            maxOutputTokens: 16384, // Increased token limit for refined articles
-            thinkingConfig: { thinkingBudget: 2048 }, // Reserve tokens for thinking
+            maxOutputTokens: 32768, // Increased token limit for refined articles
+            thinkingConfig: { thinkingBudget: 4096 }, // Reserve tokens for thinking
         },
     });
 
