@@ -1,15 +1,17 @@
 
-import React, { useState, useEffect, useCallback, createContext } from 'react';
+import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
 import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent } from './types';
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
-import NewContentView from './components/NewContentView';
 import ContentLibraryView from './components/ContentLibraryView';
 import CalendarView from './components/CalendarView';
 import { getSitesFromStorage, saveSitesToStorage } from './services/wordpressService';
 import Notification from './components/Notification';
 import { getT } from './i18n';
 import SettingsView from './components/SettingsView';
+import Spinner from './components/common/Spinner';
+
+const NewContentView = React.lazy(() => import('./components/NewContentView'));
 
 export const LanguageContext = createContext<LanguageContextType | null>(null);
 
@@ -123,7 +125,11 @@ export default function App() {
       case View.Dashboard:
         return <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} />;
       case View.NewContent:
-        return <NewContentView onContentGenerated={addToLibrary} onStrategyGenerated={addMultipleToLibrary} sites={sites} showNotification={showNotification} initialContent={editingContent} />;
+        return (
+            <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>}>
+                <NewContentView onContentGenerated={addToLibrary} onStrategyGenerated={addMultipleToLibrary} sites={sites} showNotification={showNotification} initialContent={editingContent} />
+            </Suspense>
+        );
       case View.ContentLibrary:
         return <ContentLibraryView library={contentLibrary} sites={sites} onRemoveFromLibrary={removeFromLibrary} showNotification={showNotification} onEdit={editFromLibrary} onScheduleAll={scheduleAllUnscheduled} />;
       case View.Calendar:
