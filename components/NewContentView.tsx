@@ -1,8 +1,9 @@
 
 
 import React, { useState, useEffect, useContext } from 'react';
-import ReactMarkdown from 'react-markdown';
+import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone } from '../types';
 import { generateArticle, generateProduct, generateFeaturedImage, generateContentStrategy, analyzeSeo, refineArticle } from '../services/geminiService';
 import Spinner from './common/Spinner';
@@ -484,7 +485,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                 {generatedResult.type === ContentType.Article ? (
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('tableTitle')}</label>
                             <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                          <div>
@@ -492,19 +493,18 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                             <textarea value={generatedResult.metaDescription} onChange={e => handleResultChange('metaDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" rows={2} />
                          </div>
                          <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Body (Markdown Editor & Preview)</label>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-700 rounded-lg h-[40rem] max-h-[60vh]">
-                                <textarea 
-                                    value={generatedResult.body} 
-                                    onChange={e => handleResultChange('body', e.target.value)} 
-                                    className="text-base w-full bg-gray-700 p-3 rounded-l-md text-gray-200 leading-relaxed font-mono focus:ring-0 focus:outline-none resize-none"
-                                    spellCheck="false"
+                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('articleBody')}</label>
+                            <div data-color-mode="dark">
+                                <MDEditor
+                                    value={generatedResult.body}
+                                    onChange={(val) => handleResultChange('body', val || '')}
+                                    height={500}
+                                    preview="split"
+                                    previewOptions={{
+                                        remarkPlugins: [remarkGfm],
+                                        rehypePlugins: [rehypeSanitize],
+                                    }}
                                 />
-                                <div className="prose prose-invert prose-sm max-w-none bg-gray-900 p-3 rounded-r-md overflow-y-auto">
-                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                         {generatedResult.body || "Start typing to see a preview..."}
-                                     </ReactMarkdown>
-                                </div>
                             </div>
                          </div>
                          <div className="mt-6 bg-gray-900/50 p-4 rounded-lg border border-blue-500/50">
@@ -536,16 +536,27 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                 ) : (
                      <div className="space-y-4">
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Product Name</label>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('productName')}</label>
                             <input type="text" value={generatedResult.title} onChange={e => handleResultChange('title', e.target.value)} className="text-xl font-bold w-full bg-gray-700 p-2 rounded-md text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Long Description (Markdown)</label>
-                            <textarea value={generatedResult.longDescription} onChange={e => handleResultChange('longDescription', e.target.value)} className="text-base w-full bg-gray-700 p-2 rounded-md h-64 text-gray-200 leading-relaxed font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
+                             <div data-color-mode="dark">
+                                <MDEditor
+                                    value={(generatedResult as ProductContent).longDescription}
+                                    onChange={(val) => handleResultChange('longDescription', val || '')}
+                                    height={400}
+                                    preview="split"
+                                    previewOptions={{
+                                        remarkPlugins: [remarkGfm],
+                                        rehypePlugins: [rehypeSanitize],
+                                    }}
+                                />
+                            </div>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Short Description</label>
-                            <textarea value={generatedResult.shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-700 p-2 rounded-md h-24 text-gray-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                     </div>
                 )}

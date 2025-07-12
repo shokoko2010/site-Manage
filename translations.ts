@@ -1,4 +1,5 @@
 
+
 export const translations = {
   en: {
     // Sidebar & Language
@@ -75,6 +76,8 @@ export const translations = {
     refinementPlaceholder: 'e.g., Add a section on future trends, make the tone more formal',
     refineArticle: 'Refine Article',
     refiningArticle: 'Refining the article with AI...',
+    articleBody: 'Article Body',
+    longDescription: 'Long Description (Markdown)',
     
     // Image Generator
     featuredImage: 'Featured Image',
@@ -251,6 +254,8 @@ export const translations = {
     refinementPlaceholder: 'مثال: أضف قسماً عن الاتجاهات المستقبلية، اجعل النبرة أكثر رسمية',
     refineArticle: 'تحسين المقال',
     refiningArticle: 'جاري تحسين المقال بالذكاء الاصطناعي...',
+    articleBody: 'محتوى المقال',
+    longDescription: 'الوصف المطول (ماركداون)',
 
     // Image Generator
     featuredImage: 'الصورة البارزة',
