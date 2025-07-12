@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
 const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
@@ -116,6 +116,44 @@ const extractJsonFromText = (text: string): any => {
     }
 };
 
+/**
+ * Checks the API response for errors and returns the text content if valid.
+ * Throws user-friendly errors for specific failure reasons.
+ */
+const processApiResponse = (response: GenerateContentResponse): string => {
+    if (!response.candidates || response.candidates.length === 0) {
+        throw new Error("The AI returned an empty response. This may be due to a temporary issue or a problem with the prompt.");
+    }
+
+    const candidate = response.candidates[0];
+    const finishReason = candidate.finishReason;
+
+    if (finishReason === 'MAX_TOKENS') {
+        throw new Error("The AI's response was too long and was cut off. Please try generating a shorter piece of content or simplifying your request.");
+    }
+
+    if (finishReason === 'SAFETY') {
+        let blockMessage = "The request was blocked due to safety concerns.";
+        const harmfulCategory = candidate.safetyRatings?.find(r => r.blocked)?.category;
+        if (harmfulCategory) {
+            blockMessage += ` (Reason: ${harmfulCategory.replace('HARM_CATEGORY_', '')})`;
+        }
+        throw new Error(blockMessage + ". Please modify your prompt and try again.");
+    }
+    
+    if (finishReason === 'RECITATION') {
+         throw new Error("The response was blocked because it contained content that is too similar to copyrighted material. Please try a different prompt.");
+    }
+    
+    if (finishReason === 'OTHER') {
+        throw new Error("The response was stopped for an unspecified reason. Please try again.");
+    }
+
+    // If finishReason is 'STOP', we can proceed.
+    return response.text.trim();
+};
+
+
 export const generateArticle = async (
   topic: string, 
   keywords: string, 
@@ -165,8 +203,6 @@ For context, here is some information about the website this article will be pub
   try {
     const config: any = {
         systemInstruction,
-        maxOutputTokens: 32768, // Increased token limit for very long articles
-        thinkingConfig: { thinkingBudget: 4096 }, // Reserve tokens for thinking
     };
     
     if (useGoogleSearch) {
@@ -182,7 +218,7 @@ For context, here is some information about the website this article will be pub
         config: config,
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = processApiResponse(response);
     const parsed = useGoogleSearch ? extractJsonFromText(jsonText) : JSON.parse(jsonText);
 
     if (!parsed.title || !parsed.metaDescription || !parsed.body) {
@@ -202,7 +238,7 @@ For context, here is some information about the website this article will be pub
     };
   } catch (error) {
     console.error("Error generating article:", error);
-    if (error instanceof Error && (error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
+    if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
         throw error;
     }
     throw new Error("Failed to generate article from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
@@ -238,12 +274,10 @@ export const generateProduct = async (
         config: {
             responseMimeType: "application/json",
             responseSchema: productSchema,
-            maxOutputTokens: 8192,
-            thinkingConfig: { thinkingBudget: 1024 },
         },
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = processApiResponse(response);
     const parsed = JSON.parse(jsonText);
 
     if (!parsed.title || !parsed.longDescription || !parsed.shortDescription) {
@@ -261,6 +295,9 @@ export const generateProduct = async (
     };
   } catch (error) {
     console.error("Error generating product content:", error);
+    if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
+        throw error;
+    }
     throw new Error("Failed to generate product content from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
   }
 };
@@ -321,12 +358,10 @@ export const generateContentStrategy = async (
                 systemInstruction,
                 responseMimeType: "application/json",
                 responseSchema: contentStrategySchema,
-                maxOutputTokens: 32768, // Increased significantly for multiple articles
-                thinkingConfig: { thinkingBudget: 4096 }, // Reserve tokens for thinking for strategy
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = processApiResponse(response);
         const parsedArticles: any[] = JSON.parse(jsonText);
 
         if (!Array.isArray(parsedArticles)) {
@@ -352,6 +387,9 @@ export const generateContentStrategy = async (
 
     } catch (error) {
         console.error("Error generating content strategy:", error);
+        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("not a JSON array"))) {
+            throw error;
+        }
         throw new Error("Failed to generate content strategy from AI. The model may have returned an invalid format or the service is unavailable.");
     }
 };
@@ -400,12 +438,10 @@ export const refineArticle = async (
             systemInstruction,
             responseMimeType: "application/json",
             responseSchema: articleSchema,
-            maxOutputTokens: 32768, // Increased token limit for refined articles
-            thinkingConfig: { thinkingBudget: 4096 }, // Reserve tokens for thinking
         },
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = processApiResponse(response);
     const parsed = JSON.parse(jsonText);
 
     if (!parsed.title || !parsed.metaDescription || !parsed.body) {
@@ -419,6 +455,9 @@ export const refineArticle = async (
     };
   } catch (error) {
     console.error("Error refining article:", error);
+     if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
+        throw error;
+    }
     throw new Error("Failed to refine article from AI. The model may have returned an invalid response.");
   }
 };
@@ -461,7 +500,7 @@ export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalys
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = processApiResponse(response);
         const parsed = JSON.parse(jsonText) as SeoAnalysis;
 
         if (typeof parsed.score !== 'number' || !Array.isArray(parsed.suggestions)) {
@@ -471,6 +510,9 @@ export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalys
 
     } catch (error) {
         console.error("Error analyzing SEO:", error);
+        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
+            throw error;
+        }
         throw new Error("Failed to get SEO analysis from AI. The model may have returned an invalid format.");
     }
 };
@@ -508,10 +550,13 @@ export const modifyText = async (
         });
 
         // We expect a plain text response, so we just return it.
-        return response.text.trim();
+        return processApiResponse(response);
 
     } catch(error) {
         console.error("Error modifying text:", error);
+        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked"))) {
+            throw error;
+        }
         throw new Error("Failed to modify text with AI. The service might be unavailable.");
     }
 };
