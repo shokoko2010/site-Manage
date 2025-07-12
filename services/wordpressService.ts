@@ -154,6 +154,26 @@ export const fetchAllPosts = async (site: WordPressSite): Promise<SitePost[]> =>
     return allPosts;
 };
 
+export const fetchAllPostsFromAllSites = async (sites: WordPressSite[]): Promise<SitePost[]> => {
+    const connectedSites = sites.filter(site => !site.isVirtual);
+    if (connectedSites.length === 0) return [];
+    
+    const allResults = await Promise.allSettled(
+        connectedSites.map(site => fetchAllPosts(site))
+    );
+    
+    let allPosts: SitePost[] = [];
+    allResults.forEach(result => {
+        if (result.status === 'fulfilled') {
+            allPosts = allPosts.concat(result.value);
+        } else {
+            console.error("Failed to fetch posts from one of the sites:", result.reason);
+        }
+    });
+
+    return allPosts;
+};
+
 
 // --- Publishing Logic ---
 

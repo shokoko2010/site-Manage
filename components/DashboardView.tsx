@@ -5,10 +5,11 @@ import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
 import AddSiteModal from './AddSiteModal';
 import { PlusCircleIcon, StrategyIcon, ArticleIcon, ClockIcon, ChartPieIcon, EyeIcon, ChatBubbleLeftIcon, ArrowUpRightIcon, ProductIcon } from '../constants';
-import ContentCard from './ContentCard';
+import IdeaGeneratorModal from './IdeaGeneratorModal';
 
 const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite, onNavigateToNewContent, recentActivity }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
   const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
   
   const topPerformingPost = recentActivity
@@ -41,6 +42,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
       </div>
     </div>
   );
+
+  const handleIdeaSelected = (title: string) => {
+      setIsIdeaModalOpen(false);
+      onNavigateToNewContent(ContentType.Article, title);
+  }
 
   return (
     <div className="p-8 h-full">
@@ -102,8 +108,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
                            <button className="flex-1 text-sm bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors flex items-center justify-center">
                              {t('viewArticle')} <ArrowUpRightIcon className="ms-1 h-4 w-4" />
                            </button>
-                           <button className="flex-1 text-sm btn-gradient text-white font-semibold py-2 px-3 rounded-lg transition-colors flex items-center justify-center">
-                             {t('createSimilar')}
+                           <button onClick={() => setIsIdeaModalOpen(true)} className="flex-1 text-sm btn-gradient text-white font-semibold py-2 px-3 rounded-lg transition-colors flex items-center justify-center">
+                             {t('analyzeAndGenerate')}
                            </button>
                         </div>
                     </div>
@@ -131,6 +137,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
             isOpen={isAddModalOpen}
             onClose={() => setIsAddModalOpen(false)}
             onAddSite={onAddSite}
+            sites={sites}
+        />
+      )}
+      {isIdeaModalOpen && (
+        <IdeaGeneratorModal
+            isOpen={isIdeaModalOpen}
+            onClose={() => setIsIdeaModalOpen(false)}
+            onIdeaSelect={handleIdeaSelected}
             sites={sites}
         />
       )}

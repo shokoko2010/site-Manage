@@ -40,7 +40,16 @@ export const translations = {
     topPerformingArticle: 'Top Performing Article',
     noActivity: 'No recent activity yet. Create some content to get started!',
     viewArticle: 'View Article',
-    createSimilar: 'Create Similar',
+    analyzeAndGenerate: 'Analyze & Generate Ideas',
+
+    // Idea Generator Modal
+    ideaGeneratorTitle: 'AI Idea Generator',
+    ideaGeneratorHint: 'Based on your top performing content, here are some new ideas:',
+    analyzingPerformance: 'Analyzing your content performance...',
+    generatingIdeas: 'Generating new ideas based on your success...',
+    startWritingThisArticle: 'Start Writing This Article',
+    ideaJustification: 'Why this is a good idea:',
+    noDataForIdeas: 'Not enough performance data to generate ideas. Publish more content and get some views!',
 
     // NewContentView (Wizard)
     step1_brief_title: 'Step 1: The Brief',
@@ -111,6 +120,7 @@ export const translations = {
     analyzingSEO: 'Analyzing SEO performance...',
     seoScore: 'SEO Score',
     seoSuggestions: 'Suggestions for Improvement',
+    typeToAnalyze: 'Start typing in the editor for a live SEO analysis.',
     
     // Internal Linker
     internalLinkAssistant: 'Internal Link Assistant',
@@ -119,6 +129,7 @@ export const translations = {
     noLinksFound: 'No internal linking opportunities found in this article.',
     applyLink: 'Apply',
     linkSuggestionText: 'Link the phrase {{textToLink}} to your post {{postTitle}}',
+    typeToSuggestLinks: 'Type in the editor to get automatic internal link suggestions.',
 
     // AI Magic Edit Menu
     aiMagicMenu: {
@@ -272,7 +283,16 @@ export const translations = {
     topPerformingArticle: 'المقال الأفضل أداءً',
     noActivity: 'لا يوجد نشاط حديث. قم بإنشاء بعض المحتوى للبدء!',
     viewArticle: 'عرض المقال',
-    createSimilar: 'إنشاء محتوى مشابه',
+    analyzeAndGenerate: 'تحليل وإنشاء أفكار',
+
+    // Idea Generator Modal
+    ideaGeneratorTitle: 'مولّد الأفكار الذكي',
+    ideaGeneratorHint: 'بناءً على المحتوى الأعلى أداءً لديك، إليك بعض الأفكار الجديدة:',
+    analyzingPerformance: 'جاري تحليل أداء المحتوى الخاص بك...',
+    generatingIdeas: 'جاري توليد أفكار جديدة بناءً على نجاحك...',
+    startWritingThisArticle: 'ابدأ كتابة هذا المقال',
+    ideaJustification: 'لماذا هذه فكرة جيدة:',
+    noDataForIdeas: 'لا توجد بيانات أداء كافية لتوليد الأفكار. انشر المزيد من المحتوى واحصل على بعض المشاهدات!',
 
     // NewContentView (Wizard)
     step1_brief_title: 'الخطوة 1: الملخص',
@@ -343,7 +363,8 @@ export const translations = {
     analyzingSEO: 'جاري تحليل أداء السيو...',
     seoScore: 'درجة السيو',
     seoSuggestions: 'اقتراحات للتحسين',
-    
+    typeToAnalyze: 'ابدأ الكتابة في المحرر لتحليل السيو مباشرة.',
+
     // Internal Linker
     internalLinkAssistant: 'مساعد الربط الداخلي',
     internalLinkAssistantHint: 'اقتراحات لتحسين سيو موقعك عبر الربط بالمحتوى الحالي.',
@@ -351,6 +372,7 @@ export const translations = {
     noLinksFound: 'لم يتم العثور على فرص للربط الداخلي في هذا المقال.',
     applyLink: 'تطبيق',
     linkSuggestionText: 'اربط عبارة {{textToLink}} بمقالك {{postTitle}}',
+    typeToSuggestLinks: 'اكتب في المحرر للحصول على اقتراحات روابط داخلية تلقائية.',
 
     // AI Magic Edit Menu
     aiMagicMenu: {

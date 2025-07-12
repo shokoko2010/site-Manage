@@ -3,8 +3,9 @@
 
 
 
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion } from '../types';
+import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion, GeneratedIdea, SitePost } from '../types';
 
 const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
 const BRAND_VOICE_STORAGE_KEY = 'brand_voice';
@@ -77,6 +78,19 @@ const internalLinkSuggestionSchema = {
         },
         required: ["textToLink", "linkTo", "postTitle"],
     },
+};
+
+const ideaGenerationSchema = {
+    type: Type.ARRAY,
+    description: "An array of 5 new content ideas.",
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            title: { type: Type.STRING, description: "The new, compelling article title." },
+            justification: { type: Type.STRING, description: "A brief, one-sentence justification explaining why this is a good idea based on the user's past success." },
+        },
+        required: ["title", "justification"],
+    }
 };
 
 
@@ -681,5 +695,55 @@ export const generateInternalLinks = async (
             throw error;
         }
         throw new Error("Failed to generate internal links from AI.");
+    }
+};
+
+export const generateIdeasFromAnalytics = async (topPosts: SitePost[]): Promise<GeneratedIdea[]> => {
+    const ai = getAiClient();
+    if (!ai) throw new Error(MISSING_KEY_ERROR);
+    
+    const systemInstruction = `You are an expert content strategist. Your task is to analyze a user's most successful articles and generate 5 new, data-driven content ideas. The response must be a valid JSON array matching the provided schema.`;
+
+    const userPrompt = `
+        Based on the following list of my top-performing articles, please identify common themes, topics, and styles that are clearly resonating with my audience. Then, generate 5 new, specific, and compelling article titles that I can create to build on this success.
+
+        **My Most Successful Articles (by views and comments):**
+        ${topPosts.map(p => `- "${p.title.rendered}"`).join('\n')}
+
+        **Your Task:**
+        1. Analyze the themes in the provided titles.
+        2. Generate 5 new article titles that are similar in theme or style but explore new angles.
+        3. For each new title, provide a brief, one-sentence justification explaining why it's a good idea based on the success of the provided list.
+
+        **Output Format:**
+        Return a single, valid JSON array of objects. Each object represents a single content idea and must have "title" and "justification" keys.
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: userPrompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: ideaGenerationSchema,
+            },
+        });
+
+        const jsonText = processApiResponse(response);
+        const parsedIdeas = JSON.parse(jsonText) as GeneratedIdea[];
+
+        if (!Array.isArray(parsedIdeas) || parsedIdeas.some(idea => !idea.title || !idea.justification)) {
+            throw new Error("AI response for idea generation was not in the expected format.");
+        }
+        
+        return parsedIdeas;
+
+    } catch (error) {
+        console.error("Error generating ideas from analytics:", error);
+        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("was not in the expected format"))) {
+            throw error;
+        }
+        throw new Error("Failed to generate content ideas from AI.");
     }
 };

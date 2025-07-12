@@ -150,7 +150,7 @@ export interface DashboardViewProps {
   onRemoveSite: (siteId: string) => void;
   isLoading: boolean;
   onManageSite: (site: WordPressSite) => void;
-  onNavigateToNewContent: (type: ContentType) => void;
+  onNavigateToNewContent: (type: ContentType, title?: string) => void;
   recentActivity: GeneratedContent[];
 }
 
@@ -162,4 +162,10 @@ export interface NewContentViewProps {
     initialContent?: ArticleContent | null;
     onUpdateComplete?: () => void;
     newContentType?: ContentType;
+    initialTitle?: string;
+}
+
+export interface GeneratedIdea {
+    title: string;
+    justification: string;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
@@ -14,7 +14,145 @@ import InlineAiMenu from './InlineAiMenu';
 type SelectionInfo = { text: string; top: number; left: number; field: 'body' | 'longDescription' | 'shortDescription'; };
 type WizardStep = 'brief' | 'generating' | 'editor' | 'strategy_result';
 
-const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent, newContentType, onUpdateComplete }) => {
+
+// Standalone Toolkit Components defined outside the main component to prevent closure issues
+const AIToolkitSection: React.FC<{title: string, icon: React.ReactNode, children: React.ReactNode, isOpen: boolean, onToggle: () => void, isLoading?: boolean}> = ({ title, icon, children, isOpen, onToggle, isLoading = false }) => {
+    return (
+        <div className="bg-gray-700/50 rounded-lg border border-gray-600/50">
+            <button onClick={onToggle} className="w-full flex justify-between items-center p-3 text-left">
+                <div className="flex items-center space-x-2">
+                    <span className="text-indigo-400">{icon}</span>
+                    <h4 className="font-semibold text-gray-200">{title}</h4>
+                     {isLoading && <Spinner size="sm" />}
+                </div>
+                {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            </button>
+            {isOpen && <div className="p-3 border-t border-gray-600/50">{children}</div>}
+        </div>
+    );
+};
+
+const RefineTool = ({ article, language, showNotification, onRefined }: { article: ArticleContent, language: Language, showNotification: (n: Notification) => void, onRefined: (content: GeneratedContent) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const [isRefining, setIsRefining] = useState(false);
+    const [refinementPrompt, setRefinementPrompt] = useState('');
+    
+    const handleRefineArticle = async () => {
+        setIsRefining(true);
+        showNotification({ message: t('refiningArticle'), type: 'info' });
+        try {
+            const refinedData = await refineArticle(article, refinementPrompt, language);
+            onRefined({ ...article, ...refinedData });
+        } catch(err) {
+            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
+        } finally {
+            setIsRefining(false);
+        }
+    };
+    
+    return (
+        <div className="space-y-3">
+            <p className="text-sm text-gray-400">{t('refineWithAIHint')}</p>
+            <textarea value={refinementPrompt} onChange={e => setRefinementPrompt(e.target.value)} placeholder={t('refinementPlaceholder')} className="w-full text-sm bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} disabled={isRefining} />
+            <button onClick={handleRefineArticle} disabled={isRefining || !refinementPrompt} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50">
+                {isRefining ? <Spinner size="sm"/> : <><ArrowPathIcon className="me-2 h-4 w-4"/> {t('refineArticle')}</>}
+            </button>
+        </div>
+    );
+};
+
+const ImageGeneratorTool = ({ article, showNotification, onImageChange }: { article: ArticleContent, showNotification: (n: Notification) => void, onImageChange: (content: GeneratedContent) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+    
+    const handleGenerateImages = async () => {
+        setIsGeneratingImages(true);
+        showNotification({ message: t('imageGenStarted'), type: 'info' });
+        try {
+            const imagePrompt = `A high-quality, professional blog post image for an article titled: "${article.title}". The image should be visually appealing and relevant to the topic. Style: photorealistic.`;
+            const images = await generateFeaturedImage(imagePrompt);
+            onImageChange({ ...article, generatedImageOptions: images, featuredImage: images[0] });
+        } catch (err) {
+            showNotification({ message: err instanceof Error ? err.message : t('imageGenFail'), type: 'error' });
+        } finally { setIsGeneratingImages(false); }
+    };
+
+    const handleSelectImage = (imageBase64: string) => {
+        onImageChange({ ...article, featuredImage: imageBase64 });
+    };
+
+    if (isGeneratingImages) return <div className="flex flex-col items-center justify-center h-40"><Spinner /><p className="mt-2 text-sm text-gray-400">{t('generatingImages')}</p></div>;
+    
+    if (!article.generatedImageOptions?.length) return <button onClick={handleGenerateImages} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><CameraIcon /><span className="ms-2">{t('generateImage')}</span></button>;
+
+    return (
+        <div>
+            <p className="text-sm text-gray-400 mb-3">{t('selectAnImage')}</p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+                {article.generatedImageOptions.map((imgSrc, index) => (
+                    <img key={index} src={`data:image/jpeg;base64,${imgSrc}`} alt={`Generated option ${index + 1}`} className={`rounded-lg cursor-pointer transition-all duration-200 ${article.featuredImage === imgSrc ? 'ring-4 ring-sky-500 shadow-lg' : 'ring-2 ring-transparent hover:ring-sky-500'}`} onClick={() => handleSelectImage(imgSrc)} />
+                ))}
+            </div>
+            <button onClick={handleGenerateImages} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><ArrowPathIcon className="h-4 w-4 me-2"/>{t('regenerate')}</button>
+        </div>
+    );
+};
+
+const SeoAnalyzerTool = ({ analysis }: { analysis: SeoAnalysis | null }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+    
+    if (!analysis) return <div className="text-sm text-center text-gray-500 py-4">{t('typeToAnalyze')}</div>;
+    
+    const scoreColor = analysis.score >= 80 ? 'text-green-400' : analysis.score >= 50 ? 'text-yellow-400' : 'text-red-400';
+
+    return (
+        <div className="space-y-3 animate-fade-in-fast">
+            <div className="flex items-baseline justify-between">
+                <span className="font-semibold text-gray-300">{t('seoScore')}</span>
+                <span className={`text-3xl font-bold ${scoreColor}`}>{analysis.score}<span className="text-base text-gray-500">/100</span></span>
+            </div>
+            <div className="space-y-2 text-sm">
+                {analysis.suggestions.map((s, i) => <p key={i} className="flex items-start"><CheckCircleIcon className="h-4 w-4 text-green-400 me-2 mt-0.5 flex-shrink-0" />{s}</p>)}
+            </div>
+        </div>
+    );
+};
+
+const InternalLinkerTool = ({ article, suggestions, onLinkApplied }: { article: ArticleContent, suggestions: InternalLinkSuggestion[] | null, onLinkApplied: (suggestion: InternalLinkSuggestion) => void }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+
+    const handleApplyLink = (suggestion: InternalLinkSuggestion) => {
+        onLinkApplied(suggestion);
+    };
+    
+    if (suggestions === null) return <div className="text-sm text-center text-gray-500 py-4">{t('typeToSuggestLinks')}</div>;
+    if (suggestions.length === 0) return <p className="text-sm text-center text-gray-500 py-4">{t('noLinksFound')}</p>;
+
+    return (
+        <div className="space-y-2 animate-fade-in-fast">
+            {suggestions.map((suggestion, index) => (
+                <div key={index} className="bg-gray-600 p-2 rounded-lg">
+                    <p className="text-sm text-gray-300 leading-relaxed">
+                       {t('linkSuggestionText', {
+                            textToLink: `<strong>“${suggestion.textToLink}”</strong>`,
+                            postTitle: `<em>“${suggestion.postTitle}”</em>`
+                        }).split(/<strong>(.*?)<\/strong>|<em>(.*?)<\/em>/g).map((part, i) => {
+                            if (i % 3 === 1) return <strong key={i} className="font-semibold text-white">{part.replace(/“|”/g, '')}</strong>;
+                            if (i % 3 === 2) return <em key={i} className="text-sky-300 not-italic">{part.replace(/“|”/g, '')}</em>;
+                            return <span key={i}>{part}</span>;
+                       })}
+                    </p>
+                    <button onClick={() => handleApplyLink(suggestion)} className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 text-xs rounded-md transition-colors">
+                        {t('applyLink')}
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// Main Component
+const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onStrategyGenerated, sites, showNotification, initialContent, newContentType, onUpdateComplete, initialTitle }) => {
     const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [wizardStep, setWizardStep] = useState<WizardStep>('brief');
 
@@ -43,6 +181,15 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const [selection, setSelection] = useState<SelectionInfo | null>(null);
     const [isModifyingText, setIsModifyingText] = useState(false);
     const resultViewRef = useRef<HTMLDivElement>(null);
+    const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
+    
+    // Proactive AI Co-pilot State
+    const [isSeoToolkitOpen, setIsSeoToolkitOpen] = useState(true);
+    const [isLinkToolkitOpen, setIsLinkToolkitOpen] = useState(true);
+    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
+    const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
+    const [linkSuggestions, setLinkSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
+    const [isSuggestingLinks, setIsSuggestingLinks] = useState(false);
 
     const selectedSite = sites.find(s => s.id === selectedSiteId);
 
@@ -56,9 +203,68 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             setWizardStep('editor');
         } else if (newContentType) {
             setActiveTab(newContentType);
+            if (initialTitle && newContentType === ContentType.Article) {
+                setArticleTopic(initialTitle);
+            }
             setWizardStep('brief');
         }
-    }, [initialContent, newContentType]);
+    }, [initialContent, newContentType, initialTitle]);
+    
+    // Reset proactive analysis state when content changes
+    useEffect(() => {
+        setSeoAnalysis(null);
+        setLinkSuggestions(null);
+    }, [generatedResult?.id]);
+
+
+    // Proactive AI handlers
+    const handleAnalyzeSeoProactive = useCallback(async () => {
+        if (!articleForAnalysis) return;
+        setIsAnalyzingSeo(true);
+        try {
+            const result = await analyzeSeo(articleForAnalysis.title, articleForAnalysis.body);
+            setSeoAnalysis(result);
+        } catch(err) {
+            console.error("Proactive SEO analysis failed:", err);
+        } finally {
+            setIsAnalyzingSeo(false);
+        }
+    }, [articleForAnalysis]);
+
+    const handleSuggestLinksProactive = useCallback(async () => {
+        const siteForLinks = sites.find(s => s.id === selectedSiteId);
+        if (!articleForAnalysis || !siteForLinks || siteForLinks.isVirtual) return;
+
+        setIsSuggestingLinks(true);
+        try {
+            const siteContext = await getSiteContext(siteForLinks);
+            if (siteContext.recentPosts && siteContext.recentPosts.length > 0) {
+                 const suggestions = await generateInternalLinks(articleForAnalysis.body, siteContext);
+                 setLinkSuggestions(suggestions);
+            } else {
+                setLinkSuggestions([]);
+            }
+        } catch (err) {
+            console.warn("Proactive link suggestion failed:", err);
+            setLinkSuggestions([]);
+        } finally {
+            setIsSuggestingLinks(false);
+        }
+    }, [articleForAnalysis, sites, selectedSiteId]);
+
+    // Debounced effect for proactive analysis
+    useEffect(() => {
+        if (wizardStep !== 'editor' || !articleForAnalysis?.body) {
+            return;
+        }
+
+        const handler = setTimeout(() => {
+            if (isSeoToolkitOpen) handleAnalyzeSeoProactive();
+            if (isLinkToolkitOpen) handleSuggestLinksProactive();
+        }, 2000); // 2-second delay after user stops typing
+
+        return () => clearTimeout(handler);
+    }, [articleForAnalysis?.body, articleForAnalysis?.title, wizardStep, isSeoToolkitOpen, isLinkToolkitOpen, handleAnalyzeSeoProactive, handleSuggestLinksProactive]);
 
     // Handle site selection changes
     useEffect(() => {
@@ -150,7 +356,15 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
 
     const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
         if (!generatedResult) return;
-        setGeneratedResult(prev => prev ? { ...prev, [field]: value } as GeneratedContent : null);
+        setGeneratedResult(prev => {
+             if (!prev) return null;
+             // When body or title changes, reset proactive suggestions
+             if (field === 'body' || field === 'title') {
+                 setSeoAnalysis(null);
+                 setLinkSuggestions(null);
+             }
+             return { ...prev, [field]: value } as GeneratedContent;
+        });
     };
 
     const handlePublish = async (options: PublishingOptions) => {
@@ -230,6 +444,16 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
             setIsModifyingText(false);
             setSelection(null);
         }
+    };
+    
+    const handleApplyLinkSuggestion = (suggestion: InternalLinkSuggestion) => {
+        if (!articleForAnalysis) return;
+        const newBody = articleForAnalysis.body.replace(suggestion.textToLink, `[${suggestion.textToLink}](${suggestion.linkTo})`);
+        
+        handleResultChange('body', newBody);
+        
+        // Remove the applied suggestion from the current list to avoid re-applying
+        setLinkSuggestions(prev => prev ? prev.filter(s => s.textToLink !== suggestion.textToLink) : null);
     };
 
     const renderBriefStep = () => {
@@ -364,8 +588,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     const renderEditorStep = () => {
         if (!generatedResult) return <div className="flex items-center justify-center h-full"><Spinner /></div>;
         
-        const contentSite = sites.find(s => s.id === generatedResult.siteId);
-        const isForVirtualSite = contentSite?.isVirtual === true;
+        const isForVirtualSite = selectedSite?.isVirtual === true;
         const isEditingSyncedPost = (generatedResult as ArticleContent)?.origin === 'synced';
 
         const actionButtonText = isEditingSyncedPost ? t('updatePost') : t('publish');
@@ -426,20 +649,20 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
                     <div className="lg:col-span-1 bg-gray-800 rounded-xl border border-gray-700/50 p-4 overflow-y-auto">
                         <h3 className="text-lg font-bold text-white mb-4">{t('aiToolkit')}</h3>
                         <div className="space-y-4">
-                           <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>}>
+                           <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}} isLoading={false}>
                                 <RefineTool article={generatedResult as ArticleContent} language={language} showNotification={showNotification} onRefined={setGeneratedResult} />
                            </AIToolkitSection>
                             {generatedResult.type === ContentType.Article && (
                                 <>
-                                    <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>}>
+                                    <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}} isLoading={false}>
                                         <ImageGeneratorTool article={generatedResult as ArticleContent} showNotification={showNotification} onImageChange={setGeneratedResult} />
                                     </AIToolkitSection>
-                                    <AIToolkitSection title={t('seoAnalysis')} icon={<SeoIcon/>}>
-                                        <SeoAnalyzerTool article={generatedResult as ArticleContent} showNotification={showNotification} />
+                                    <AIToolkitSection title={t('seoAnalysis')} icon={<SeoIcon/>} isOpen={isSeoToolkitOpen} onToggle={() => setIsSeoToolkitOpen(p => !p)} isLoading={isAnalyzingSeo}>
+                                        <SeoAnalyzerTool analysis={seoAnalysis} />
                                     </AIToolkitSection>
                                     {!selectedSite?.isVirtual && (
-                                        <AIToolkitSection title={t('internalLinkAssistant')} icon={<LinkIcon/>}>
-                                            <InternalLinkerTool article={generatedResult as ArticleContent} site={selectedSite} onLinkApplied={(body) => handleResultChange('body', body)} />
+                                        <AIToolkitSection title={t('internalLinkAssistant')} icon={<LinkIcon/>} isOpen={isLinkToolkitOpen} onToggle={() => setIsLinkToolkitOpen(p => !p)} isLoading={isSuggestingLinks}>
+                                            <InternalLinkerTool article={articleForAnalysis!} suggestions={linkSuggestions} onLinkApplied={handleApplyLinkSuggestion} />
                                         </AIToolkitSection>
                                     )}
                                 </>
@@ -521,173 +744,5 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onS
     );
 };
 
-// Toolkit Components
-const AIToolkitSection: React.FC<{title: string, icon: React.ReactNode, children: React.ReactNode}> = ({ title, icon, children }) => {
-    const [isOpen, setIsOpen] = useState(true);
-    return (
-        <div className="bg-gray-700/50 rounded-lg border border-gray-600/50">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-3 text-left">
-                <div className="flex items-center">
-                    <span className="text-indigo-400 me-2">{icon}</span>
-                    <h4 className="font-semibold text-gray-200">{title}</h4>
-                </div>
-                {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </button>
-            {isOpen && <div className="p-3 border-t border-gray-600/50">{children}</div>}
-        </div>
-    );
-};
-
-const RefineTool = ({ article, language, showNotification, onRefined }: { article: ArticleContent, language: Language, showNotification: (n: Notification) => void, onRefined: (content: GeneratedContent) => void }) => {
-    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    const [isRefining, setIsRefining] = useState(false);
-    const [refinementPrompt, setRefinementPrompt] = useState('');
-    
-    const handleRefineArticle = async () => {
-        setIsRefining(true);
-        showNotification({ message: t('refiningArticle'), type: 'info' });
-        try {
-            const refinedData = await refineArticle(article, refinementPrompt, language);
-            onRefined({ ...article, ...refinedData });
-        } catch(err) {
-            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
-        } finally {
-            setIsRefining(false);
-        }
-    };
-    
-    return (
-        <div className="space-y-3">
-            <p className="text-sm text-gray-400">{t('refineWithAIHint')}</p>
-            <textarea value={refinementPrompt} onChange={e => setRefinementPrompt(e.target.value)} placeholder={t('refinementPlaceholder')} className="w-full text-sm bg-gray-600 p-2 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} disabled={isRefining} />
-            <button onClick={handleRefineArticle} disabled={isRefining} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50">
-                {isRefining ? <Spinner size="sm"/> : <><ArrowPathIcon className="me-2 h-4 w-4"/> {t('refineArticle')}</>}
-            </button>
-        </div>
-    );
-};
-
-const ImageGeneratorTool = ({ article, showNotification, onImageChange }: { article: ArticleContent, showNotification: (n: Notification) => void, onImageChange: (content: GeneratedContent) => void }) => {
-    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-    
-    const handleGenerateImages = async () => {
-        setIsGeneratingImages(true);
-        showNotification({ message: t('imageGenStarted'), type: 'info' });
-        try {
-            const imagePrompt = `A high-quality, professional blog post image for an article titled: "${article.title}". The image should be visually appealing and relevant to the topic. Style: photorealistic.`;
-            const images = await generateFeaturedImage(imagePrompt);
-            onImageChange({ ...article, generatedImageOptions: images, featuredImage: images[0] });
-        } catch (err) {
-            showNotification({ message: err instanceof Error ? err.message : t('imageGenFail'), type: 'error' });
-        } finally { setIsGeneratingImages(false); }
-    };
-
-    const handleSelectImage = (imageBase64: string) => {
-        onImageChange({ ...article, featuredImage: imageBase64 });
-    };
-
-    if (isGeneratingImages) return <div className="flex flex-col items-center justify-center h-40"><Spinner /><p className="mt-2 text-sm text-gray-400">{t('generatingImages')}</p></div>;
-    
-    if (!article.generatedImageOptions?.length) return <button onClick={handleGenerateImages} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><CameraIcon /><span className="ms-2">{t('generateImage')}</span></button>;
-
-    return (
-        <div>
-            <p className="text-sm text-gray-400 mb-3">{t('selectAnImage')}</p>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-                {article.generatedImageOptions.map((imgSrc, index) => (
-                    <img key={index} src={`data:image/jpeg;base64,${imgSrc}`} alt={`Generated option ${index + 1}`} className={`rounded-lg cursor-pointer transition-all duration-200 ${article.featuredImage === imgSrc ? 'ring-4 ring-sky-500 shadow-lg' : 'ring-2 ring-transparent hover:ring-sky-500'}`} onClick={() => handleSelectImage(imgSrc)} />
-                ))}
-            </div>
-            <button onClick={handleGenerateImages} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><ArrowPathIcon className="h-4 w-4 me-2"/>{t('regenerate')}</button>
-        </div>
-    );
-};
-
-const SeoAnalyzerTool = ({ article, showNotification }: { article: ArticleContent, showNotification: (n: Notification) => void }) => {
-    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
-    const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
-    
-    const handleAnalyzeSeo = async () => {
-        setIsAnalyzingSeo(true); setSeoAnalysis(null);
-        showNotification({ message: t('analyzingSEO'), type: 'info' });
-        try {
-            setSeoAnalysis(await analyzeSeo(article.title, article.body));
-        } catch(err) {
-            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
-        } finally { setIsAnalyzingSeo(false); }
-    };
-    
-    if (isAnalyzingSeo) return <div className="flex justify-center h-24 items-center"><Spinner /></div>;
-    if (!seoAnalysis) return <button onClick={handleAnalyzeSeo} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><SeoIcon /><span className="ms-2">{t('analyzeSeo')}</span></button>;
-    
-    const scoreColor = seoAnalysis.score >= 80 ? 'text-green-400' : seoAnalysis.score >= 50 ? 'text-yellow-400' : 'text-red-400';
-
-    return (
-        <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-                <span className="font-semibold text-gray-300">{t('seoScore')}</span>
-                <span className={`text-3xl font-bold ${scoreColor}`}>{seoAnalysis.score}<span className="text-base text-gray-500">/100</span></span>
-            </div>
-            <div className="space-y-2 text-sm">
-                {seoAnalysis.suggestions.map((s, i) => <p key={i} className="flex items-start"><CheckCircleIcon className="h-4 w-4 text-green-400 me-2 mt-0.5 flex-shrink-0" />{s}</p>)}
-            </div>
-            <button onClick={handleAnalyzeSeo} className="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><ArrowPathIcon className="h-4 w-4 me-2"/>{t('regenerate')}</button>
-        </div>
-    );
-};
-
-const InternalLinkerTool = ({ article, site, onLinkApplied }: { article: ArticleContent, site: WordPressSite | undefined, onLinkApplied: (newBody: string) => void }) => {
-    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    const [suggestions, setSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
-    const [isSuggesting, setIsSuggesting] = useState(false);
-
-    const handleSuggestLinks = async () => {
-        if (!site) return;
-        setIsSuggesting(true); setSuggestions(null);
-        try {
-            const siteContext = await getSiteContext(site);
-            setSuggestions(await generateInternalLinks(article.body, siteContext));
-        } catch (err) {
-            console.warn("Failed to generate internal links", err);
-        } finally { setIsSuggesting(false); }
-    };
-
-    const handleApplyLink = (suggestion: InternalLinkSuggestion) => {
-        const newBody = article.body.replace(suggestion.textToLink, `[${suggestion.textToLink}](${suggestion.linkTo})`);
-        onLinkApplied(newBody);
-        setSuggestions(prev => prev ? prev.filter(s => s.textToLink !== suggestion.textToLink) : null);
-    };
-
-    if (isSuggesting) return <div className="flex justify-center h-24 items-center"><Spinner /></div>;
-    if (!suggestions) return <button onClick={handleSuggestLinks} className="w-full btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"><LinkIcon /><span className="ms-2">{t('generatingLinks')}</span></button>;
-
-    return (
-        <div className="space-y-2">
-            {suggestions.length === 0 ? (
-                <p className="text-sm text-center text-gray-500 py-4">{t('noLinksFound')}</p>
-            ) : (
-                suggestions.map((suggestion, index) => (
-                    <div key={index} className="bg-gray-600 p-2 rounded-lg">
-                        <p className="text-sm text-gray-300 leading-relaxed">
-                           {t('linkSuggestionText', {
-                                textToLink: `<strong>“${suggestion.textToLink}”</strong>`,
-                                postTitle: `<em>“${suggestion.postTitle}”</em>`
-                            }).split(/<strong>(.*?)<\/strong>|<em>(.*?)<\/em>/g).map((part, i) => {
-                                if (i % 3 === 1) return <strong key={i} className="font-semibold text-white">{part.replace(/“|”/g, '')}</strong>;
-                                if (i % 3 === 2) return <em key={i} className="text-sky-300 not-italic">{part.replace(/“|”/g, '')}</em>;
-                                return <span key={i}>{part}</span>;
-                           })}
-                        </p>
-                        <button onClick={() => handleApplyLink(suggestion)} className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 text-xs rounded-md transition-colors">
-                            {t('applyLink')}
-                        </button>
-                    </div>
-                ))
-            )}
-        </div>
-    );
-};
 
 export default NewContentView;

@@ -28,6 +28,7 @@ export default function App() {
   // State for editing or creating specific content
   const [editingContent, setEditingContent] = useState<ArticleContent | null>(null);
   const [newContentType, setNewContentType] = useState<ContentType | undefined>(undefined);
+  const [initialTitleForNewContent, setInitialTitleForNewContent] = useState<string | undefined>(undefined);
   
   const [activeSite, setActiveSite] = useState<WordPressSite | null>(null);
   
@@ -100,12 +101,14 @@ export default function App() {
   const editFromLibrary = (content: ArticleContent) => {
     setEditingContent(content);
     setNewContentType(undefined); // Ensure we're in edit mode
+    setInitialTitleForNewContent(undefined);
     setCurrentView(View.NewContent);
   };
 
-  const createNew = (type: ContentType) => {
+  const createNew = (type: ContentType, title?: string) => {
     setNewContentType(type);
     setEditingContent(null);
+    setInitialTitleForNewContent(title);
     setCurrentView(View.NewContent);
   };
   
@@ -138,6 +141,7 @@ export default function App() {
       if (view !== View.NewContent) {
         setEditingContent(null);
         setNewContentType(undefined);
+        setInitialTitleForNewContent(undefined);
       }
       if (view !== View.SiteDetail) {
         setActiveSite(null);
@@ -179,6 +183,7 @@ export default function App() {
                     showNotification={showNotification} 
                     initialContent={editingContent}
                     newContentType={newContentType}
+                    initialTitle={initialTitleForNewContent}
                     onUpdateComplete={() => navigateTo(activeSite ? View.SiteDetail : View.ContentLibrary)}
                 />
             </Suspense>
