@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis } from '../types';
 
@@ -74,7 +75,7 @@ const seoAnalysisSchema = {
 const extractJsonFromText = (text: string): any => {
     let jsonString = text.trim();
 
-    // 1. Prioritize extracting from a markdown block, which is the expected format for search-enabled queries.
+    // 1. Prioritize extracting from a markdown block, which is the expected format.
     const markdownJsonRegex = /```json\s*([\s\S]*?)\s*```/;
     const markdownMatch = jsonString.match(markdownJsonRegex);
 
@@ -82,7 +83,7 @@ const extractJsonFromText = (text: string): any => {
         jsonString = markdownMatch[1];
     } else {
         // 2. Fallback: If no markdown block is found, find the largest possible JSON object/array substring.
-        // This handles cases where the AI forgets the markdown wrapper.
+        // This handles cases where the AI forgets the markdown wrapper but includes other text.
         const firstBrace = jsonString.indexOf('{');
         const firstBracket = jsonString.indexOf('[');
         
@@ -97,12 +98,26 @@ const extractJsonFromText = (text: string): any => {
             firstBracket > -1 ? firstBracket : Infinity
         );
         
-        const lastBrace = jsonString.lastIndexOf('}');
-        const lastBracket = jsonString.lastIndexOf(']');
-        const endIndex = Math.max(lastBrace, lastBracket);
+        // This is a simple but more robust way to find the end of the JSON.
+        // It's not perfect (doesn't handle brackets in strings), but better than lastIndexOf.
+        const startChar = jsonString[startIndex];
+        const endChar = startChar === '{' ? '}' : ']';
+        let depth = 0;
+        let endIndex = -1;
 
-        // If we can't find a valid end or it's before the start, the JSON is incomplete.
-        if (endIndex <= startIndex) {
+        for (let i = startIndex; i < jsonString.length; i++) {
+            if (jsonString[i] === startChar) {
+                depth++;
+            } else if (jsonString[i] === endChar) {
+                depth--;
+                if (depth === 0) {
+                    endIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        if (endIndex === -1) {
             console.error("Could not find a complete JSON structure in response:", text);
             throw new Error("AI response contains an incomplete JSON structure.");
         }
@@ -188,7 +203,9 @@ For context, here is some information about the website this article will be pub
   const userPrompt = `
     Generate a complete article based on the following specifications.
     ${useGoogleSearch ? 'Use your access to Google Search to find up-to-date, factual, and relevant information to write this article.' : ''}
-    The output MUST be a single valid JSON object ${useGoogleSearch ? 'enclosed in a ```json markdown block' : 'that strictly matches the provided schema'}. Do not include any text outside of this JSON structure. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
+    The output MUST be a single valid JSON object ${useGoogleSearch ? 'enclosed in a ```json markdown block' : 'that strictly matches the provided schema'}.
+    Do not include any text, comments, or explanations outside of this JSON structure.
+    All string values within the JSON must be properly escaped. For example, use \\" for double quotes inside a string, and \\n for newline characters.
 
     **Article Specifications:**
     - Topic/Title Idea: "${topic}"
@@ -201,7 +218,18 @@ For context, here is some information about the website this article will be pub
 
     ${contextPrompt}
 
-    Now, generate the complete article. The JSON output MUST contain the following keys:
+    ---
+    EXAMPLE OF A PERFECT JSON RESPONSE:
+    \`\`\`json
+    {
+      "title": "Example Title in the Target Language",
+      "metaDescription": "Example meta description, approximately 155 characters long, in the target language.",
+      "body": "## Introduction\\n\\nThis is the first paragraph of the body.\\n\\n## Subheading 2\\n\\nThis is more text under another subheading. Lists can be included like this:\\n* Item 1\\n* Item 2\\n\\n## Conclusion\\n\\nThis is the final concluding paragraph of the article."
+    }
+    \`\`\`
+    ---
+
+    Now, generate the complete article based on the specifications above. The JSON output MUST contain the following keys:
     1. "title": A compelling, SEO-friendly title for the article.
     2. "metaDescription": An SEO-friendly meta description, between 150-160 characters.
     3. "body": The full body of the article, formatted with markdown.
