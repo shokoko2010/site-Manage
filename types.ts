@@ -125,6 +125,7 @@ export interface SiteContext {
     categories: { id: number; name: string }[];
     tags: { id: number; name: string }[];
     authors: Author[];
+    media: MediaItem[];
 }
 
 export interface Notification {

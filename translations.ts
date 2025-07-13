@@ -133,6 +133,8 @@ export const translations = {
     // Image Generator
     featuredImage: 'Featured Image',
     generateImage: 'Generate with AI',
+    mediaLibrary: 'Media Library',
+    noMediaFound: 'No media found in your WordPress library.',
     generateImages: 'Generate Images',
     generatingImages: 'AI is creating images...',
     selectAnImage: 'Select an image:',
@@ -408,6 +410,8 @@ export const translations = {
     // Image Generator
     featuredImage: 'الصورة البارزة',
     generateImage: 'توليد بالذكاء الاصطناعي',
+    mediaLibrary: 'مكتبة الوسائط',
+    noMediaFound: 'لم يتم العثور على وسائط في مكتبة ووردبريس الخاصة بك.',
     generateImages: 'توليد الصور',
     generatingImages: 'يقوم الذكاء الاصطناعي بإنشاء الصور...',
     selectAnImage: 'اختر صورة:',

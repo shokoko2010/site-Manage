@@ -122,19 +122,21 @@ export const getSiteContext = async (site: WordPressSite): Promise<SiteContext> 
         throw new Error("Cannot get site context without credentials.");
     }
     const headers = createAuthHeaders(site.username, site.appPassword);
-    const [postsRes, categoriesRes, tagsRes, authorsRes] = await Promise.all([
+    const [postsRes, categoriesRes, tagsRes, authorsRes, mediaRes] = await Promise.all([
         apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&_fields=id,title,link`, { headers }),
         apiFetch(`${site.url}/wp-json/wp/v2/categories?per_page=100&orderby=count&order=desc&_fields=id,name`, { headers }),
         apiFetch(`${site.url}/wp-json/wp/v2/tags?per_page=100&orderby=count&order=desc&_fields=id,name`, { headers }),
         apiFetch(`${site.url}/wp-json/wp/v2/users?per_page=100&has_published_posts=true&_fields=id,name`, { headers }),
+        apiFetch(`${site.url}/wp-json/wp/v2/media?per_page=50&media_type=image&orderby=date&order=desc&_fields=id,source_url,alt_text`, { headers }),
     ]);
 
     const recentPosts = await postsRes.json();
     const categories = await categoriesRes.json();
     const tags = await tagsRes.json();
     const authors = await authorsRes.json();
+    const media = await mediaRes.json();
 
-    return { recentPosts, categories, tags, authors };
+    return { recentPosts, categories, tags, authors, media };
 };
 
 
@@ -262,12 +264,17 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
 
     let mediaId: number | null = null;
     
-    if (content.type === ContentType.Article && (content as ArticleContent).featuredImage) {
-        try {
-            mediaId = await uploadMedia(site, (content as ArticleContent).featuredImage as string, content.title);
-        } catch (error) {
-            console.error("Failed to upload featured image:", error);
-            throw new Error(`Could not upload the featured image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown reason'}`);
+    if (content.type === ContentType.Article) {
+        const article = content as ArticleContent;
+        if (article.featuredMediaId) {
+            mediaId = article.featuredMediaId;
+        } else if (article.featuredImage) {
+            try {
+                mediaId = await uploadMedia(site, article.featuredImage, article.title);
+            } catch (error) {
+                console.error("Failed to upload featured image:", error);
+                throw new Error(`Could not upload the featured image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown reason'}`);
+            }
         }
     }
 
@@ -349,7 +356,9 @@ export const updatePost = async (
 
     let mediaId: number | undefined = undefined;
 
-    if (content.featuredImage) {
+    if (content.featuredMediaId) {
+        mediaId = content.featuredMediaId;
+    } else if (content.featuredImage) {
         try {
             mediaId = await uploadMedia(site, content.featuredImage, content.title);
         } catch (error) {
@@ -375,7 +384,9 @@ export const updatePost = async (
         tags: tagIds,
     };
 
-    if (mediaId) {
+    // Only add featured_media to the body if we have a new ID.
+    // Otherwise, we might overwrite an existing featured image with `null`.
+    if (mediaId !== undefined) {
         body.featured_media = mediaId;
     }
 

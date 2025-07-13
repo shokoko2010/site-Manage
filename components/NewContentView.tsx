@@ -2,10 +2,10 @@ import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, CampaignGenerationResult } from '../types';
+import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, CampaignGenerationResult, MediaItem } from '../types';
 import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks, generateFreePlaceholderImages } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon, ArrowUturnLeftIcon, Bars3Icon, HeadingIcon, BoldIcon, ItalicIcon, ListBulletIcon, QuoteIcon, PublishIcon, TextColorIcon, AlignLeftIcon, AlignCenterIcon, AlignRightIcon } from '../constants';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon, ArrowUturnLeftIcon, Bars3Icon, HeadingIcon, BoldIcon, ItalicIcon, ListBulletIcon, QuoteIcon, PublishIcon, TextColorIcon, AlignLeftIcon, AlignCenterIcon, AlignRightIcon, FolderIcon } from '../constants';
 import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
@@ -209,17 +209,18 @@ const RefineTool: React.FC<{
 const ImageGeneratorTool: React.FC<{
     article: ArticleContent;
     showNotification: (notification: Notification) => void;
-    onImageChange: (content: ArticleContent) => void;
-}> = ({ article, showNotification, onImageChange }) => {
+    onImageChange: (updates: Partial<ArticleContent>) => void;
+    siteContext: SiteContext | null;
+    isContextLoading: boolean;
+}> = ({ article, showNotification, onImageChange, siteContext, isContextLoading }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [imageOptions, setImageOptions] = useState<string[]>(article.generatedImageOptions || []);
-    const [selectedImage, setSelectedImage] = useState<string | undefined>(article.featuredImage);
     const [generatorMode, setGeneratorMode] = useState<'professional' | 'free'>('professional');
+    const [activeTab, setActiveTab] = useState<'generate' | 'library'>('generate');
 
     const handleGenerateImages = async () => {
         setIsGenerating(true);
-        setImageOptions([]);
+        onImageChange({ generatedImageOptions: [] });
         showNotification({ message: t('imageGenStarted'), type: 'info' });
         try {
             let images: string[] = [];
@@ -229,8 +230,7 @@ const ImageGeneratorTool: React.FC<{
             } else {
                 images = await generateFreePlaceholderImages(article.title);
             }
-            setImageOptions(images);
-            onImageChange({ ...article, generatedImageOptions: images });
+            onImageChange({ generatedImageOptions: images });
         } catch (err) {
             showNotification({ message: t('imageGenFail'), type: 'error' });
         } finally {
@@ -239,36 +239,83 @@ const ImageGeneratorTool: React.FC<{
     };
 
     const handleSelectImage = (imgBase64: string) => {
-        setSelectedImage(imgBase64);
-        onImageChange({ ...article, featuredImage: imgBase64 });
+        onImageChange({
+            featuredImage: imgBase64,
+            featuredMediaId: undefined,
+            featuredMediaUrl: undefined,
+        });
     };
+
+    const handleSelectFromLibrary = (media: MediaItem) => {
+        onImageChange({
+            featuredImage: undefined,
+            generatedImageOptions: [],
+            featuredMediaId: media.id,
+            featuredMediaUrl: media.source_url,
+        });
+    };
+
+    const previewSrc = article.featuredMediaUrl || (article.featuredImage ? `data:image/jpeg;base64,${article.featuredImage}` : null);
 
     return (
         <div className="space-y-3">
             <div className="bg-gray-800/80 rounded-lg p-1 flex items-center text-sm border border-gray-600">
-                <button onClick={() => setGeneratorMode('professional')} className={`flex-1 py-1 rounded-md transition-colors ${generatorMode === 'professional' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-                    {t('professionalGenerator')}
+                <button onClick={() => setActiveTab('generate')} className={`flex-1 py-1 rounded-md transition-colors flex items-center justify-center space-x-2 ${activeTab === 'generate' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+                    <CameraIcon /> <span>{t('generateImage')}</span>
                 </button>
-                <button onClick={() => setGeneratorMode('free')} className={`flex-1 py-1 rounded-md transition-colors ${generatorMode === 'free' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-                    {t('freeGenerator')}
+                <button onClick={() => setActiveTab('library')} disabled={!siteContext} className={`flex-1 py-1 rounded-md transition-colors flex items-center justify-center space-x-2 ${activeTab === 'library' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'} disabled:text-gray-500 disabled:cursor-not-allowed`}>
+                    <FolderIcon /> <span>{t('mediaLibrary')}</span>
                 </button>
             </div>
-            <p className="text-xs text-gray-500 text-center px-2">
-                 {generatorMode === 'professional' ? t('professionalGeneratorHint') : t('freeGeneratorHint')}
-            </p>
 
-            <button onClick={handleGenerateImages} disabled={isGenerating} className="w-full flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50">
-                {isGenerating ? <Spinner size="sm" /> : <CameraIcon />}
-                <span className="ms-2">{isGenerating ? t('generatingImages') : t('generateImages')}</span>
-            </button>
+            {previewSrc && (
+                <div className="rounded-lg overflow-hidden border-2 border-indigo-500">
+                    <img src={previewSrc} alt="Selected featured image" className="w-full h-40 object-cover" />
+                </div>
+            )}
 
-            {imageOptions.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
-                    {imageOptions.map((img, index) => (
-                        <button key={index} onClick={() => handleSelectImage(img)} className={`rounded-lg overflow-hidden border-2 transition-colors ${selectedImage === img ? 'border-indigo-500' : 'border-transparent hover:border-indigo-400'}`}>
-                            <img src={`data:image/jpeg;base64,${img}`} alt={`Generated image option ${index + 1}`} className="w-full h-24 object-cover" />
-                        </button>
-                    ))}
+            {activeTab === 'generate' && (
+                <>
+                    <div className="bg-gray-800/80 rounded-lg p-1 flex items-center text-sm border border-gray-600">
+                        <button onClick={() => setGeneratorMode('professional')} className={`flex-1 py-1 rounded-md transition-colors ${generatorMode === 'professional' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>{t('professionalGenerator')}</button>
+                        <button onClick={() => setGeneratorMode('free')} className={`flex-1 py-1 rounded-md transition-colors ${generatorMode === 'free' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>{t('freeGenerator')}</button>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center px-2">
+                        {generatorMode === 'professional' ? t('professionalGeneratorHint') : t('freeGeneratorHint')}
+                    </p>
+
+                    <button onClick={handleGenerateImages} disabled={isGenerating} className="w-full flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50">
+                        {isGenerating ? <Spinner size="sm" /> : <SparklesIcon />}
+                        <span className="ms-2">{isGenerating ? t('generatingImages') : t('generateImages')}</span>
+                    </button>
+
+                    {article.generatedImageOptions && article.generatedImageOptions.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2">
+                            {article.generatedImageOptions.map((img, index) => (
+                                <button key={index} onClick={() => handleSelectImage(img)} className={`rounded-lg overflow-hidden border-2 transition-colors ${article.featuredImage === img ? 'border-indigo-500' : 'border-transparent hover:border-indigo-400'}`}>
+                                    <img src={`data:image/jpeg;base64,${img}`} alt={`Generated image option ${index + 1}`} className="w-full h-24 object-cover" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {activeTab === 'library' && (
+                <div className="max-h-96 overflow-y-auto">
+                    {isContextLoading ? (
+                        <div className="flex justify-center items-center h-32"><Spinner /></div>
+                    ) : siteContext && siteContext.media.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                            {siteContext.media.map(media => (
+                                <button key={media.id} onClick={() => handleSelectFromLibrary(media)} className={`rounded-lg overflow-hidden border-2 transition-colors ${article.featuredMediaId === media.id ? 'border-indigo-500' : 'border-transparent hover:border-indigo-400'}`}>
+                                    <img src={media.source_url} alt={media.alt_text} className="w-full h-24 object-cover" />
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 text-center py-10">{t('noMediaFound')}</p>
+                    )}
                 </div>
             )}
         </div>
@@ -375,6 +422,10 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const [linkSuggestions, setLinkSuggestions] = useState<InternalLinkSuggestion[] | null>(null);
     const [isSuggestingLinks, setIsSuggestingLinks] = useState(false);
     
+    // Site Context for Editor
+    const [siteContext, setSiteContext] = useState<SiteContext | null>(null);
+    const [isContextLoading, setIsContextLoading] = useState(false);
+    
     // Derived states
     const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
     const selectedSite = useMemo(() => sites.find(s => s.id === selectedSiteId), [sites, selectedSiteId]);
@@ -430,6 +481,22 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         }
     }, [sites, selectedSiteId, selectedSite?.isVirtual]);
 
+    useEffect(() => {
+        if (selectedSite && !selectedSite.isVirtual) {
+            setIsContextLoading(true);
+            getSiteContext(selectedSite)
+                .then(setSiteContext)
+                .catch(err => {
+                    console.error("Failed to load site context:", err);
+                    showNotification({ message: 'Failed to load site library data.', type: 'error' });
+                    setSiteContext(null);
+                })
+                .finally(() => setIsContextLoading(false));
+        } else {
+            setSiteContext(null);
+        }
+    }, [selectedSite]);
+
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -452,15 +519,6 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     
     const handleGenerateArticle = async () => {
         if (!articleTopic) throw new Error(t('errorAllFieldsRequired'));
-        let siteContext: SiteContext | undefined;
-        if (selectedSite && !selectedSite.isVirtual) {
-            try {
-                siteContext = await getSiteContext(selectedSite);
-            } catch (err) {
-                console.warn('Could not fetch site context, proceeding without it.', err);
-                showNotification({ message: t('contextFail'), type: 'info' });
-            }
-        }
         const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, isThinkingEnabled, siteContext);
         setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
         setWizardStep('editor');
@@ -482,11 +540,11 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         setWizardStep('campaign_result');
     };
 
-    const handleResultChange = (field: keyof ArticleContent | keyof ProductContentType, value: string) => {
+    const updateGeneratedResult = (updates: Partial<GeneratedContent>) => {
         if (!generatedResult) return;
         setGeneratedResult(prev => {
              if (!prev) return null;
-             return { ...prev, [field]: value } as GeneratedContent;
+             return { ...prev, ...updates } as GeneratedContent;
         });
     };
     
@@ -505,14 +563,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     };
 
     const handleSuggestLinks = async () => {
-        if (!articleForAnalysis || !selectedSite || selectedSite.isVirtual) {
-            showNotification({ message: 'Internal linking is only available for connected WordPress sites.', type: 'info'});
+        if (!articleForAnalysis || !selectedSite || selectedSite.isVirtual || !siteContext) {
+            showNotification({ message: 'Internal linking requires a connected site with loaded context.', type: 'info'});
             return;
         };
         setIsSuggestingLinks(true);
         setLinkSuggestions(null);
         try {
-            const siteContext = await getSiteContext(selectedSite);
             if (!siteContext.recentPosts || siteContext.recentPosts.length === 0) {
                  setLinkSuggestions([]);
                  return;
@@ -545,7 +602,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             onExit();
         } catch (err) {
             const errorMsgKey = (generatedResult as ArticleContent)?.origin === 'synced' ? 'updateFail' : 'publishFail';
-            showNotification({ message: t(errorMsgKey, { error: err instanceof Error ? err.message : String(err) }), type: 'error' });
+            showNotification({ message: t(errorMsgKey, { error: err instanceof Error ? String(err) : String(err) }), type: 'error' });
         } finally {
             setIsPublishing(false);
         }
@@ -627,7 +684,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const handleApplyLinkSuggestion = (suggestion: InternalLinkSuggestion) => {
         if (!articleForAnalysis) return;
         const newBody = articleForAnalysis.body.replace(suggestion.textToLink, `[${suggestion.textToLink}](${suggestion.linkTo})`);
-        handleResultChange('body', newBody);
+        updateGeneratedResult({body: newBody});
         setLinkSuggestions(prev => prev ? prev.filter(s => s.textToLink !== suggestion.textToLink) : null);
     };
 
@@ -662,7 +719,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             newBody = currentBody.substring(0, lineStart) + replacement + currentBody.substring(finalLineEnd);
         }
         
-        handleResultChange('body', newBody);
+        updateGeneratedResult({body: newBody});
     };
 
 
@@ -782,7 +839,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             <div className="fixed inset-0 bg-gray-900 z-40 flex flex-col animate-fade-in-fast">
                 <EditorHeaderBar 
                     title={generatedResult.title}
-                    onTitleChange={(newTitle) => handleResultChange('title', newTitle)}
+                    onTitleChange={(newTitle) => updateGeneratedResult({ title: newTitle })}
                     onExit={onExit}
                     onToolkitToggle={() => setIsToolkitOpen(p => !p)}
                     isToolkitOpen={isToolkitOpen}
@@ -802,7 +859,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                     <MDEditor
                                         ref={editorRef}
                                         value={(generatedResult as ArticleContent).body}
-                                        onChange={(val) => handleResultChange('body', val || '')}
+                                        onChange={(val) => updateGeneratedResult({ body: val || '' })}
                                         preview="live"
                                         previewOptions={{ remarkPlugins: [remarkGfm], rehypePlugins: [[rehypeSanitize, sanitizeSchema]] }}
                                         className="!h-full !w-full !flex !flex-col"
@@ -822,13 +879,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                 <div>
                                     <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
                                     <div data-color-mode="dark" dir={language === 'Arabic' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
-                                        <MDEditor value={(generatedResult as ProductContent).longDescription} onChange={(val) => handleResultChange('longDescription', val || '')} height={300} preview="live" />
+                                        <MDEditor value={(generatedResult as ProductContent).longDescription} onChange={(val) => updateGeneratedResult({ longDescription: val || '' })} height={300} preview="live" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-400 mb-1">{t('shortDescription')}</label>
                                     <div data-editor-field="shortDescription">
-                                        <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => handleResultChange('shortDescription', e.target.value)} className="text-sm w-full bg-gray-800 border border-gray-700 p-2 rounded-lg h-24 text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                        <textarea value={(generatedResult as ProductContent).shortDescription} onChange={e => updateGeneratedResult({ shortDescription: e.target.value })} className="text-sm w-full bg-gray-800 border border-gray-700 p-2 rounded-lg h-24 text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
                                     </div>
                                 </div>
                             </div>
@@ -845,7 +902,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                         <RefineTool article={generatedResult as ArticleContent} contentLanguage={language} showNotification={showNotification} onRefined={setGeneratedResult} />
                                     </AIToolkitSection>
                                     <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}}>
-                                        <ImageGeneratorTool article={generatedResult as ArticleContent} showNotification={showNotification} onImageChange={setGeneratedResult} />
+                                        <ImageGeneratorTool
+                                            article={generatedResult as ArticleContent}
+                                            showNotification={showNotification}
+                                            onImageChange={updateGeneratedResult}
+                                            siteContext={siteContext}
+                                            isContextLoading={isContextLoading}
+                                        />
                                     </AIToolkitSection>
                                     
                                     <AIToolkitSection title={t('seoAnalysis')} icon={<SeoIcon/>} isOpen={isSeoToolkitOpen} onToggle={() => setIsSeoToolkitOpen(p => !p)} isLoading={isAnalyzingSeo}>

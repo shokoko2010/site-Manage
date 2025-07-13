@@ -111,15 +111,17 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
     const modalTitle = mode === 'update' ? t('updateTitle', { title: content.title }) : t('publishTitle', { title: content.title });
     const confirmButtonText = isScheduled ? t('scheduleFor') : (mode === 'update' ? t('confirmUpdate') : t('confirmPublish'));
 
+    const previewSrc = articleContent?.featuredMediaUrl || 
+                   (articleContent?.featuredImage ? `data:image/jpeg;base64,${articleContent.featuredImage}` : null);
 
     return (
         <Modal title={modalTitle} onClose={onClose} size="xl">
             <div className="space-y-4 text-gray-300 max-h-[70vh] overflow-y-auto p-1">
-                {articleContent?.featuredImage && (
+                {previewSrc && (
                     <div>
                         <label className="block text-sm font-medium mb-2">{t('featuredImage')}</label>
                         <img 
-                            src={articleContent.featuredImage.startsWith('data:') ? articleContent.featuredImage : `data:image/jpeg;base64,${articleContent.featuredImage}`} 
+                            src={previewSrc} 
                             alt="Featured image preview"
                             className="rounded-lg w-full object-cover max-h-64"
                         />
