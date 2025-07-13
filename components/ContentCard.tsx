@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { GeneratedContent, WordPressSite, ContentType, ArticleContent, LanguageContextType, PublishingOptions } from '../types';
-import { ArticleIcon, ProductIcon, ClockIcon, TrashIcon, EditIcon, PublishIcon } from '../constants';
+import { ArticleIcon, ProductIcon, ClockIcon, TrashIcon, EditIcon, PublishIcon, ArrowUpRightIcon } from '../constants';
 import { LanguageContext } from '../App';
 import PublishModal from './PublishModal';
 import { publishContent } from '../services/wordpressService';
@@ -20,6 +20,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
     const isArticle = content.type === ContentType.Article;
     const article = isArticle ? (content as ArticleContent) : null;
     const isVirtual = site?.isVirtual;
+    const isPublished = content.status === 'published';
     
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -56,8 +57,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
     return (
         <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/50 flex flex-col group relative transition-all duration-300 hover:border-indigo-500/50 hover:shadow-indigo-500/10 hover:-translate-y-1">
             <div className="relative">
-                {isArticle && article?.featuredImage ? (
-                     <img src={`data:image/jpeg;base64,${article.featuredImage}`} alt={content.title} className="w-full h-32 object-cover rounded-t-xl" />
+                {isArticle && (article?.featuredImage || article?.featuredMediaUrl) ? (
+                     <img src={article.featuredMediaUrl || `data:image/jpeg;base64,${article.featuredImage}`} alt={content.title} className="w-full h-32 object-cover rounded-t-xl" />
                 ) : (
                     <div className="w-full h-32 bg-gray-700 rounded-t-xl flex items-center justify-center">
                         <div className="text-gray-500">{isArticle ? <ArticleIcon className="w-10 h-10"/> : <ProductIcon className="w-10 h-10"/>}</div>
@@ -75,8 +76,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
                 <h3 className="font-bold text-white mb-2 flex-grow" title={content.title}>{content.title}</h3>
                 <div className="text-xs text-gray-400 flex items-center mt-2">
                     <ClockIcon className="w-4 h-4 me-1.5"/>
-                    {content.scheduledFor ? (
-                        <span>Scheduled: {new Date(content.scheduledFor).toLocaleDateString()}</span>
+                    {isPublished ? (
+                        <span className="text-green-400 font-semibold">{t('published')}</span>
+                    ) : content.scheduledFor ? (
+                        <span>{t('tableScheduled')}: {new Date(content.scheduledFor).toLocaleDateString()}</span>
                     ) : (
                         <span>Created: {new Date(content.createdAt).toLocaleDateString()}</span>
                     )}
@@ -86,17 +89,25 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
 
              <div className="absolute inset-0 bg-gray-900/70 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4">
                 <div className="flex items-center space-x-2">
-                     {!isVirtual && isArticle && (
-                        <button onClick={() => onEdit(article as ArticleContent)} className="bg-gray-700 hover:bg-yellow-500 text-white p-3 rounded-full transition-colors" title={t('edit')}>
-                            <EditIcon/>
-                        </button>
+                    {isPublished && content.postLink ? (
+                        <a href={content.postLink} target="_blank" rel="noopener noreferrer" className="bg-sky-600 hover:bg-sky-500 text-white p-3 rounded-full transition-colors flex items-center" title={t('viewArticle')}>
+                           <ArrowUpRightIcon />
+                        </a>
+                    ) : (
+                        <>
+                            {!isVirtual && isArticle && (
+                                <button onClick={() => onEdit(article as ArticleContent)} className="bg-gray-700 hover:bg-yellow-500 text-white p-3 rounded-full transition-colors" title={t('edit')}>
+                                    <EditIcon/>
+                                </button>
+                            )}
+                            {!isVirtual && (
+                                <button onClick={openPublishModal} className="bg-gray-700 hover:bg-sky-500 text-white p-3 rounded-full transition-colors" title={t('publish')}>
+                                    <PublishIcon/>
+                                </button>
+                            )}
+                        </>
                     )}
-                     {!isVirtual && (
-                        <button onClick={openPublishModal} className="bg-gray-700 hover:bg-sky-500 text-white p-3 rounded-full transition-colors" title={t('publish')}>
-                            <PublishIcon/>
-                        </button>
-                    )}
-                    <button onClick={() => onRemove(content.id)} className="bg-gray-700 hover:bg-red-500 text-white p-3 rounded-full transition-colors" title={t('delete')}>
+                     <button onClick={() => onRemove(content.id)} className="bg-gray-700 hover:bg-red-500 text-white p-3 rounded-full transition-colors" title={t('delete')}>
                         <TrashIcon/>
                     </button>
                 </div>

@@ -19,6 +19,7 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
     // Group by status for better organization
     const drafts = library.filter(c => c.status === 'draft' && !c.scheduledFor);
     const scheduled = library.filter(c => c.status === 'draft' && c.scheduledFor).sort((a,b) => new Date(a.scheduledFor!).getTime() - new Date(b.scheduledFor!).getTime());
+    const published = library.filter(c => c.status === 'published').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
   return (
     <div className="p-8 h-full">
@@ -41,7 +42,7 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
         <div className="space-y-8">
             {drafts.length > 0 && (
                 <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">Drafts</h2>
+                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('draft')}s</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {drafts.map(content => (
                             <ContentCard 
@@ -60,9 +61,28 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
             )}
              {scheduled.length > 0 && (
                 <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">Scheduled</h2>
+                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('tableScheduled')}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {scheduled.map(content => (
+                            <ContentCard 
+                                key={content.id}
+                                content={content}
+                                site={sites.find(s => s.id === content.siteId)}
+                                onEdit={onEdit}
+                                onRemove={onRemoveFromLibrary}
+                                showNotification={showNotification}
+                                onRemoveFromLibrary={onRemoveFromLibrary}
+                                allSites={sites}
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
+             {published.length > 0 && (
+                <section>
+                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('published')}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {published.map(content => (
                             <ContentCard 
                                 key={content.id}
                                 content={content}

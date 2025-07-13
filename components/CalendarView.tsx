@@ -2,11 +2,11 @@ import React, { useMemo, useState, useContext, useEffect, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
-import { GeneratedContent, WordPressSite, Notification, LanguageContextType, PublishingOptions, ContentType } from '../types';
+import { GeneratedContent, WordPressSite, Notification, LanguageContextType, PublishingOptions, ContentType, SitePost } from '../types';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
-import { publishContent } from '../services/wordpressService';
-import { ArticleIcon, ProductIcon } from '../constants';
+import { fetchAllPostsFromAllSites, publishContent } from '../services/wordpressService';
+import { ArticleIcon, ProductIcon, EyeIcon, ChatBubbleLeftIcon } from '../constants';
 
 interface CalendarViewProps {
     library: GeneratedContent[];
@@ -21,10 +21,42 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
     const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
+    const [allSitePosts, setAllSitePosts] = useState<SitePost[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const externalEventsRef = useRef<HTMLUListElement>(null);
+    
+    useEffect(() => {
+        setIsLoading(true);
+        fetchAllPostsFromAllSites(sites)
+            .then(setAllSitePosts)
+            .catch(err => console.error("Failed to fetch all site posts for calendar analytics", err))
+            .finally(() => setIsLoading(false));
+    }, [sites]);
+
+    const syncedLibrary = useMemo(() => {
+        if (isLoading) return library;
+        
+        return library.map(content => {
+            // Find corresponding post if it has been published and has an ID
+            if (content.postId) {
+                const correspondingPost = allSitePosts.find(p => p.id === content.postId);
+                if (correspondingPost) {
+                    return {
+                        ...content,
+                        status: 'published' as const, // Ensure status is updated
+                        performanceStats: correspondingPost.performance_stats ? {
+                            views: correspondingPost.performance_stats.views,
+                            comments: correspondingPost.performance_stats.comments
+                        } : undefined
+                    };
+                }
+            }
+            return content;
+        });
+    }, [library, allSitePosts, isLoading]);
 
     const events = useMemo(() => {
-        return library.map(content => ({
+        return syncedLibrary.map(content => ({
             id: content.id,
             title: content.title,
             start: content.scheduledFor,
@@ -32,11 +64,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
             display: content.scheduledFor ? 'auto' : 'list-item',
             backgroundColor: content.type === ContentType.Article ? '#4338ca' : '#047857',
             borderColor: content.type === ContentType.Article ? '#6d28d9' : '#065f46',
+            className: content.status === 'published' ? 'published-event' : '',
             extendedProps: {
                 content,
             },
         }));
-    }, [library]);
+    }, [syncedLibrary]);
     
     const unscheduledEvents = useMemo(() => {
         return events.filter(event => !event.start);
@@ -79,6 +112,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
 
     const handleEventClick = (clickInfo: any) => {
         const content = clickInfo.event.extendedProps.content;
+        
+        if (content.status === 'published') {
+            // Maybe show a modal with stats or link to post? For now, we do nothing.
+             if (content.postLink) {
+                window.open(content.postLink, '_blank');
+            }
+            return;
+        }
+
         const contentSite = sites.find(s => s.id === content.siteId);
 
         if (contentSite?.isVirtual) {
@@ -105,7 +147,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
                 : t('publishSuccess', { url: result.postUrl });
 
             showNotification({ message, type: 'success' });
-            onRemoveFromLibrary(selectedContent.id);
+            
+            // Instead of removing, we update the item to be "published"
+            onUpdateLibraryItem(selectedContent.id, {
+                status: 'published',
+                postId: result.postId,
+                postLink: result.postUrl,
+                scheduledFor: options.status === 'future' ? new Date(options.scheduledAt!).toISOString() : new Date().toISOString()
+            });
+
             setIsPublishModalOpen(false);
             setSelectedContent(null);
         } catch (err) {
@@ -115,6 +165,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
             setIsPublishing(false);
         }
     };
+
+    const eventContent = (arg: any) => {
+        const { content } = arg.event.extendedProps;
+        const stats = content.performanceStats;
+        const isPublished = content.status === 'published';
+
+        return (
+            <div className="p-1.5 overflow-hidden text-left rtl:text-right">
+                <b className="font-semibold block truncate leading-tight">{arg.event.title}</b>
+                {isPublished && stats && (
+                    <div className="text-xs flex items-center mt-1 text-gray-200">
+                        <EyeIcon className="w-3.5 h-3.5 me-1" /> {stats.views}
+                        <ChatBubbleLeftIcon className="w-3.5 h-3.5 me-1 ms-2.5" /> {stats.comments}
+                    </div>
+                )}
+            </div>
+        )
+    }
 
     return (
         <div className="p-8 h-full flex flex-col">
@@ -140,6 +208,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
                         eventDrop={handleEventDrop}
                         eventReceive={handleEventReceive}
                         eventClick={handleEventClick}
+                        eventContent={eventContent}
                         height="100%"
                         locale={language}
                         firstDay={language === 'ar' ? 6 : 0}

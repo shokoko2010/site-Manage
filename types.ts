@@ -40,7 +40,7 @@ export interface ArticleContent {
   title: string;
   metaDescription: string;
   body: string;
-  status: 'draft';
+  status: 'draft' | 'published';
   createdAt: Date;
   language: Language;
   siteId?: string; // ID of the site it was generated for
@@ -52,6 +52,11 @@ export interface ArticleContent {
   internalLinkSuggestions?: InternalLinkSuggestion[]; // AI-generated suggestions for internal links
   postId?: number; // The ID of the post on WordPress, if editing
   origin?: 'new' | 'synced'; // Whether the content is new or synced from WP
+  postLink?: string; // URL of the published post
+  performanceStats?: {
+      views: number;
+      comments: number;
+  };
 }
 
 export interface ProductContent {
@@ -60,10 +65,16 @@ export interface ProductContent {
   title: string;
   longDescription: string;
   shortDescription: string;
-  status: 'draft';
+  status: 'draft' | 'published';
   createdAt: Date;
   siteId?: string; // ID of the site it was generated for
   scheduledFor?: string; // ISO Date string for scheduling
+  postId?: number;
+  postLink?: string;
+   performanceStats?: {
+      views: number;
+      comments: number;
+  };
 }
 
 export type GeneratedContent = ArticleContent | ProductContent;

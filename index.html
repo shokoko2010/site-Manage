@@ -70,6 +70,22 @@
       .fc-day-past .fc-daygrid-day-number {
         color: #4b5563; /* gray-600 */
       }
+      /* Style for published events */
+      .fc-daygrid-event.published-event {
+        background-color: #374151 !important; /* gray-700 */
+        border-color: #4b5563 !important; /* gray-600 */
+        opacity: 0.8;
+      }
+      .fc-daygrid-event.published-event:hover {
+        opacity: 1;
+      }
+      .fc-event-main-frame {
+        flex-direction: column;
+        align-items: start;
+      }
+      .fc-event-title {
+        white-space: normal !important; /* Allow title to wrap */
+      }
       /* Custom rule for RTL text editor centering */
       html[dir="rtl"] .wmde-markdown,
       html[dir="rtl"] .wmde-preview {

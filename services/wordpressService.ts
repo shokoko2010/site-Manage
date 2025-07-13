@@ -151,11 +151,17 @@ export const fetchAllPosts = async (site: WordPressSite): Promise<SitePost[]> =>
     const statuses = 'publish,future,draft,pending';
 
     do {
-        const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&status=${statuses}&_fields=id,title,content,status,date,link,performance_stats`, { headers });
-        const posts = await response.json();
-        allPosts = allPosts.concat(posts);
-        totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
-        page++;
+        try {
+            const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&status=${statuses}&_fields=id,title,content,status,date,link,performance_stats`, { headers });
+            const posts = await response.json();
+            allPosts = allPosts.concat(posts);
+            totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
+            page++;
+        } catch (error) {
+            console.error(`Failed to fetch page ${page} for site ${site.name}:`, error);
+            // Stop fetching for this site if an error occurs
+            break;
+        }
     } while (page <= totalPages);
 
     return allPosts;
@@ -257,7 +263,7 @@ const getTermIds = async (site: WordPressSite, terms: string, endpoint: 'categor
     return termIds;
 };
 
-export const publishContent = async (site: WordPressSite, content: GeneratedContent, options: PublishingOptions): Promise<{ success: true; postUrl: string }> => {
+export const publishContent = async (site: WordPressSite, content: GeneratedContent, options: PublishingOptions): Promise<{ success: true; postUrl: string; postId: number }> => {
     if (site.isVirtual || !site.username || !site.appPassword) {
         throw new Error("Cannot publish content to a virtual site.");
     }
@@ -339,7 +345,8 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
     
     return {
         success: true,
-        postUrl: newPost.link,
+        postUrl: newPost.link || newPost.permalink,
+        postId: newPost.id,
     };
 };
 
@@ -349,7 +356,7 @@ export const updatePost = async (
     postId: number,
     content: ArticleContent,
     options: Omit<PublishingOptions, 'siteId'>
-): Promise<{ success: true; postUrl: string }> => {
+): Promise<{ success: true; postUrl: string; postId: number }> => {
     if (site.isVirtual || !site.username || !site.appPassword) {
         throw new Error("Cannot update content on a virtual site.");
     }
@@ -405,5 +412,6 @@ export const updatePost = async (
     return {
         success: true,
         postUrl: updatedPost.link,
+        postId: updatedPost.id,
     };
 };
