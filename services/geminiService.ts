@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion, GeneratedIdea, SitePost, CampaignGenerationResult } from '../types';
 
@@ -108,19 +107,15 @@ const ideaGenerationSchema = {
 const extractJsonFromText = (text: string): any => {
     let jsonString = text.trim();
 
-    // 1. Prioritize extracting from a markdown block, which is the expected format.
     const markdownJsonRegex = /```json\s*([\s\S]*?)\s*```/;
     const markdownMatch = jsonString.match(markdownJsonRegex);
 
     if (markdownMatch && markdownMatch[1]) {
         jsonString = markdownMatch[1];
     } else {
-        // 2. Fallback: If no markdown block is found, find the largest possible JSON object/array substring.
-        // This handles cases where the AI forgets the markdown wrapper but includes other text.
         const firstBrace = jsonString.indexOf('{');
         const firstBracket = jsonString.indexOf('[');
         
-        // If we can't find a start, there's no JSON.
         if (firstBrace === -1 && firstBracket === -1) {
              console.error("Could not find start of JSON ('{' or '[') in the response:", text);
              throw new Error("AI response does not appear to contain any JSON data.");
@@ -131,8 +126,6 @@ const extractJsonFromText = (text: string): any => {
             firstBracket > -1 ? firstBracket : Infinity
         );
         
-        // This is a simple but more robust way to find the end of the JSON.
-        // It's not perfect (doesn't handle brackets in strings), but better than lastIndexOf.
         const startChar = jsonString[startIndex];
         const endChar = startChar === '{' ? '}' : ']';
         let depth = 0;
@@ -159,13 +152,10 @@ const extractJsonFromText = (text: string): any => {
     }
     
     try {
-        // 3. Clean the extracted string from common LLM-generated errors.
-        // The most frequent and safe-to-fix error is a trailing comma.
         const cleanedString = jsonString.replace(/,(?=\s*?[}\]])/g, '');
         return JSON.parse(cleanedString);
     } catch (error) {
         console.error("Failed to parse JSON even after cleaning.", { originalText: text, extractedString: jsonString, error });
-        // Include the specific parsing error message for better debugging.
         const parseError = error instanceof Error ? error.message : "Unknown parsing error";
         throw new Error(`AI returned a JSON block that could not be parsed. Error: ${parseError}`);
     }
@@ -173,7 +163,6 @@ const extractJsonFromText = (text: string): any => {
 
 /**
  * Checks the API response for errors and returns the text content if valid.
- * Throws user-friendly errors for specific failure reasons.
  */
 const processApiResponse = (response: GenerateContentResponse): string => {
     if (!response.candidates || response.candidates.length === 0) {
@@ -204,8 +193,26 @@ const processApiResponse = (response: GenerateContentResponse): string => {
         throw new Error("The response was stopped for an unspecified reason. Please try again.");
     }
 
-    // If finishReason is 'STOP', we can proceed.
     return response.text.trim();
+};
+
+const handleApiError = (error: unknown, context: string): Error => {
+    console.error(`Error in ${context}:`, error);
+
+    if (error instanceof Error) {
+        if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+            return new Error("You have exceeded your API quota. Please check your plan and billing details, or try again later.");
+        }
+        if (error.message.includes("API key not valid")) {
+            return new Error(MISSING_KEY_ERROR);
+        }
+        // Return known content-related or parsing errors directly
+        if (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields") || error.message.includes("incomplete") || error.message.includes("does not appear to contain")) {
+            return error;
+        }
+    }
+    
+    return new Error(`Failed to ${context}. The model may have returned an invalid response or the service may be temporarily unavailable.`);
 };
 
 
@@ -295,7 +302,6 @@ For context, here is some information about the website this article will be pub
     const parsed = useGoogleSearch ? extractJsonFromText(jsonText) : JSON.parse(jsonText);
 
     if (!parsed.title || !parsed.metaDescription || !parsed.body) {
-        console.error("Invalid JSON structure received:", parsed);
         throw new Error("AI response is missing required fields (title, metaDescription, body).");
     }
     
@@ -310,18 +316,7 @@ For context, here is some information about the website this article will be pub
       language: language,
     };
   } catch (error) {
-    console.error("Error generating article:", error);
-    if (error instanceof Error && (
-        error.message.includes("cut off") || 
-        error.message.includes("blocked") || 
-        error.message.includes("could not be parsed") || 
-        error.message.includes("missing required fields") ||
-        error.message.includes("incomplete") ||
-        error.message.includes("does not appear to contain")
-    )) {
-        throw error;
-    }
-    throw new Error("Failed to generate article from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
+    throw handleApiError(error, 'generate article');
   }
 };
 
@@ -381,11 +376,7 @@ export const generateProduct = async (
       createdAt: new Date(),
     };
   } catch (error) {
-    console.error("Error generating product content:", error);
-    if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
-        throw error;
-    }
-    throw new Error("Failed to generate product content from AI. The model may have returned an invalid response or the service may be temporarily unavailable.");
+    throw handleApiError(error, 'generate product content');
   }
 };
 
@@ -411,8 +402,7 @@ export const generateFeaturedImage = async (prompt: string): Promise<string[]> =
         return response.generatedImages.map(img => img.image.imageBytes);
 
     } catch (error) {
-        console.error("Error generating featured image:", error);
-        throw new Error("Failed to generate image from AI. The service may be temporarily unavailable or the prompt may have been rejected.");
+        throw handleApiError(error, 'generate featured image');
     }
 };
 
@@ -504,11 +494,7 @@ export const generateContentCampaign = async (
         return { pillarPost, clusterPosts };
 
     } catch (error) {
-        console.error("Error generating content campaign:", error);
-        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("was not in the expected campaign format"))) {
-            throw error;
-        }
-        throw new Error("Failed to generate content campaign from AI. The model may have returned an invalid format or the service is unavailable.");
+        throw handleApiError(error, 'generate content campaign');
     }
 };
 
@@ -572,11 +558,7 @@ export const refineArticle = async (
       body: parsed.body,
     };
   } catch (error) {
-    console.error("Error refining article:", error);
-     if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
-        throw error;
-    }
-    throw new Error("Failed to refine article from AI. The model may have returned an invalid response.");
+    throw handleApiError(error, 'refine article');
   }
 };
 
@@ -627,11 +609,7 @@ export const analyzeSeo = async (title: string, body: string): Promise<SeoAnalys
         return parsed;
 
     } catch (error) {
-        console.error("Error analyzing SEO:", error);
-        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("missing required fields"))) {
-            throw error;
-        }
-        throw new Error("Failed to get SEO analysis from AI. The model may have returned an invalid format.");
+        throw handleApiError(error, 'analyze SEO');
     }
 };
 
@@ -667,15 +645,10 @@ export const modifyText = async (
             }
         });
 
-        // We expect a plain text response, so we just return it.
         return processApiResponse(response);
 
     } catch(error) {
-        console.error("Error modifying text:", error);
-        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked"))) {
-            throw error;
-        }
-        throw new Error("Failed to modify text with AI. The service might be unavailable.");
+        throw handleApiError(error, 'modify text');
     }
 };
 
@@ -736,11 +709,7 @@ export const generateInternalLinks = async (
         return parsedSuggestions.filter(s => s.textToLink && s.linkTo && s.postTitle);
 
     } catch (error) {
-        console.error("Error generating internal links:", error);
-        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("not a JSON array"))) {
-            throw error;
-        }
-        throw new Error("Failed to generate internal links from AI.");
+        throw handleApiError(error, 'generate internal links');
     }
 };
 
@@ -786,10 +755,6 @@ export const generateIdeasFromAnalytics = async (topPosts: SitePost[]): Promise<
         return parsedIdeas;
 
     } catch (error) {
-        console.error("Error generating ideas from analytics:", error);
-        if (error instanceof Error && (error.message.includes("cut off") || error.message.includes("blocked") || error.message.includes("could not be parsed") || error.message.includes("was not in the expected format"))) {
-            throw error;
-        }
-        throw new Error("Failed to generate content ideas from AI.");
+        throw handleApiError(error, 'generate content ideas');
     }
 };

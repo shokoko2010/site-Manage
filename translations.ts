@@ -1,4 +1,3 @@
-
 export const translations = {
   en: {
     // App Name & General
@@ -140,20 +139,22 @@ export const translations = {
     
     // SEO Analyzer
     seoAnalysis: 'SEO Analysis',
-    analyzeSeo: 'Analyze SEO',
+    seoAnalysisHint: 'Get an SEO score and actionable suggestions for your article.',
+    analyzeNow: 'Analyze Now',
+    reAnalyze: 'Re-Analyze',
     analyzingSEO: 'Analyzing SEO performance...',
     seoScore: 'SEO Score',
     seoSuggestions: 'Suggestions for Improvement',
-    typeToAnalyze: 'Start typing in the editor for a live SEO analysis.',
     
     // Internal Linker
     internalLinkAssistant: 'Internal Link Assistant',
-    internalLinkAssistantHint: 'AI suggestions to improve SEO by linking to existing content.',
+    internalLinkAssistantHint: 'Find opportunities to link to existing content on your connected site.',
+    findLinks: 'Find Links',
+    findLinksAgain: 'Find Links Again',
     generatingLinks: 'Searching for linking opportunities...',
     noLinksFound: 'No internal linking opportunities found in this article.',
     applyLink: 'Apply',
     linkSuggestionText: 'Link the phrase {{textToLink}} to your post {{postTitle}}',
-    typeToSuggestLinks: 'Type in the editor to get automatic internal link suggestions.',
 
     // AI Magic Edit Menu
     aiMagicMenu: {
@@ -405,20 +406,22 @@ export const translations = {
     
     // SEO Analyzer
     seoAnalysis: 'تحليل السيو',
-    analyzeSeo: 'تحليل السيو',
+    seoAnalysisHint: 'احصل على درجة سيو واقتراحات عملية لمقالك.',
+    analyzeNow: 'تحليل الآن',
+    reAnalyze: 'إعادة التحليل',
     analyzingSEO: 'جاري تحليل أداء السيو...',
     seoScore: 'درجة السيو',
     seoSuggestions: 'اقتراحات للتحسين',
-    typeToAnalyze: 'ابدأ الكتابة في المحرر لتحليل السيو مباشرة.',
 
     // Internal Linker
     internalLinkAssistant: 'مساعد الربط الداخلي',
-    internalLinkAssistantHint: 'اقتراحات لتحسين سيو موقعك عبر الربط بالمحتوى الحالي.',
+    internalLinkAssistantHint: 'ابحث عن فرص للربط بالمحتوى الموجود على موقعك المتصل.',
+    findLinks: 'بحث عن روابط',
+    findLinksAgain: 'بحث مرة أخرى',
     generatingLinks: 'جاري البحث عن فرص للربط...',
     noLinksFound: 'لم يتم العثور على فرص للربط الداخلي في هذا المقال.',
     applyLink: 'تطبيق',
     linkSuggestionText: 'اربط عبارة {{textToLink}} بمقالك {{postTitle}}',
-    typeToSuggestLinks: 'اكتب في المحرر للحصول على اقتراحات روابط داخلية تلقائية.',
 
     // AI Magic Edit Menu
     aiMagicMenu: {

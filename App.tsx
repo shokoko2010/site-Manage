@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
 import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult } from './types';
 import Sidebar from './components/Sidebar';
@@ -44,7 +40,7 @@ export default function App() {
         const storedSites = getSitesFromStorage();
         setSites(storedSites);
         const storedContent = JSON.parse(localStorage.getItem('content_library') || '[]');
-        setContentLibrary(storedContent);
+        setContentLibrary(storedContent.map((item: GeneratedContent) => ({...item, createdAt: new Date(item.createdAt)})));
     } catch (error) {
         console.error("Failed to load data from storage:", error);
         showNotification({ message: 'Could not load data from your browser storage.', type: 'error'});
@@ -166,7 +162,6 @@ export default function App() {
 
   const renderView = () => {
     const fallback = <div className="flex h-full w-full items-center justify-center"><Spinner size="lg" /></div>;
-    const sortedActivity = [...contentLibrary].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     if (currentView === View.NewContent) {
         return (
@@ -199,7 +194,6 @@ export default function App() {
                       isLoading={isLoading} 
                       onManageSite={navigateToSiteDetail}
                       onNavigateToNewContent={createNew}
-                      recentActivity={sortedActivity.slice(0, 5)}
                       contentLibrary={contentLibrary}
                     />
                   </Suspense>
@@ -238,7 +232,7 @@ export default function App() {
               case View.SiteDetail:
                   return (
                     <Suspense fallback={fallback}>
-                        {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} recentActivity={sortedActivity.slice(0,5)} contentLibrary={contentLibrary} />}
+                        {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} contentLibrary={contentLibrary} />}
                     </Suspense>
                   );
               default:
@@ -251,7 +245,6 @@ export default function App() {
                       isLoading={isLoading} 
                       onManageSite={navigateToSiteDetail}
                       onNavigateToNewContent={createNew}
-                      recentActivity={sortedActivity.slice(0, 5)}
                       contentLibrary={contentLibrary}
                     />
                   </Suspense>

@@ -1,5 +1,3 @@
-
-
 import React, { useContext, useState } from 'react';
 import { WandIcon, ScissorsIcon, ExpandIcon, FaceSmileIcon } from '../constants';
 import { LanguageContext } from '../App';
@@ -25,19 +23,9 @@ const InlineAiMenu: React.FC<InlineAiMenuProps> = ({ position, onAction, isLoadi
         top: `${position.top - 50}px`,
         left: `${position.left}px`,
         position: 'absolute',
+        transform: 'translateX(-50%)',
         zIndex: 50,
     };
-
-    const ActionButton = ({ instruction, children }: { instruction: string; children: React.ReactNode }) => (
-        <button
-            onClick={() => handleAction(instruction)}
-            className="flex items-center space-x-2 rtl:space-x-reverse text-sm px-3 py-1.5 hover:bg-gray-600 w-full text-left"
-            disabled={isLoading}
-            aria-label={instruction}
-        >
-            {children}
-        </button>
-    );
     
     const ToneButton = ({ tone }: { tone: WritingTone }) => (
          <button
@@ -52,7 +40,7 @@ const InlineAiMenu: React.FC<InlineAiMenuProps> = ({ position, onAction, isLoadi
     return (
         <div style={menuStyle} className="bg-gray-700 rounded-md shadow-2xl animate-fade-in-fast flex text-white overflow-hidden border border-gray-600">
             {isLoading ? (
-                <div className="p-2 flex items-center justify-center w-full h-full">
+                <div className="p-2 flex items-center justify-center w-full h-full min-w-[160px]">
                     <Spinner size="sm" />
                 </div>
             ) : (

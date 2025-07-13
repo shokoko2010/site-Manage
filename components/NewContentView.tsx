@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
@@ -258,13 +257,8 @@ const ImageGeneratorTool: React.FC<{
     );
 };
 
-const SeoAnalyzerTool: React.FC<{ analysis: SeoAnalysis | null }> = ({ analysis }) => {
+const SeoAnalyzerTool: React.FC<{ analysis: SeoAnalysis }> = ({ analysis }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    
-    if (!analysis) {
-        return <p className="text-sm text-gray-500">{t('typeToAnalyze')}</p>;
-    }
-
     const scoreColor = analysis.score >= 80 ? 'text-green-400' : analysis.score >= 50 ? 'text-yellow-400' : 'text-red-400';
 
     return (
@@ -289,15 +283,10 @@ const SeoAnalyzerTool: React.FC<{ analysis: SeoAnalysis | null }> = ({ analysis 
 };
 
 const InternalLinkerTool: React.FC<{
-    article: ArticleContent;
-    suggestions: InternalLinkSuggestion[] | null;
+    suggestions: InternalLinkSuggestion[];
     onLinkApplied: (suggestion: InternalLinkSuggestion) => void;
-}> = ({ article, suggestions, onLinkApplied }) => {
+}> = ({ suggestions, onLinkApplied }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-
-    if (!suggestions) {
-        return <p className="text-sm text-gray-500">{t('typeToSuggestLinks')}</p>;
-    }
     
     if (suggestions.length === 0) {
         return <p className="text-sm text-gray-500">{t('noLinksFound')}</p>;
@@ -372,14 +361,12 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
     const selectedSite = useMemo(() => sites.find(s => s.id === selectedSiteId), [sites, selectedSiteId]);
 
-    // This is moved to the top level to fix the "Rendered more hooks than during the previous render" error.
     const wordCount = useMemo(() => {
         if (!generatedResult || generatedResult.type !== ContentType.Article) return 0;
         const body = (generatedResult as ArticleContent).body;
         return body ? body.trim().split(/\s+/).filter(Boolean).length : 0;
     }, [generatedResult]);
     
-    // This schema is memoized at the top level for the same reason.
     const sanitizeSchema = useMemo(() => ({
       ...defaultSchema,
       attributes: {
@@ -414,26 +401,6 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         setLinkSuggestions(null);
     }, [generatedResult?.id]);
 
-    // Proactive AI handlers
-    useEffect(() => {
-        if (wizardStep !== 'editor' || !articleForAnalysis?.body) return;
-
-        const handleProactiveAnalysis = () => {
-             if (isSeoToolkitOpen && !isAnalyzingSeo) {
-                setIsAnalyzingSeo(true);
-                analyzeSeo(articleForAnalysis.title, articleForAnalysis.body).then(setSeoAnalysis).catch(console.warn).finally(() => setIsAnalyzingSeo(false));
-             }
-             if (isLinkToolkitOpen && !isSuggestingLinks && selectedSite && !selectedSite.isVirtual) {
-                setIsSuggestingLinks(true);
-                getSiteContext(selectedSite).then(context => {
-                    return (context.recentPosts?.length > 0) ? generateInternalLinks(articleForAnalysis.body, context) : [];
-                }).then(setLinkSuggestions).catch(console.warn).finally(() => setIsSuggestingLinks(false));
-             }
-        };
-
-        const handler = setTimeout(handleProactiveAnalysis, 2000);
-        return () => clearTimeout(handler);
-    }, [articleForAnalysis?.body, articleForAnalysis?.title, wizardStep, isSeoToolkitOpen, isLinkToolkitOpen, selectedSite, isAnalyzingSeo, isSuggestingLinks]);
 
     // Handle site selection changes
     useEffect(() => {
@@ -501,13 +468,46 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         if (!generatedResult) return;
         setGeneratedResult(prev => {
              if (!prev) return null;
-             if (field === 'body' || field === 'title') {
-                 setSeoAnalysis(null);
-                 setLinkSuggestions(null);
-             }
              return { ...prev, [field]: value } as GeneratedContent;
         });
     };
+    
+    const handleAnalyzeSeo = async () => {
+        if (!articleForAnalysis) return;
+        setIsAnalyzingSeo(true);
+        setSeoAnalysis(null);
+        try {
+            const result = await analyzeSeo(articleForAnalysis.title, articleForAnalysis.body);
+            setSeoAnalysis(result);
+        } catch (err) {
+            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
+        } finally {
+            setIsAnalyzingSeo(false);
+        }
+    };
+
+    const handleSuggestLinks = async () => {
+        if (!articleForAnalysis || !selectedSite || selectedSite.isVirtual) {
+            showNotification({ message: 'Internal linking is only available for connected WordPress sites.', type: 'info'});
+            return;
+        };
+        setIsSuggestingLinks(true);
+        setLinkSuggestions(null);
+        try {
+            const siteContext = await getSiteContext(selectedSite);
+            if (!siteContext.recentPosts || siteContext.recentPosts.length === 0) {
+                 setLinkSuggestions([]);
+                 return;
+            }
+            const results = await generateInternalLinks(articleForAnalysis.body, siteContext);
+            setLinkSuggestions(results);
+        } catch (err) {
+            showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
+        } finally {
+            setIsSuggestingLinks(false);
+        }
+    };
+
 
     const handlePublishOrUpdate = async (options: PublishingOptions) => {
         const siteToPublish = sites.find(s => s.id === options.siteId);
@@ -829,12 +829,46 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                     <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}}>
                                         <ImageGeneratorTool article={generatedResult as ArticleContent} showNotification={showNotification} onImageChange={setGeneratedResult} />
                                     </AIToolkitSection>
+                                    
                                     <AIToolkitSection title={t('seoAnalysis')} icon={<SeoIcon/>} isOpen={isSeoToolkitOpen} onToggle={() => setIsSeoToolkitOpen(p => !p)} isLoading={isAnalyzingSeo}>
-                                        <SeoAnalyzerTool analysis={seoAnalysis} />
+                                        {seoAnalysis ? (
+                                            <div className="space-y-3">
+                                                <SeoAnalyzerTool analysis={seoAnalysis} />
+                                                <button onClick={handleAnalyzeSeo} disabled={isAnalyzingSeo} className="w-full mt-2 flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50 text-sm">
+                                                    {isAnalyzingSeo ? <Spinner size="sm" /> : <ArrowPathIcon />}
+                                                    <span className="ms-2">{t('reAnalyze')}</span>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center">
+                                                <p className="text-sm text-gray-400 mb-3">{t('seoAnalysisHint')}</p>
+                                                <button onClick={handleAnalyzeSeo} disabled={isAnalyzingSeo} className="w-full flex items-center justify-center py-2 px-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50">
+                                                    {isAnalyzingSeo ? <Spinner size="sm" /> : <SeoIcon />}
+                                                    <span className="ms-2">{t('analyzeNow')}</span>
+                                                </button>
+                                            </div>
+                                        )}
                                     </AIToolkitSection>
+
                                     {!selectedSite?.isVirtual && (
                                         <AIToolkitSection title={t('internalLinkAssistant')} icon={<LinkIcon/>} isOpen={isLinkToolkitOpen} onToggle={() => setIsLinkToolkitOpen(p => !p)} isLoading={isSuggestingLinks}>
-                                            <InternalLinkerTool article={articleForAnalysis!} suggestions={linkSuggestions} onLinkApplied={handleApplyLinkSuggestion} />
+                                            {linkSuggestions ? (
+                                                <div className="space-y-3">
+                                                    <InternalLinkerTool suggestions={linkSuggestions} onLinkApplied={handleApplyLinkSuggestion} />
+                                                    <button onClick={handleSuggestLinks} disabled={isSuggestingLinks} className="w-full mt-2 flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50 text-sm">
+                                                        {isSuggestingLinks ? <Spinner size="sm" /> : <ArrowPathIcon />}
+                                                        <span className="ms-2">{t('findLinksAgain')}</span>
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                 <div className="text-center">
+                                                    <p className="text-sm text-gray-400 mb-3">{t('internalLinkAssistantHint')}</p>
+                                                    <button onClick={handleSuggestLinks} disabled={isSuggestingLinks} className="w-full flex items-center justify-center py-2 px-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50">
+                                                        {isSuggestingLinks ? <Spinner size="sm" /> : <LinkIcon />}
+                                                        <span className="ms-2">{t('findLinks')}</span>
+                                                    </button>
+                                                </div>
+                                            )}
                                         </AIToolkitSection>
                                     )}
                                 </>

@@ -1,5 +1,5 @@
 import React, { useState, useContext, useMemo } from 'react';
-import { WordPressSite, LanguageContextType, DashboardViewProps, ContentType, GeneratedContent } from '../types';
+import { WordPressSite, LanguageContextType, DashboardViewProps, ContentType, GeneratedContent, ArticleContent } from '../types';
 import SiteCard from './SiteCard';
 import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
@@ -20,14 +20,22 @@ const StatCard = ({ icon, value, label }: { icon: React.ReactNode, value: string
 );
 
 
-const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite, onNavigateToNewContent, recentActivity, contentLibrary }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite, onNavigateToNewContent, contentLibrary }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
   const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
+
+  const sortedActivity = useMemo(() => 
+    [...contentLibrary].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), 
+  [contentLibrary]);
+
+  const recentActivity = useMemo(() => sortedActivity.slice(0, 5), [sortedActivity]);
   
-  const topPerformingPost = recentActivity
-    .filter(a => a.type === 'ARTICLE' && (a as any).performance_stats?.views > 0)
-    .sort((a,b) => (b as any).performance_stats?.views - (a as any).performance_stats?.views)[0];
+  const topPerformingPost = useMemo(() => 
+      recentActivity
+        .filter(a => a.type === 'ARTICLE' && (a as any).performance_stats?.views > 0)
+        .sort((a,b) => (b as any).performance_stats?.views - (a as any).performance_stats?.views)[0]
+  , [recentActivity]) as ArticleContent | undefined;
 
   const stats = useMemo(() => {
     const thirtyDaysAgo = new Date();
@@ -172,7 +180,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
             sites={sites}
         />
       )}
-      {isIdeaModalOpen && topPerformingPost && (
+      {isIdeaModalOpen && (
         <IdeaGeneratorModal
             isOpen={isIdeaModalOpen}
             onClose={() => setIsIdeaModalOpen(false)}

@@ -156,7 +156,6 @@ export interface DashboardViewProps {
   isLoading: boolean;
   onManageSite: (site: WordPressSite) => void;
   onNavigateToNewContent: (type: ContentType, title?: string) => void;
-  recentActivity: GeneratedContent[];
   contentLibrary: GeneratedContent[];
 }
 
