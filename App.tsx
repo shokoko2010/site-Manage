@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
 import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult } from './types';
 import Sidebar from './components/Sidebar';
@@ -199,6 +200,7 @@ export default function App() {
                       onManageSite={navigateToSiteDetail}
                       onNavigateToNewContent={createNew}
                       recentActivity={sortedActivity.slice(0, 5)}
+                      contentLibrary={contentLibrary}
                     />
                   </Suspense>
                 );
@@ -236,7 +238,7 @@ export default function App() {
               case View.SiteDetail:
                   return (
                     <Suspense fallback={fallback}>
-                        {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} recentActivity={sortedActivity.slice(0,5)} />}
+                        {activeSite ? <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} /> : <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} recentActivity={sortedActivity.slice(0,5)} contentLibrary={contentLibrary} />}
                     </Suspense>
                   );
               default:
@@ -250,6 +252,7 @@ export default function App() {
                       onManageSite={navigateToSiteDetail}
                       onNavigateToNewContent={createNew}
                       recentActivity={sortedActivity.slice(0, 5)}
+                      contentLibrary={contentLibrary}
                     />
                   </Suspense>
                 );

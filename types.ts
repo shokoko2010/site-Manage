@@ -157,6 +157,7 @@ export interface DashboardViewProps {
   onManageSite: (site: WordPressSite) => void;
   onNavigateToNewContent: (type: ContentType, title?: string) => void;
   recentActivity: GeneratedContent[];
+  contentLibrary: GeneratedContent[];
 }
 
 export interface NewContentViewProps {
@@ -165,7 +166,7 @@ export interface NewContentViewProps {
     sites: WordPressSite[];
     showNotification: (notification: Notification) => void;
     initialContent?: ArticleContent | null;
-    onUpdateComplete?: () => void;
+    onExit: () => void;
     newContentType?: ContentType;
     initialTitle?: string;
 }

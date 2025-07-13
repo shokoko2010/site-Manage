@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
@@ -535,6 +536,41 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             return updated;
         });
     };
+    
+    const handleTextSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+        const selection = window.getSelection();
+        if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+            const text = selection.toString().trim();
+            if (text.length > 0) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                
+                let target = event.target as HTMLElement;
+                let field: SelectionInfo['field'] | null = null;
+                while (target && !field) {
+                    const fieldAttribute = target.getAttribute('data-editor-field');
+                    if (fieldAttribute) {
+                        field = fieldAttribute as SelectionInfo['field'];
+                    }
+                    target = target.parentElement as HTMLElement;
+                }
+                
+                if (field && resultViewRef.current) {
+                   const containerRect = resultViewRef.current.getBoundingClientRect();
+                    setSelection({
+                        text: text,
+                        top: rect.top - containerRect.top,
+                        left: rect.left - containerRect.left + rect.width / 2,
+                        field: field
+                    });
+                }
+            } else {
+                 setSelection(null);
+            }
+        } else {
+            setSelection(null);
+        }
+    };
 
     const handleAiTextModify = async (instruction: string) => {
         if (!selection || !generatedResult) return;
@@ -598,9 +634,100 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     };
 
 
-    const renderBriefStep = () => { /* ... UI for brief step ... */ }; // This part is large and remains conceptually the same, so it's omitted for brevity. For a real change, this function's content would be here.
+    const renderBriefStep = () => {
+        return (
+            <div className="fixed inset-0 bg-gray-900 z-40 flex items-center justify-center p-4 animate-fade-in-fast">
+                <div className="w-full max-w-4xl mx-auto">
+                    <button onClick={onExit} className="absolute top-4 right-4 text-gray-500 hover:text-white">&times;</button>
+                     <h1 className="text-3xl font-bold text-white text-center">{t('createNewContent')}</h1>
+                    <p className="text-gray-400 mt-2 text-center mb-8">{t('createNewContentHint')}</p>
+    
+                    <div className="bg-gray-800 rounded-2xl p-2 flex items-center justify-center w-max mx-auto mb-6 border border-gray-700/50">
+                        {(Object.keys(ContentType) as Array<keyof typeof ContentType>).map(key => (
+                            <button
+                                key={key}
+                                onClick={() => setActiveTab(ContentType[key])}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-xl transition-colors ${activeTab === ContentType[key] ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-700/50'}`}
+                            >
+                                {t(ContentType[key].toLowerCase() as any)}
+                            </button>
+                        ))}
+                    </div>
+    
+                    <form onSubmit={handleGenerate} className="bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700/50">
+                        {/* Common fields */}
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                             <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('writingTone')}</label>
+                                <select value={tone} onChange={e => setTone(e.target.value as WritingTone)} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    {Object.values(WritingTone).map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('language')}</label>
+                                <select value={language} onChange={e => setLanguage(e.target.value as Language)} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    {Object.values(Language).map(l => <option key={l} value={l}>{l}</option>)}
+                                </select>
+                            </div>
+                         </div>
+                        
+                        {/* Article Form */}
+                        {activeTab === ContentType.Article && (
+                           <div className="space-y-4">
+                               <input type="text" value={articleTopic} onChange={e => setArticleTopic(e.target.value)} placeholder={t('topicTitlePlaceholder')} className="w-full text-lg bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                               <input type="text" value={articleKeywords} onChange={e => setArticleKeywords(e.target.value)} placeholder={t('keywordsPlaceholder')} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <select value={articleLength} onChange={e => setArticleLength(e.target.value as ArticleLength)} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    {Object.values(ArticleLength).map(len => <option key={len} value={len}>{len}</option>)}
+                                </select>
+                           </div>
+                        )}
+                        
+                        {/* Product Form */}
+                        {activeTab === ContentType.Product && (
+                            <div className="space-y-4">
+                                <input type="text" value={productName} onChange={e => setProductName(e.target.value)} placeholder={t('productNamePlaceholder')} className="w-full text-lg bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <textarea value={productFeatures} onChange={e => setProductFeatures(e.target.value)} placeholder={t('productFeaturesPlaceholder')} rows={4} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            </div>
+                        )}
+                        
+                         {/* Campaign Form */}
+                        {activeTab === ContentType.Campaign && (
+                            <div className="space-y-4">
+                                <input type="text" value={campaignTopic} onChange={e => setCampaignTopic(e.target.value)} placeholder={t('mainTopicPlaceholder')} className="w-full text-lg bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">{t('numArticles')}</label>
+                                    <input type="number" value={numArticles} onChange={e => setNumArticles(parseInt(e.target.value, 10))} min="2" max="10" className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-6 border-t border-gray-700 pt-6 space-y-4">
+                             <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('generateForSite')}</label>
+                                <select value={selectedSiteId} onChange={e => setSelectedSiteId(e.target.value)} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    {sites.length > 0 ? sites.map(site => <option key={site.id} value={site.id}>{site.name}</option>) : <option>{t('noSitesAvailable')}</option>}
+                                </select>
+                            </div>
+                            {activeTab === ContentType.Article && !selectedSite?.isVirtual && (
+                                <div className="flex items-center">
+                                    <input id="use-google-search" type="checkbox" checked={useGoogleSearch} onChange={e => setUseGoogleSearch(e.target.checked)} className="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500 bg-gray-700" />
+                                    <label htmlFor="use-google-search" className="ms-2 text-sm text-gray-200">{t('useGoogleSearch')}</label>
+                                </div>
+                            )}
+                            <button type="submit" className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-105" disabled={isLoading}>
+                                {isLoading ? <Spinner /> : <><SparklesIcon className="me-2" /> {activeTab === ContentType.Campaign ? t('generateCampaign') : t('generateContent')}</>}
+                            </button>
+                        </div>
+    
+                        {error && <p className="text-red-400 mt-4 text-center">{error}</p>}
+                    </form>
+                </div>
+            </div>
+        );
+    };
+
     const renderGeneratingStep = () => (
-        <div className="flex flex-col items-center justify-center h-full text-center">
+        <div className="fixed inset-0 bg-gray-900 z-40 flex flex-col items-center justify-center text-center">
             <Spinner size="lg"/>
             <h1 className="text-3xl font-bold text-white mt-6">{t('step2_generating_title')}</h1>
             <p className="text-gray-400 mt-2">{t('step2_generating_hint')}</p>
@@ -626,7 +753,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                 />
                 
                 <div className="flex-grow flex items-stretch overflow-hidden">
-                    <main ref={resultViewRef} className="flex-grow flex flex-col p-4 md:p-6 lg:p-8">
+                    <main ref={resultViewRef} className="flex-grow flex flex-col p-4 md:p-6 lg:p-8" onMouseUp={handleTextSelection}>
                         {generatedResult.type === ContentType.Article ? (
                              <>
                                 <div className="flex-shrink-0">
@@ -703,33 +830,65 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         );
     };
 
-    const renderCampaignResultStep = () => { /* ... UI for campaign result step ... */ }; // Omitted for brevity
-    
-    // The existing 'renderBriefStep' and 'renderCampaignResultStep' are large and mostly unchanged conceptually.
-    // I'll define a placeholder for 'renderBriefStep' to avoid having a giant file here.
-    const renderBriefStepContent = () => { /* The form UI would be here */ };
+    const renderCampaignResultStep = () => {
+         if (!generatedCampaign) return null;
+        return (
+            <div className="fixed inset-0 bg-gray-900 z-40 flex flex-col items-center justify-center p-4 animate-fade-in-fast">
+                <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+                    <h1 className="text-3xl font-bold text-white text-center">{t('generatedCampaign')}</h1>
+                    <p className="text-gray-400 mt-2 text-center mb-8">{t('reviewCampaignHint')}</p>
+                    
+                    <div className="space-y-6 max-h-[60vh] overflow-y-auto p-2">
+                        {/* Pillar Post */}
+                        <div className="bg-indigo-900/50 p-4 rounded-lg border border-indigo-700">
+                             <h3 className="text-lg font-semibold text-indigo-300 mb-2">Pillar Post</h3>
+                             <input 
+                                type="text"
+                                value={generatedCampaign.pillarPost.title}
+                                onChange={e => handleCampaignArticleTitleChange('pillar', 0, e.target.value)}
+                                className="w-full bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        {/* Cluster Posts */}
+                        <div className="space-y-3">
+                            <h3 className="text-lg font-semibold text-gray-300">Cluster Posts ({generatedCampaign.clusterPosts.length})</h3>
+                            {generatedCampaign.clusterPosts.map((post, index) => (
+                                 <input
+                                    key={index}
+                                    type="text"
+                                    value={post.title}
+                                    onChange={e => handleCampaignArticleTitleChange('cluster', index, e.target.value)}
+                                    className="w-full bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex justify-between items-center">
+                        <button onClick={onExit} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('discard')}</button>
+                        <button onClick={handleSaveCampaign} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-105">
+                           {t('saveCampaignToLibrary')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
     
     // Main render logic
-    return (
-        <div className="h-full">
-            {wizardStep === 'brief' && <div className="p-8">{t('briefStepPlaceholder')}</div> /* Re-implement full brief step here */}
-            {wizardStep === 'generating' && renderGeneratingStep()}
-            {wizardStep === 'editor' && renderEditorStep()}
-            {wizardStep === 'campaign_result' && <div className="p-8">{t('campaignResultPlaceholder')}</div> /* Re-implement full campaign result step here */}
-
-            {isPublishModalOpen && generatedResult && (
-                <PublishModal
-                    content={generatedResult}
-                    sites={sites}
-                    isOpen={isPublishModalOpen}
-                    onClose={() => setIsPublishModalOpen(false)}
-                    onPublish={handlePublishOrUpdate}
-                    isPublishing={isPublishing}
-                    mode={(generatedResult as ArticleContent)?.origin === 'synced' ? 'update' : 'publish'}
-                />
-            )}
-        </div>
-    );
+    switch (wizardStep) {
+        case 'brief':
+            return renderBriefStep();
+        case 'generating':
+            return renderGeneratingStep();
+        case 'editor':
+            return renderEditorStep();
+        case 'campaign_result':
+            return renderCampaignResultStep();
+        default:
+            return renderBriefStep();
+    }
 };
 
 

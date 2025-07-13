@@ -14,6 +14,10 @@ export const translations = {
     quickAction: 'Quick Action',
     
     // DashboardView
+    dashboardHint: "Welcome back! Here's your content overview.",
+    totalSites: 'Total Sites',
+    contentLast30Days: 'Generated in Last 30 Days',
+    totalLibraryItems: 'Total Library Items',
     addSite: 'Add Site',
     addNewSite: 'Add New Site',
     connectSite: 'Connect WordPress Site',
@@ -270,6 +274,10 @@ export const translations = {
     quickAction: 'إجراء سريع',
     
     // DashboardView
+    dashboardHint: 'أهلاً بعودتك! إليك نظرة عامة على المحتوى الخاص بك.',
+    totalSites: 'إجمالي المواقع',
+    contentLast30Days: 'تم إنشاؤه آخر 30 يومًا',
+    totalLibraryItems: 'إجمالي عناصر المكتبة',
     addSite: 'إضافة موقع',
     addNewSite: 'إضافة موقع جديد',
     connectSite: 'ربط موقع ووردبريس',
