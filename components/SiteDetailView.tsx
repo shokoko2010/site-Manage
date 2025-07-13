@@ -3,9 +3,10 @@ import TurndownService from 'turndown';
 import DOMPurify from 'dompurify';
 import { WordPressSite, SitePost, LanguageContextType, ArticleContent, ContentType, Notification, Language } from '../types';
 import { fetchAllPosts } from '../services/wordpressService';
+import { refreshArticleContent } from '../services/geminiService';
 import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
-import { EditIcon, CheckCircleIcon, ClockIcon } from '../constants';
+import { EditIcon, CheckCircleIcon, ClockIcon, ArrowPathIcon } from '../constants';
 
 interface SiteDetailViewProps {
     site: WordPressSite;
@@ -22,25 +23,31 @@ const SortIndicator = ({ direction }: { direction: 'asc' | 'desc' | null }) => {
 };
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     let badgeClasses = '';
     let icon = null;
+    let text = status;
 
     switch (status) {
         case 'publish':
             badgeClasses = 'bg-green-600/50 text-green-300';
             icon = <CheckCircleIcon className="me-1 h-3.5 w-3.5" />;
+            text = t('published');
             break;
         case 'future':
             badgeClasses = 'bg-sky-600/50 text-sky-300';
             icon = <ClockIcon className="me-1 h-3.5 w-3.5" />;
+            text = t('scheduledFor');
             break;
         case 'draft':
             badgeClasses = 'bg-gray-600/50 text-gray-300';
             icon = <EditIcon className="me-1.5 h-3 w-3" />;
+            text = t('draft');
             break;
         case 'pending':
             badgeClasses = 'bg-yellow-600/50 text-yellow-300';
             icon = null;
+            text = t('pendingReview');
             break;
         default:
             badgeClasses = 'bg-gray-500/50 text-gray-400';
@@ -50,7 +57,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${badgeClasses}`}>
             {icon}
-            {status}
+            {text}
         </span>
     );
 };
@@ -62,6 +69,7 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+    const [refreshingPostId, setRefreshingPostId] = useState<number | null>(null);
 
     const turndownService = useMemo(() => new TurndownService({ headingStyle: 'atx' }), []);
 
@@ -150,6 +158,36 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
         onEdit(articleForEdit);
     };
 
+    const handleRefreshPost = async (post: SitePost) => {
+        setRefreshingPostId(post.id);
+        try {
+            const markdown = turndownService.turndown(DOMPurify.sanitize(post.content.rendered));
+            const { title, metaDescription, body } = await refreshArticleContent(post, markdown);
+            
+            const articleForEdit: ArticleContent = {
+                id: `synced_${post.id}`,
+                type: ContentType.Article,
+                title,
+                metaDescription,
+                body,
+                status: 'draft',
+                createdAt: new Date(),
+                language: site.url.includes('.ar') ? Language.Arabic : Language.English, // Simple lang detection
+                siteId: site.id,
+                postId: post.id,
+                origin: 'synced',
+            };
+            
+            onEdit(articleForEdit);
+
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : t('errorUnknown');
+            showNotification({ message: t('refreshPostError', { error: errorMessage }), type: 'error' });
+        } finally {
+            setRefreshingPostId(null);
+        }
+    };
+
     const SortableHeader = ({ sortKey, label }: { sortKey: SortKey, label: string }) => (
         <th 
             scope="col" 
@@ -217,10 +255,33 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
                                             {post.performance_stats?.comments ?? <span className="text-gray-600">-</span>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
-                                            <button onClick={() => handleEditPost(post)} className="text-white hover:text-white font-semibold py-1.5 px-3 rounded-lg transition-colors btn-gradient inline-flex items-center">
-                                                <EditIcon />
-                                                <span className="ms-1.5">{t('editAndImprove')}</span>
-                                            </button>
+                                            <div className="flex justify-end items-center space-x-2 rtl:space-x-reverse">
+                                                {refreshingPostId === post.id ? (
+                                                    <div className="flex items-center text-sm text-cyan-400 px-3">
+                                                        <Spinner size="sm" />
+                                                        <span className="ms-2 italic">{t('refreshing')}</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleRefreshPost(post)} 
+                                                            className="text-white font-semibold py-1.5 px-3 rounded-lg transition-colors bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 inline-flex items-center"
+                                                            title={t('refreshWithAI')}
+                                                        >
+                                                            <ArrowPathIcon />
+                                                            <span className="ms-1.5 hidden md:inline">{t('refreshWithAI')}</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleEditPost(post)} 
+                                                            className="text-white font-semibold py-1.5 px-3 rounded-lg transition-colors btn-gradient inline-flex items-center"
+                                                            title={t('edit')}
+                                                        >
+                                                            <EditIcon />
+                                                            <span className="ms-1.5 hidden md:inline">{t('edit')}</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

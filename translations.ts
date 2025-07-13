@@ -183,7 +183,7 @@ export const translations = {
     libraryEmpty: 'Your content library is empty.',
     libraryEmptyHint: 'Go to "New Content" to generate your first piece.',
     delete: 'Delete',
-    edit: 'Edit & Improve',
+    edit: 'Edit',
     scheduleAll: 'Schedule All Drafts',
     
     // Site Detail View
@@ -197,6 +197,8 @@ export const translations = {
     comments: 'Comments',
     fetchingPosts: 'Fetching posts...',
     noPostsFound: 'No posts found on this site.',
+    refreshWithAI: 'Refresh with AI',
+    refreshing: 'Refreshing...',
 
     // PublishModal
     publishTitle: 'Publish: {{title}}',
@@ -266,6 +268,7 @@ export const translations = {
     imageGenStarted: 'Generating image ideas... this may take a moment.',
     imageGenFail: 'Failed to generate images.',
     contextFail: 'Could not fetch site context, proceeding without it.',
+    refreshPostError: 'Failed to refresh post: {{error}}',
     errorAllFieldsRequired: 'All fields are required.',
     errorInvalidUrl: 'Please enter a valid URL (e.g., https://example.com).',
     errorUrlExists: 'A site with this URL has already been added.',
@@ -455,6 +458,7 @@ export const translations = {
     libraryEmpty: 'مكتبة المحتوى فارغة.',
     libraryEmptyHint: 'اذهب إلى "محتوى جديد" لإنشاء أول قطعة لك.',
     delete: 'حذف',
+    edit: 'تعديل',
     scheduleAll: 'جدولة كل المسودات',
     
     // Site Detail View
@@ -468,6 +472,8 @@ export const translations = {
     comments: 'التعليقات',
     fetchingPosts: 'جاري جلب المقالات...',
     noPostsFound: 'لم يتم العثور على مقالات في هذا الموقع.',
+    refreshWithAI: 'تحديث بالذكاء الاصطناعي',
+    refreshing: 'جاري التحديث...',
 
     // PublishModal
     publishTitle: 'نشر: {{title}}',
@@ -537,6 +543,7 @@ export const translations = {
     imageGenStarted: 'جاري إنشاء أفكار للصور... قد يستغرق هذا بعض الوقت.',
     imageGenFail: 'فشل في توليد الصور.',
     contextFail: 'تعذر جلب سياق الموقع، سيتم المتابعة بدونه.',
+    refreshPostError: 'فشل تحديث المقال: {{error}}',
     errorAllFieldsRequired: 'جميع الحقول مطلوبة.',
     errorInvalidUrl: 'الرجاء إدخال رابط صحيح (مثال: https://example.com).',
     errorUrlExists: 'يوجد موقع بهذا الرابط مضاف بالفعل.',

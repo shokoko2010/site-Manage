@@ -31,7 +31,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showNotification }) => {
 
   const phpCodeSnippet = `
 /*
- * AI WP Manager Connection Snippet (v3 - With Performance Stats)
+ * AI WP Manager Connection Snippet (v4 - Improved CORS)
  * -----------------------------------------------------------------
  * Instructions:
  * 1. IMPORTANT: Change 'YOUR_WP_USERNAME' below to your actual WordPress username.
@@ -56,33 +56,40 @@ add_filter( 'wp_authenticate_application_password_errors', function( $errors, $u
 
 
 // --- Part 2: REST API Enhancements (CORS & Custom Fields) ---
-add_action( 'rest_api_init', function() {
-    // --- Sub-part A: Robust CORS handling ---
-    // Remove default WordPress CORS headers to prevent conflicts
-    remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
-    
-    add_filter( 'rest_pre_serve_request', function( $value ) {
-        $origin = get_http_origin();
-        if ($origin) {
-            header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
-        } else {
-            header( 'Access-Control-Allow-Origin: *' );
-        }
-        
-        header( 'Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE' );
-        header( 'Access-Control-Allow-Credentials: true' );
-        header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
-        header( 'Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link' );
+// This runs early to set up CORS headers before other plugins can interfere.
+add_action('init', function() {
+    // Set a very late priority to ensure these headers are applied last.
+    $priority = 99;
 
-        if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
-            status_header( 200 );
+    // Remove the default WordPress CORS handling.
+    remove_filter('rest_pre_serve_request', 'rest_send_cors_headers', 10);
+
+    // Add custom, more permissive CORS handling.
+    add_filter('rest_pre_serve_request', function($value) {
+        // Allow requests from any origin.
+        header('Access-Control-Allow-Origin: *');
+        // Define allowed HTTP methods.
+        header('Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE');
+        // Allow credentials to be sent.
+        header('Access-Control-Allow-Credentials: true');
+        // Define allowed headers in requests.
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
+        // Expose headers needed by the application.
+        header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link');
+
+        // Handle pre-flight OPTIONS requests from browsers.
+        if ('OPTIONS' === $_SERVER['REQUEST_METHOD']) {
+            status_header(200);
             exit();
         }
 
         return $value;
-    });
+    }, $priority);
+}, $priority);
 
-    // --- Sub-part B: Expose Performance Stats (NEW) ---
+// Register custom fields for the REST API
+add_action( 'rest_api_init', function() {
+    // --- Expose Performance Stats ---
     register_rest_field( 'post', 'performance_stats', array(
         'get_callback' => function( $post_arr ) {
             // Assumes a post view counter plugin is saving data to 'post_views_count' meta key.
