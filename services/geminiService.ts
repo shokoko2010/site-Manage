@@ -541,7 +541,8 @@ export const refineArticle = async (
     **Your Task:**
     Apply the instruction to the article. You might need to rewrite sections, add new content, remove content, or change the tone.
     The output MUST be a single valid JSON object that strictly matches the provided schema, containing the full, updated content for the article. All string values within the JSON must be properly escaped (e.g., newlines as \\n, double quotes as \\").
-    The language of the article must remain ${language}.
+    
+    CRITICAL: The language of the article is ${language}. You MUST keep the output in the same language (${language}). Do not translate to English or any other language. This applies to the title, meta description, and the entire body.
 
     Return the JSON object with the "title", "metaDescription", and "body" keys.
   `;
