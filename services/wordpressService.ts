@@ -122,17 +122,19 @@ export const getSiteContext = async (site: WordPressSite): Promise<SiteContext> 
         throw new Error("Cannot get site context without credentials.");
     }
     const headers = createAuthHeaders(site.username, site.appPassword);
-    const [postsRes, categoriesRes, tagsRes] = await Promise.all([
+    const [postsRes, categoriesRes, tagsRes, authorsRes] = await Promise.all([
         apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&_fields=id,title,link`, { headers }),
         apiFetch(`${site.url}/wp-json/wp/v2/categories?per_page=100&orderby=count&order=desc&_fields=id,name`, { headers }),
         apiFetch(`${site.url}/wp-json/wp/v2/tags?per_page=100&orderby=count&order=desc&_fields=id,name`, { headers }),
+        apiFetch(`${site.url}/wp-json/wp/v2/users?per_page=100&has_published_posts=true&_fields=id,name`, { headers }),
     ]);
 
     const recentPosts = await postsRes.json();
     const categories = await categoriesRes.json();
     const tags = await tagsRes.json();
+    const authors = await authorsRes.json();
 
-    return { recentPosts, categories, tags };
+    return { recentPosts, categories, tags, authors };
 };
 
 

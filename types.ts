@@ -44,7 +44,9 @@ export interface ArticleContent {
   createdAt: Date;
   language: Language;
   siteId?: string; // ID of the site it was generated for
-  featuredImage?: string; // Selected Base64 image string
+  featuredImage?: string; // Base64 data of a NEWLY generated image
+  featuredMediaId?: number; // ID of an EXISTING media library image
+  featuredMediaUrl?: string; // URL for previewing the media library image
   generatedImageOptions?: string[]; // Array of Base64 strings for user to choose from
   scheduledFor?: string; // ISO Date string for scheduling
   internalLinkSuggestions?: InternalLinkSuggestion[]; // AI-generated suggestions for internal links
@@ -98,6 +100,7 @@ export interface PublishingOptions {
     tags: string;
     status: 'publish' | 'draft' | 'pending' | 'future';
     scheduledAt?: string; // ISO Date string
+    authorId?: number; // ID for multi-author support
     // WooCommerce specific
     price?: string;
     salePrice?: string;
@@ -105,10 +108,23 @@ export interface PublishingOptions {
     stockStatus?: 'instock' | 'outofstock';
 }
 
+export interface Author {
+    id: number;
+    name: string;
+}
+
+export interface MediaItem {
+    id: number;
+    source_url: string;
+    alt_text: string;
+}
+
+
 export interface SiteContext {
     recentPosts: { id: number; title: string; link: string }[];
     categories: { id: number; name: string }[];
     tags: { id: number; name: string }[];
+    authors: Author[];
 }
 
 export interface Notification {
