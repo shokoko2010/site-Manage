@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
@@ -158,13 +155,14 @@ const RefineTool: React.FC<{
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [refineInstruction, setRefineInstruction] = useState('');
     const [isRefining, setIsRefining] = useState(false);
-
-    const handleRefine = async () => {
+    
+    const handleRefine = async (isAutoRefine: boolean = false) => {
         setIsRefining(true);
         try {
-            const refinedContent = await refineArticle(article, refineInstruction, contentLanguage);
+            const instruction = isAutoRefine ? 'Auto-improve this article. Focus on clarity, flow, grammar, and SEO.' : refineInstruction;
+            const refinedContent = await refineArticle(article, instruction, contentLanguage);
             onRefined({ ...article, ...refinedContent });
-            showNotification({ message: 'Article refined successfully!', type: 'success' });
+            showNotification({ message: t('articleImproved'), type: 'success' });
         } catch (err) {
             showNotification({ message: err instanceof Error ? err.message : t('errorUnknown'), type: 'error' });
         } finally {
@@ -172,23 +170,38 @@ const RefineTool: React.FC<{
         }
     };
 
+
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
+             <button
+                onClick={() => handleRefine(true)}
+                disabled={isRefining}
+                className="w-full flex items-center justify-center py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50 text-base"
+            >
+                {isRefining ? <Spinner size="sm" /> : <SparklesIcon />}
+                <span className="ms-2">{isRefining ? t('improvingArticle') : t('autoImproveArticle')}</span>
+            </button>
+
+            <div className="flex items-center text-xs text-gray-500">
+                <div className="flex-grow border-t border-gray-600"></div>
+                <span className="flex-shrink mx-2">OR</span>
+                <div className="flex-grow border-t border-gray-600"></div>
+            </div>
+
             <textarea
                 value={refineInstruction}
                 onChange={(e) => setRefineInstruction(e.target.value)}
                 placeholder={t('refinementPlaceholder')}
                 className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-sm text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                rows={3}
+                rows={2}
                 disabled={isRefining}
             />
             <button
-                onClick={handleRefine}
-                disabled={isRefining}
-                className="w-full flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50"
+                onClick={() => handleRefine(false)}
+                disabled={isRefining || !refineInstruction}
+                className="w-full flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {isRefining ? <Spinner size="sm" /> : <SparklesIcon />}
-                <span className="ms-2">{isRefining ? t('refiningArticle') : t('refineArticle')}</span>
+                <span className="ms-2">{isRefining ? t('refiningArticle') : t('refineWithInstruction')}</span>
             </button>
         </div>
     );
@@ -337,6 +350,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const [language, setLanguage] = useState<Language>(Language.English); // Language of the content
     const [selectedSiteId, setSelectedSiteId] = useState<string | undefined>(sites.length > 0 ? sites[0].id : undefined);
     const [useGoogleSearch, setUseGoogleSearch] = useState(true);
+    const [isThinkingEnabled, setIsThinkingEnabled] = useState(true);
 
     // Editor & Toolkit states
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -462,21 +476,21 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                 showNotification({ message: t('contextFail'), type: 'info' });
             }
         }
-        const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, siteContext);
+        const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, isThinkingEnabled, siteContext);
         setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
         setWizardStep('editor');
     };
 
     const handleGenerateProduct = async () => {
         if (!productName) throw new Error(t('errorAllFieldsRequired'));
-        const result = await generateProduct(productName, productFeatures, language);
+        const result = await generateProduct(productName, productFeatures, language, isThinkingEnabled);
         setGeneratedResult({ ...result, siteId: selectedSiteId });
         setWizardStep('editor');
     };
     
     const handleGenerateCampaign = async () => {
         if (!campaignTopic || !selectedSiteId) throw new Error(t('errorAllFieldsRequired'));
-        const campaignResult = await generateContentCampaign(campaignTopic, numArticles, language);
+        const campaignResult = await generateContentCampaign(campaignTopic, numArticles, language, isThinkingEnabled);
         const updatedPillar = { ...campaignResult.pillarPost, siteId: selectedSiteId };
         const updatedClusters = campaignResult.clusterPosts.map(c => ({...c, siteId: selectedSiteId}));
         setGeneratedCampaign({ pillarPost: updatedPillar, clusterPosts: updatedClusters });
@@ -714,6 +728,13 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                     <label htmlFor="use-google-search" className="ms-2 text-sm text-gray-200">{t('useGoogleSearch')}</label>
                                 </div>
                             )}
+                            <div className="flex items-start pt-2">
+                                <input id="enable-thinking" type="checkbox" checked={isThinkingEnabled} onChange={e => setIsThinkingEnabled(e.target.checked)} className="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500 bg-gray-700 mt-0.5 flex-shrink-0" />
+                                <div className="ms-3">
+                                    <label htmlFor="enable-thinking" className="text-sm font-medium text-gray-200">{t('enableThinking')}</label>
+                                    <p className="text-xs text-gray-400">{t('enableThinkingHint')}</p>
+                                </div>
+                            </div>
                             <button type="submit" className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-105" disabled={isLoading}>
                                 {isLoading ? <Spinner /> : <><SparklesIcon className="me-2" /> {activeTab === ContentType.Campaign ? t('generateCampaign') : t('generateContent')}</>}
                             </button>

@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     // App Name & General
@@ -101,7 +102,8 @@ export const translations = {
     generateForSite: 'Generate content for site',
     noSitesAvailable: 'No sites available',
     useGoogleSearch: 'Use Google Search & Site Context',
-    useGoogleSearchHint: 'For up-to-date, highly relevant content.',
+    enableThinking: 'Enable Thinking',
+    enableThinkingHint: 'When enabled, the AI takes more time for higher quality content. Disable for faster responses.',
     productName: 'Product Name',
     productNamePlaceholder: 'e.g., Ergonomic Office Chair',
     productFeatures: 'Key Features & Specs (one per line)',
@@ -120,6 +122,10 @@ export const translations = {
     refineWithAIHint: 'Provide instructions to improve or expand the current article.',
     refinementPlaceholder: 'e.g., Add a section on future trends, make the tone more formal',
     refineArticle: 'Refine Article',
+    refineWithInstruction: 'Refine with Instruction',
+    improvingArticle: 'Improving Article...',
+    autoImproveArticle: 'Auto-Improve Entire Article',
+    articleImproved: 'Article has been successfully improved!',
     refiningArticle: 'Refining the article with AI...',
     articleBody: 'Article Body',
     longDescription: 'Long Description (Markdown)',
@@ -361,7 +367,8 @@ export const translations = {
     generateForSite: 'توليد محتوى لموقع',
     noSitesAvailable: 'لا توجد مواقع متاحة',
     useGoogleSearch: 'استخدام بحث جوجل وسياق الموقع',
-    useGoogleSearchHint: 'للحصول على محتوى محدّث وعالي الصلة.',
+    enableThinking: 'تفعيل التفكير',
+    enableThinkingHint: 'عند التفعيل، يأخذ الذكاء الاصطناعي وقتاً أطول لمحتوى بجودة أعلى. قم بالتعطيل لاستجابات أسرع.',
     productName: 'اسم المنتج',
     productNamePlaceholder: 'مثال: كرسي مكتب مريح',
     productFeatures: 'الميزات والمواصفات الرئيسية (ميزة في كل سطر)',
@@ -380,6 +387,10 @@ export const translations = {
     refineWithAIHint: 'قدم تعليمات لتحسين أو توسيع المقال الحالي.',
     refinementPlaceholder: 'مثال: أضف قسماً عن الاتجاهات المستقبلية، اجعل النبرة أكثر رسمية',
     refineArticle: 'تحسين المقال',
+    refineWithInstruction: 'تحسين بالتعليمات',
+    improvingArticle: 'جاري تحسين المقال...',
+    autoImproveArticle: 'تحسين المقال بالكامل تلقائياً',
+    articleImproved: 'تم تحسين المقال بنجاح!',
     refiningArticle: 'جاري تحسين المقال بالذكاء الاصطناعي...',
     articleBody: 'محتوى المقال',
     longDescription: 'الوصف المطول (ماركداون)',

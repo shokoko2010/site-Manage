@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { ArticleContent, ContentType, Language, ProductContent, SiteContext, WritingTone, ArticleLength, SeoAnalysis, InternalLinkSuggestion, GeneratedIdea, SitePost, CampaignGenerationResult } from '../types';
 
@@ -223,6 +216,7 @@ export const generateArticle = async (
   language: Language,
   articleLength: ArticleLength,
   useGoogleSearch: boolean,
+  isThinkingEnabled: boolean,
   siteContext?: SiteContext
 ): Promise<ArticleContent> => {
   const ai = getAiClient();
@@ -280,6 +274,10 @@ For context, here is some information about the website this article will be pub
         systemInstruction,
     };
     
+    if (!isThinkingEnabled) {
+        config.thinkingConfig = { thinkingBudget: 0 };
+    }
+
     if (useGoogleSearch) {
         config.tools = [{googleSearch: {}}];
     } else {
@@ -331,7 +329,8 @@ For context, here is some information about the website this article will be pub
 export const generateProduct = async (
   productName: string, 
   features: string, 
-  language: Language
+  language: Language,
+  isThinkingEnabled: boolean
 ): Promise<ProductContent> => {
     const ai = getAiClient();
     if (!ai) throw new Error(MISSING_KEY_ERROR);
@@ -350,13 +349,19 @@ export const generateProduct = async (
     `;
 
   try {
+    const config: any = {
+        responseMimeType: "application/json",
+        responseSchema: productSchema,
+    };
+
+    if (!isThinkingEnabled) {
+        config.thinkingConfig = { thinkingBudget: 0 };
+    }
+
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: productSchema,
-        },
+        config,
     });
 
     const jsonText = processApiResponse(response);
@@ -414,7 +419,8 @@ export const generateFeaturedImage = async (prompt: string): Promise<string[]> =
 export const generateContentCampaign = async (
     topic: string,
     numArticles: number,
-    language: Language
+    language: Language,
+    isThinkingEnabled: boolean
 ): Promise<CampaignGenerationResult> => {
     const ai = getAiClient();
     if (!ai) throw new Error(MISSING_KEY_ERROR);
@@ -448,14 +454,20 @@ export const generateContentCampaign = async (
     `;
 
     try {
+        const config: any = {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: contentCampaignSchema,
+        };
+
+        if (!isThinkingEnabled) {
+            config.thinkingConfig = { thinkingBudget: 0 };
+        }
+
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: userPrompt,
-            config: {
-                systemInstruction,
-                responseMimeType: "application/json",
-                responseSchema: contentCampaignSchema,
-            },
+            config,
         });
 
         const jsonText = processApiResponse(response);
