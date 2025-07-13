@@ -881,6 +881,17 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                         </div>
                     </aside>
                 </div>
+                {isPublishModalOpen && generatedResult && (
+                    <PublishModal
+                        isOpen={isPublishModalOpen}
+                        onClose={() => setIsPublishModalOpen(false)}
+                        onPublish={handlePublishOrUpdate}
+                        content={generatedResult}
+                        sites={sites}
+                        isPublishing={isPublishing}
+                        mode={isEditingSyncedPost ? 'update' : 'publish'}
+                    />
+                )}
             </div>
         );
     };

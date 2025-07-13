@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { GeneratedContent, PublishingOptions, WordPressSite, ContentType, ArticleContent, LanguageContextType } from '../types';
+import { GeneratedContent, PublishingOptions, WordPressSite, ContentType, ArticleContent, LanguageContextType, SiteContext } from '../types';
 import Modal from './common/Modal';
 import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
+import { getSiteContext } from '../services/wordpressService';
 
 interface PublishModalProps {
     isOpen: boolean;
@@ -38,7 +39,9 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
         sku: '',
         stockStatus: 'instock',
     });
-     const [isScheduled, setIsScheduled] = useState(!!content.scheduledFor);
+    const [isScheduled, setIsScheduled] = useState(!!content.scheduledFor);
+    const [context, setContext] = useState<SiteContext | null>(null);
+    const [isContextLoading, setIsContextLoading] = useState(false);
 
     useEffect(() => {
         // Set default site if one isn't selected but sites are available
@@ -52,8 +55,37 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
         }
     }, [sites, options.siteId, content.scheduledFor]);
 
+    useEffect(() => {
+        if (isOpen && options.siteId) {
+            const selectedSite = sites.find(s => s.id === options.siteId);
+            if (selectedSite && !selectedSite.isVirtual) {
+                setIsContextLoading(true);
+                getSiteContext(selectedSite)
+                    .then(setContext)
+                    .catch(err => {
+                        console.error("Failed to fetch site context for modal", err);
+                        setContext(null);
+                    })
+                    .finally(() => setIsContextLoading(false));
+            } else {
+                setContext(null);
+            }
+        }
+    }, [isOpen, options.siteId, sites]);
+
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setOptions(prev => ({...prev, [e.target.name]: e.target.value}));
+    };
+
+    const handleTermClick = (termName: string, type: 'categories' | 'tags') => {
+        setOptions(prev => {
+            const existingTerms = prev[type]?.split(',').map(t => t.trim()).filter(Boolean) || [];
+            if (!existingTerms.includes(termName)) {
+                return { ...prev, [type]: [...existingTerms, termName].join(', ') };
+            }
+            return prev;
+        });
     };
     
     const handleSubmit = () => {
@@ -106,10 +138,30 @@ const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, onPublish,
                 <div>
                     <label className="block text-sm font-medium">{t('categories')}</label>
                     <input type="text" name="categories" value={options.categories} onChange={handleChange} placeholder="e.g. tech, news" className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    {isContextLoading && <div className="mt-2 flex justify-center"><Spinner size="sm" /></div>}
+                    {!isContextLoading && context && context.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {context.categories.map(cat => (
+                                <button key={cat.id} onClick={() => handleTermClick(cat.name, 'categories')} className="text-xs bg-gray-600 hover:bg-sky-600 text-gray-200 font-semibold py-1 px-2.5 rounded-full transition-colors">
+                                    + {cat.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div>
                     <label className="block text-sm font-medium">{t('tags')}</label>
                     <input type="text" name="tags" value={options.tags} onChange={handleChange} placeholder="e.g. ai, wordpress" className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    {isContextLoading && <div className="mt-2 flex justify-center"><Spinner size="sm" /></div>}
+                    {!isContextLoading && context && context.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {context.tags.map(tag => (
+                                <button key={tag.id} onClick={() => handleTermClick(tag.name, 'tags')} className="text-xs bg-gray-600 hover:bg-sky-600 text-gray-200 font-semibold py-1 px-2.5 rounded-full transition-colors">
+                                    + {tag.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 {content.type === ContentType.Product && (
                     <>

@@ -233,12 +233,24 @@ export const generateArticle = async (
   const systemInstruction = `You are an expert SEO content writer and a WordPress specialist. Your goal is to create high-quality, engaging, and well-structured articles that are optimized for search engines. Always follow the instructions precisely and return the content in the specified JSON format.`;
 
   let contextPrompt = "";
-  if (siteContext && siteContext.recentPosts.length > 0) {
-    contextPrompt = `
+  if (siteContext) {
+      let contextString = '';
+      if (siteContext.recentPosts?.length > 0) {
+          contextString += `- Existing Article Titles: ${siteContext.recentPosts.map(p => `"${p.title}"`).join(", ")}\n`;
+      }
+      if (siteContext.categories?.length > 0) {
+          contextString += `- Existing Site Categories: ${siteContext.categories.map(c => c.name).join(", ")}\n`;
+      }
+      if (siteContext.tags?.length > 0) {
+          contextString += `- Popular Site Tags: ${siteContext.tags.map(t => t.name).join(", ")}\n`;
+      }
+      
+      if (contextString) {
+          contextPrompt = `
 For context, here is some information about the website this article will be published on. Use this to ensure the new content is relevant, matches the site's tone, and complements existing content.
-- Existing Article Titles: ${siteContext.recentPosts.map(p => `"${p.title}"`).join(", ")}
-- Existing Site Categories: ${siteContext.categories.map(c => c.name).join(", ")}
+${contextString}
 `;
+      }
   }
 
   const userPrompt = `

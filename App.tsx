@@ -155,6 +155,7 @@ export default function App() {
   };
   
   const handleEditorExit = () => {
+    // If we were on a site detail page before, go back there. Otherwise, go to library.
     const destination = activeSite ? View.SiteDetail : View.ContentLibrary;
     navigateTo(destination);
   };
@@ -172,9 +173,9 @@ export default function App() {
                     sites={sites} 
                     showNotification={showNotification} 
                     initialContent={editingContent}
+                    onExit={handleEditorExit}
                     newContentType={newContentType}
                     initialTitle={initialTitleForNewContent}
-                    onExit={handleEditorExit}
                 />
             </Suspense>
         )

@@ -107,7 +107,8 @@ export interface PublishingOptions {
 
 export interface SiteContext {
     recentPosts: { id: number; title: string; link: string }[];
-    categories: { name: string }[];
+    categories: { id: number; name: string }[];
+    tags: { id: number; name: string }[];
 }
 
 export interface Notification {
