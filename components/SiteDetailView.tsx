@@ -5,7 +5,7 @@ import { WordPressSite, SitePost, LanguageContextType, ArticleContent, ContentTy
 import { fetchAllPosts } from '../services/wordpressService';
 import Spinner from './common/Spinner';
 import { LanguageContext } from '../App';
-import { EditIcon, CheckCircleIcon } from '../constants';
+import { EditIcon, CheckCircleIcon, ClockIcon } from '../constants';
 
 interface SiteDetailViewProps {
     site: WordPressSite;
@@ -19,6 +19,40 @@ type SortKey = 'title' | 'status' | 'date' | 'views' | 'comments';
 const SortIndicator = ({ direction }: { direction: 'asc' | 'desc' | null }) => {
     if (!direction) return <span className="text-gray-500 ms-1 opacity-50">▲▼</span>;
     return <span className="ms-1">{direction === 'asc' ? '▲' : '▼'}</span>;
+};
+
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    let badgeClasses = '';
+    let icon = null;
+
+    switch (status) {
+        case 'publish':
+            badgeClasses = 'bg-green-600/50 text-green-300';
+            icon = <CheckCircleIcon className="me-1 h-3.5 w-3.5" />;
+            break;
+        case 'future':
+            badgeClasses = 'bg-sky-600/50 text-sky-300';
+            icon = <ClockIcon className="me-1 h-3.5 w-3.5" />;
+            break;
+        case 'draft':
+            badgeClasses = 'bg-gray-600/50 text-gray-300';
+            icon = <EditIcon className="me-1.5 h-3 w-3" />;
+            break;
+        case 'pending':
+            badgeClasses = 'bg-yellow-600/50 text-yellow-300';
+            icon = null;
+            break;
+        default:
+            badgeClasses = 'bg-gray-500/50 text-gray-400';
+            break;
+    }
+
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${badgeClasses}`}>
+            {icon}
+            {status}
+        </span>
+    );
 };
 
 
@@ -171,10 +205,7 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
                                             </a>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${post.status === 'publish' ? 'bg-green-600/50 text-green-300' : 'bg-yellow-600/50 text-yellow-300'}`}>
-                                                {post.status === 'publish' && <CheckCircleIcon className="me-1 h-3 w-3" />}
-                                                {post.status}
-                                            </span>
+                                            <StatusBadge status={post.status} />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                                             {new Date(post.date).toLocaleDateString()}

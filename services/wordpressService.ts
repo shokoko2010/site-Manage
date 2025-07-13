@@ -144,9 +144,10 @@ export const fetchAllPosts = async (site: WordPressSite): Promise<SitePost[]> =>
     let allPosts: SitePost[] = [];
     let page = 1;
     let totalPages = 1;
+    const statuses = 'publish,future,draft,pending';
 
     do {
-        const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&_fields=id,title,content,status,date,link,performance_stats`, { headers });
+        const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&status=${statuses}&_fields=id,title,content,status,date,link,performance_stats`, { headers });
         const posts = await response.json();
         allPosts = allPosts.concat(posts);
         totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
