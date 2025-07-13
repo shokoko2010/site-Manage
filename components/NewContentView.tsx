@@ -3,7 +3,7 @@ import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, CampaignGenerationResult } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks } from '../services/geminiService';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks, generateFreePlaceholderImages } from '../services/geminiService';
 import Spinner from './common/Spinner';
 import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon, ArrowUturnLeftIcon, Bars3Icon, HeadingIcon, BoldIcon, ItalicIcon, ListBulletIcon, QuoteIcon, PublishIcon, TextColorIcon, AlignLeftIcon, AlignCenterIcon, AlignRightIcon } from '../constants';
 import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
@@ -215,14 +215,20 @@ const ImageGeneratorTool: React.FC<{
     const [isGenerating, setIsGenerating] = useState(false);
     const [imageOptions, setImageOptions] = useState<string[]>(article.generatedImageOptions || []);
     const [selectedImage, setSelectedImage] = useState<string | undefined>(article.featuredImage);
+    const [generatorMode, setGeneratorMode] = useState<'professional' | 'free'>('professional');
 
     const handleGenerateImages = async () => {
         setIsGenerating(true);
         setImageOptions([]);
         showNotification({ message: t('imageGenStarted'), type: 'info' });
         try {
-            const prompt = `Photorealistic image for a blog post titled "${article.title}". The theme is: ${article.metaDescription}. 16:9 aspect ratio.`;
-            const images = await generateFeaturedImage(prompt);
+            let images: string[] = [];
+            if (generatorMode === 'professional') {
+                const prompt = `Photorealistic image for a blog post titled "${article.title}". The theme is: ${article.metaDescription}. 16:9 aspect ratio.`;
+                images = await generateFeaturedImage(prompt);
+            } else {
+                images = await generateFreePlaceholderImages(article.title);
+            }
             setImageOptions(images);
             onImageChange({ ...article, generatedImageOptions: images });
         } catch (err) {
@@ -239,9 +245,21 @@ const ImageGeneratorTool: React.FC<{
 
     return (
         <div className="space-y-3">
+            <div className="bg-gray-800/80 rounded-lg p-1 flex items-center text-sm border border-gray-600">
+                <button onClick={() => setGeneratorMode('professional')} className={`flex-1 py-1 rounded-md transition-colors ${generatorMode === 'professional' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+                    {t('professionalGenerator')}
+                </button>
+                <button onClick={() => setGeneratorMode('free')} className={`flex-1 py-1 rounded-md transition-colors ${generatorMode === 'free' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+                    {t('freeGenerator')}
+                </button>
+            </div>
+            <p className="text-xs text-gray-500 text-center px-2">
+                 {generatorMode === 'professional' ? t('professionalGeneratorHint') : t('freeGeneratorHint')}
+            </p>
+
             <button onClick={handleGenerateImages} disabled={isGenerating} className="w-full flex items-center justify-center py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition-colors disabled:opacity-50">
                 {isGenerating ? <Spinner size="sm" /> : <CameraIcon />}
-                <span className="ms-2">{isGenerating ? t('generatingImages') : t('generateImage')}</span>
+                <span className="ms-2">{isGenerating ? t('generatingImages') : t('generateImages')}</span>
             </button>
 
             {imageOptions.length > 0 && (
