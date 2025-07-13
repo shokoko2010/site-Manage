@@ -255,12 +255,30 @@ ${contextString}
 
   const userPrompt = `
     Generate a complete article based on the following specifications.
-    ${useGoogleSearch ? 'Use your access to Google Search to find up-to-date, factual, and relevant information to write this article.' : ''}
-    The output MUST be a single valid JSON object ${useGoogleSearch ? 'enclosed in a ```json markdown block' : 'that strictly matches the provided schema'}.
-    Do not include any text, comments, or explanations outside of this JSON structure.
-    All string values within the JSON must be properly escaped. For example, use \\" for double quotes inside a string, and \\n for newline characters.
+    ${useGoogleSearch ? 'Use your access to Google Search to find up-to-date, factual, and relevant information for this article.' : ''}
+    
+    **CRITICAL OUTPUT REQUIREMENTS:**
+    Your output MUST be a single, valid JSON object ${useGoogleSearch ? 'enclosed in a ```json markdown block' : 'that strictly matches the provided schema'}.
+    Do NOT include any text, comments, or explanations outside of this JSON structure.
 
-    **Article Specifications:**
+    **JSON FORMATTING RULES (APPLY THESE STRICTLY):**
+    1.  The entire output MUST be a single JSON object.
+    2.  The value for the "body" key contains markdown. This entire string value MUST be correctly escaped to be a valid JSON string.
+    3.  All newline characters (breaks between paragraphs) within the "body" string MUST be represented as a double backslash 'n' (like so: \\n).
+    4.  All double quotes (") within any string value (like title, metaDescription, or body) MUST be escaped with a single backslash (like so: \\").
+
+    ---
+    EXAMPLE OF A PERFECTLY FORMATTED JSON RESPONSE:
+    \`\`\`json
+    {
+      "title": "Example Title with \\"Quotes\\" in the Target Language",
+      "metaDescription": "Example meta description, approximately 155 characters long, also in the target language.",
+      "body": "## Introduction\\n\\nThis is the first paragraph of the body. It can have multiple lines.\\n\\nThis is a second paragraph.\\n\\n## Subheading About \\"Something Important\\"\\n\\nThis is more text under another subheading. Lists can be included like this:\\n* Item 1\\n* Item 2\\n\\nThis is required for valid JSON."
+    }
+    \`\`\`
+    ---
+
+    **ARTICLE SPECIFICATIONS:**
     - Topic/Title Idea: "${topic}"
     - Keywords to include naturally: "${keywords}"
     - Tone of voice: ${tone}
@@ -271,21 +289,7 @@ ${contextString}
 
     ${contextPrompt}
 
-    ---
-    EXAMPLE OF A PERFECT JSON RESPONSE:
-    \`\`\`json
-    {
-      "title": "Example Title in the Target Language",
-      "metaDescription": "Example meta description, approximately 155 characters long, in the target language.",
-      "body": "## Introduction\\n\\nThis is the first paragraph of the body.\\n\\n## Subheading 2\\n\\nThis is more text under another subheading. Lists can be included like this:\\n* Item 1\\n* Item 2\\n\\n## Conclusion\\n\\nThis is the final concluding paragraph of the article."
-    }
-    \`\`\`
-    ---
-
-    Now, generate the complete article based on the specifications above. The JSON output MUST contain the following keys:
-    1. "title": A compelling, SEO-friendly title for the article.
-    2. "metaDescription": An SEO-friendly meta description, between 150-160 characters.
-    3. "body": The full body of the article, formatted with markdown.
+    Now, generate the complete article based on the specifications above. Your final output must be only the JSON object, formatted exactly as described.
   `;
     
   try {
@@ -419,8 +423,8 @@ export const generateFeaturedImage = async (prompt: string): Promise<string[]> =
 };
 
 const freeImages = {
-    workspace: "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",
-    coffee: "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEBUSEhIVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lICUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKgBLAMBIgACEQEDEQH/xAAcAAACAgMBAQAAAAAAAAAAAAAFBgMEAAIHAQj/xABEEAACAQMCAwUFBgMFBAoDAAABAgMABBESIQUxQVEGEyJhcTKBkaEHI0KxwdFSYnLwFUNzgpKy4YKi0vFDY5OzwjRT/QAGgEAAwEBAQEAAAAAAAAAAAAAAgMEAQUABv/EAC8RAAICAQQBAgQFAwUAAAAAAAABAhEDBBIhMUEFE1FhcSIygZGh0fAUQrHB4TP/2gAMAwEAAhEDEQA/AO4UUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUBzL8SuIyw2kcKkhbhyHIOPlQGQH3YqPauYftN8M3PE9zDLaNEiRwlG8R2Us29iQAFYdCB1rF+IuxfG+EIZ728kgaKKMs3hyu8mB0A3IoJ9gSK6j2L4lJdeG7GVtzQZjb1aM7QT6kAEH2rgUHH7+2uJJ4bu4hnlzvlimdHfJydwBGcnrXW/wCz9x+7vxd/SLqW42eHseIy+zdvzjA67VrQHWKKKKAKKKKAKKzPEeIJDG0shwqKWPt7D1FeS8N8TiuYhLEwZDke4I6gjqCKA99FFFFAFFFFAFFFc97ZduP8AhM8cHgb/AJkRl3b9m3cQNuATn5etAdCorl/CPxQWaeSO6i8BFUssiuzEEDOHXA2k+oOKd+A9p7W/O2FwX/oYEM30VgCaA6BRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQHm4hAskbxuAVIYEHkQeYNfnjGbhPCb6S3lOZbVlUE9WjI3Rk+p2kr9K/SNcb/ABG7KySyfhC1PysBKo/EQBuH1AB+h60ByS77G3sdobx1RUChyiud4U8ty7doPsc+1TezX2Yu33xW/wAhB5LGo3uPcsciMew3Z9q71+G3hTw29p9JuvnuxhB/yoiDtA9Cx3N/wAK6NQHH+AfhqtbTa9wWupBzhvlj+iKTn6tmuwRxKihVAVVGAAMADoAKVRQBRRRQBXyvuiiigPyhRRRQBRXorP0Nfm7ivae/aNYjdzFFHlEjmMqq+gAOMDyrn9FAfpfsd2kiv4ApIE6KBKnXpw6/wBIP5V1KuJ/s29mpY3N/OpTMZWEL8pBYHe3qBtO0epz0FdsoCq1lYoqyMcKoLE+gGSakPGe0MMBCs25/wCFAQx+vT8TXLe0HHJLpwGPw1zlVHUn+ljzPt0qS30aYnJj6pDPHaDjD3shmk5kYVR8qKOFUdAPxJ5mvDX0V9U0IJJJ0j5lUVVz8KKKKQgooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooD//Z",
+    workspace: "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",
+    coffee: "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEBUSEhIVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lICUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKgBLAMBIgACEQEDEQH/xAAcAAACAgMBAQAAAAAAAAAAAAAFBgMEAAIHAQj/xABEEAACAQMCAwUFBgMFBAoDAAABAgMABBESIQUxQVEGEyJhcTKBkaEHI0KxwdFSYnLwFUNzgpKy4YKi0vFDY5OzwjRT/QAGgEAAwEBAQEAAAAAAAAAAAAAAgMEAQUABv/EAC8RAAICAQQBAgQFAwUAAAAAAAABAhEDBBIhMUEFE1FhcSIygZGh0fAUQrHB4TP/2gAMAwEAAhEDEQA/AO4UUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUBzL8SuIyw2kcKkhbhyHIOPlQGQH3YqPauYftN8M3PE9zDLaNEiRwlG8R2Us29iQAFYdCB1rF+IuxfG+EIZ728kgaKKMs3hyu8mB0A3IoJ9gSK6j2L4lJdeG7GVtzQZjb1aM7QT6kAEH2rgUHH7+2uJJ4bu4hnlzvlimdHfJydwBGcnrXW/wCz9x+7vxd/SLqW42eHseIy+zdvzjA67VrQHWKKKKAKKKKAKzPEeIJDG0shwqKWPt7D1FeS8N8TiuYhLEwZDke4I6gjqCKA99FFFFAFFFFAFFFc97ZduP8AhM8cHgb/AJkRl3b9m3cQNuATn5etAdCorl/CPxQWaeSO6i8BFUssiuzEEDOHXA2k+oOKd+A9p7W/O2FwX/oYEM30VgCaA6BRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQHm4hAskbxuAVIYEHkQeYNfnjGbhPCb6S3lOZbVlUE9WjI3Rk+p2kr9K/SNcb/ABG7KySyfhC1PysBKo/EQBuH1AB+h60ByS77G3sdobx1RUChyiud4U8ty7doPsc+1TezX2Yu33xW/wAhB5LGo3uPcsciMew3Z9q71+G3hTw29p9JuvnuxhB/yoiDtA9Cx3N/wAK6NQHH+AfhqtbTa9wWupBzhvlj+iKTn6tmuwRxKihVAVVGAAMADoAKVRQBRRRQBXyvuiiigPyhRRRQBRXorP0Nfm7ivae/aNYjdzFFHlEjmMqq+gAOMDyrn9FAfpfsd2kiv4ApIE6KBKnXpw6/wBIP5V1KuJ/s29mpY3N/OpTMZWEL8pBYHe3qBtO0epz0FdsoCq1lYoqyMcKoLE+gGSakPGe0MMBCs25/wCFAQx+vT8TXLe0HHJLpwGPw1zlVHUn+ljzPt0qS30aYnJj6pDPHaDjD3shmk5kYVR8qKOFUdAPxJ5mvDX0V9U0IJJJ0j5lUVVz8KKKKQgooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooD//Z",
     city: "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEBUSEhIVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lICUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKgBLAMBIgACEQEDEQH/xAAcAAACAgMBAQAAAAAAAAAAAAAFBgMEAAIHAQj/xABEEAACAQMCAwUFBgMFBAoDAAABAgMABBESIQUxQVEGEyJhcTKBkaEHI0KxwdFSYnLwFUNzgpKy4YKi0vFDY5OzwjRT/QAGgEAAwEBAQEAAAAAAAAAAAAAAgMEAQUABv/EAC8RAAICAQQBAgQFAwUAAAAAAAABAhEDBBIhMUEFE1FhcSIygZGh0fAUQrHB4TP/2gAMAwEAAhEDEQA/AO4UUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUBzL8SuIyw2kcKkhbhyHIOPlQGQH3YqPauYftN8M3PE9zDLaNEiRwlG8R2Us29iQAFYdCB1rF+IuxfG+EIZ728kgaKKMs3hyu8mB0A3IoJ9gSK6j2L4lJdeG7GVtzQZjb1aM7QT6kAEH2rgUHH7+2uJJ4bu4hnlzvlimdHfJydwBGcnrXW/wCz9x+7vxd/SLqW42eHseIy+zdvzjA67VrQHWKKKKAKKKKAKKKKAKKzPEeIJDG0shwqKWPt7D1FeS8N8TiuYhLEwZDke4I6gjqCKA99FFFFAFFFFAFFFc97ZduP8AhM8cHgb/AJkRl3b9m3cQNuATn5etAdCorl/CPxQWaeSO6i8BFUssiuzEEDOHXA2k+oOKd+A9p7W/O2FwX/oYEM30VgCaA6BRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQHm4hAskbxuAVIYEHkQeYNfnjGbhPCb6S3lOZbVlUE9WjI3Rk+p2kr9K/SNcb/ABG7KySyfhC1PysBKo/EQBuH1AB+h60ByS77G3sdobx1RUChyiud4U8ty7doPsc+1TezX2Yu33xW/wAhB5LGo3uPcsciMew3Z9q71+G3hTw29p9JuvnuxhB/yoiDtA9Cx3N/wAK6NQHH+AfhqtbTa9wWupBzhvlj+iKTn6tmuwRxKihVAVVGAAMADoAKVRQBRRRQBXyvuiiigPyhRRRQBRXorP0Nfm7ivae/aNYjdzFFHlEjmMqq+gAOMDyrn9FAfpfsd2kiv4ApIE6KBKnXpw6/wBIP5V1KuJ/s29mpY3N/OpTMZWEL8pBYHe3qBtO0epz0FdsoCq1lYoqyMcKoLE+gGSakPGe0MMBCs25/wCFAQx+vT8TXLe0HHJLpwGPw1zlVHUn+ljzPt0qS30aYnJj6pDPHaDjD3shmk5kYVR8qKOFUdAPxJ5mvDX0V9U0IJJJ0j5lUVVz8KKKKQgooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooD//Z",
     writing: "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEBUSEhIVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lICUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKgBLAMBIgACEQEDEQH/xAAcAAACAgMBAQAAAAAAAAAAAAAFBgMEAAIHAQj/xABEEAACAQMCAwUFBgMFBAoDAAABAgMABBESIQUxQVEGEyJhcTKBkaEHI0KxwdFSYnLwFUNzgpKy4YKi0vFDY5OzwjRT/QAGgEAAwEBAQEAAAAAAAAAAAAAAgMEAQUABv/EAC8RAAICAQQBAgQFAwUAAAAAAAABAhEDBBIhMUEFE1FhcSIygZGh0fAUQrHB4TP/2gAMAwEAAhEDEQA/AO4UUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUAUUUUBzL8SuIyw2kcKkhbhyHIOPlQGQH3YqPauYftN8M3PE9zDLaNEiRwlG8R2Us29iQAFYdCB1rF+IuxfG+EIZ728kgaKKMs3hyu8mB0A3IoJ9gSK6j2L4lJdeG7GVtzQZjb1aM7QT6kAEH2rgUHH7+2uJJ4bu4hnlzvlimdHfJydwBGcnrXW/wCz9x+7vxd/SLqW42eHseIy+zdvzjA67VrQHWKKKKAKKKKAKKKKAKKzPEeIJDG0shwqKWPt7D1FeS8N8TiuYhLEwZDke4I6gjqCKA99FFFFAFFFFAFFFc97ZduP8AhM8cHgb/AJkRl3b9m3cQNuATn5etAdCorl/CPxQWaeSO6i8BFUssiuzEEDOHXA2k+oOKd+A9p7W/O2FwX/oYEM30VgCaA6BRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQBRRRQHm4hAskbxuAVIYEHkQeYNfnjGbhPCb6S3lOZbVlUE9WjI3Rk+p2kr9K/SNcb/ABG7KySyfhC1PysBKo/EQBuH1AB+h60ByS77G3sdobx1RUChyiud4U8ty7doPsc+1TezX2Yu33xW/wAhB5LGo3uPcsciMew3Z9q71+G3hTw29p9JuvnuxhB/yoiDtA9Cx3N/wAK6NQHH+AfhqtbTa9wWupBzhvlj+iKTn6tmuwRxKihVAVVGAAMADoAKVRQBRRRQBXyvuiiigPyhRRRQBRXorP0Nfm7ivae/aNYjdzFFHlEjmMqq+gAOMDyrn9FAfpfsd2kiv4ApIE6KBKnXpw6/wBIP5V1KuJ/s29mpY3N/OpTMZWEL8pBYHe3qBtO0epz0FdsoCq1lYoqyMcKoLE+gGSakPGe0MMBCs25/wCFAQx+vT8TXLe0HHJLpwGPw1zlVHUn+ljzPt0qS30aYnJj6pDPHaDjD3shmk5kYVR8qKOFUdAPxJ5mvDX0V9U0IJJJ0j5lUVVz8KKKKQgooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooAooooD//Z"
 };
@@ -535,25 +539,21 @@ export const refineArticle = async (
   const ai = getAiClient();
   if (!ai) throw new Error(MISSING_KEY_ERROR);
   
-  const systemInstruction = `You are an expert SEO content editor. Your goal is to intelligently modify and improve an existing article based on a user's request.
-**CRITICAL RULE: You MUST preserve the original language of the article. If the article is in Arabic, the output MUST be in Arabic. If it's in French, the output MUST be in French. DO NOT translate to English or any other language.**
+  const systemInstruction = `You are an expert SEO content editor. Your primary function is to intelligently modify an existing article based on a user's request, while adhering to one critical rule.
+**CRITICAL RULE: YOU MUST PRESERVE THE ORIGINAL LANGUAGE OF THE ARTICLE. Your highest priority is to ensure the output language matches the input language. If the article is in Arabic, the entire output MUST be in Arabic. DO NOT translate to English.**
 Always return the complete, updated article in the specified JSON format.`;
 
-  const refinementInstruction = instruction.trim()
-    ? `**User's Instruction:** "${instruction}"`
-    : `**User's Instruction:** Perform a general refinement. Improve clarity, flow, grammar, and overall quality.`;
-
   const userPrompt = `
-    Please refine the following article based on the user's instruction.
+    Your most important and primary task is to refine the article below based on the user's instruction while strictly preserving its original language.
 
-    **Rules:**
-    1.  **Language Preservation:** The original language of this article is **${language}**. Your entire response, including the title, meta description, and body, MUST be in **${language}**. Do not translate it.
-    2.  **JSON Output:** The output MUST be a single, valid JSON object matching the schema, with no extra text.
-    3.  **Content Modification:** Apply the user's instruction to the article content.
+    **CRITICAL, NON-NEGOTIABLE RULES:**
+    1.  **ABSOLUTE LANGUAGE PRESERVATION:** The original language of this article is **${language}**. Your entire output, including the title, meta description, and body, MUST remain in **${language}**. DO NOT translate any part of it to English or any other language under any circumstances. This is your highest priority. Before generating the final JSON, double-check that every word is in **${language}**.
+    2.  **JSON OUTPUT ONLY:** The output MUST be a single, valid JSON object that strictly conforms to the provided schema. Do not include any text, explanations, or comments outside of the JSON object.
 
-    ${refinementInstruction}
+    **User's Refinement Instruction:**
+    "${instruction}"
 
-    **Current Article (Language: ${language}):**
+    **Current Article to Refine (Language: ${language}):**
     - Title: "${currentArticle.title}"
     - Meta Description: "${currentArticle.metaDescription}"
     - Body (Markdown):
@@ -561,7 +561,7 @@ Always return the complete, updated article in the specified JSON format.`;
     ${currentArticle.body}
     ---
 
-    Now, generate the updated article in **${language}** within a single JSON object.
+    Now, apply the instruction and generate the complete, updated article. The entire JSON response, including all its string values, must be in **${language}**.
   `;
     
   try {
@@ -801,24 +801,40 @@ export const refreshArticleContent = async (
     const userPrompt = `
     Please refresh the following article. Use Google Search to find the most recent developments, facts, and data related to its topic. Rewrite the article to be more current, accurate, and engaging. Improve the SEO by naturally incorporating relevant, modern keywords.
 
-    The output MUST be a single valid JSON object enclosed in a \`\`\`json markdown block. Do not include any text or explanations outside this block.
+    **CRITICAL OUTPUT REQUIREMENTS:**
+    Your output MUST be a single, valid JSON object enclosed in a \`\`\`json markdown block.
+    Do NOT include any text, comments, or explanations outside of this JSON structure.
 
-    **Original Article to Refresh:**
+    **JSON FORMATTING RULES (APPLY THESE STRICTLY):**
+    1.  The entire output MUST be a single JSON object.
+    2.  The value for the "body" key contains markdown. This entire string value MUST be correctly escaped to be a valid JSON string.
+    3.  All newline characters (breaks between paragraphs) within the "body" string MUST be represented as a double backslash 'n' (like so: \\n).
+    4.  All double quotes (") within any string value (like title, metaDescription, or body) MUST be escaped with a single backslash (like so: \\").
+
+    ---
+    EXAMPLE OF A PERFECTLY FORMATTED JSON RESPONSE:
+    \`\`\`json
+    {
+      "title": "Example Refreshed Title with \\"Quotes\\"",
+      "metaDescription": "Example refreshed meta description, approximately 155 characters long.",
+      "body": "## Introduction\\n\\nThis is the first paragraph of the refreshed body.\\n\\n## A New Section about \\"Recent Events\\"\\n\\nThis section discusses something important. This is required for valid JSON."
+    }
+    \`\`\`
+    ---
+
+    **ORIGINAL ARTICLE TO REFRESH:**
     - Title: "${originalPost.title.rendered}"
     - Body (Markdown):
     ---
     ${originalMarkdown}
     ---
 
-    **Your Task:**
+    **YOUR TASK:**
     1.  Analyze the original article's topic.
-    2.  Use Google Search to find the latest information, statistics, and trends related to this topic.
-    3.  Write a completely new, refreshed version of the article.
-    4.  The new body should be in Markdown, well-structured with an introduction, H2 (##) subheadings, and a conclusion.
-    5.  Create a new, compelling, SEO-friendly title that reflects the updated content.
-    6.  Write a new meta description between 150-160 characters.
-
-    Return a JSON object with "title", "metaDescription", and "body" keys.
+    2.  Use Google Search to find the latest information.
+    3.  Write a completely new, refreshed version of the article with a new title, meta description, and body.
+    
+    Now, generate the complete, refreshed article. Your final output must be only the JSON object, formatted exactly as described.
     `;
 
     try {
