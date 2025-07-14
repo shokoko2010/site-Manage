@@ -153,7 +153,7 @@ export const fetchAllPosts = async (site: WordPressSite): Promise<SitePost[]> =>
 
     do {
         try {
-            const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&status=${statuses}&_fields=${fields}&_embed`, { headers });
+            const response = await apiFetch(`${site.url}/wp-json/wp/v2/posts?per_page=20&page=${page}&status=${statuses}&_fields=${fields}&_embed=`, { headers });
             const posts = await response.json();
             allPosts = allPosts.concat(posts);
             totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
