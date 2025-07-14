@@ -179,6 +179,13 @@ export interface SitePost {
         views: number;
         comments: number;
     };
+    _embedded?: {
+        'wp:featuredmedia'?: {
+            id: number;
+            source_url: string;
+            alt_text: string;
+        }[];
+    };
 }
 
 

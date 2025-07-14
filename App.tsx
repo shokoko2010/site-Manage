@@ -44,6 +44,8 @@ export default function App() {
           const syncedContent: ArticleContent[] = sitePosts.map((post: SitePost) => {
               const sanitizedHtml = DOMPurify.sanitize(post.content.rendered);
               const markdownBody = turndownService.turndown(sanitizedHtml);
+              const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
+
               return {
                   id: `synced_${post.id}`,
                   type: ContentType.Article,
@@ -59,6 +61,8 @@ export default function App() {
                   postLink: post.link,
                   performanceStats: post.performance_stats,
                   scheduledFor: post.status === 'future' ? new Date(post.date).toISOString() : undefined,
+                  featuredMediaId: featuredMedia?.id,
+                  featuredMediaUrl: featuredMedia?.source_url,
               };
           });
           
