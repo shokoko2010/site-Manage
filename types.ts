@@ -75,6 +75,7 @@ export interface ProductContent {
       views: number;
       comments: number;
   };
+  origin?: 'new' | 'synced'; // Whether the content is new or synced from WP
 }
 
 export type GeneratedContent = ArticleContent | ProductContent;
@@ -96,6 +97,9 @@ export enum Language {
     English = 'English',
     Arabic = 'Arabic',
     French = 'French',
+    Spanish = 'Spanish',
+    German = 'German',
+    Japanese = 'Japanese',
 }
 
 export enum ArticleLength {
@@ -191,6 +195,7 @@ export interface DashboardViewProps {
 export interface NewContentViewProps {
     onContentGenerated: (content: GeneratedContent) => void;
     onCampaignGenerated: (campaignResult: CampaignGenerationResult) => void;
+    onMultipleContentsGenerated: (contents: GeneratedContent[]) => void;
     sites: WordPressSite[];
     showNotification: (notification: Notification) => void;
     initialContent?: ArticleContent | null;

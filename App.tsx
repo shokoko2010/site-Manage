@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, createContext, Suspense } from 'react';
-import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult } from './types';
+import TurndownService from 'turndown';
+import DOMPurify from 'dompurify';
+import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, LanguageContextType, ArticleContent, ContentType, CampaignGenerationResult, SitePost, Language } from './types';
 import Sidebar from './components/Sidebar';
-import { getSitesFromStorage, saveSitesToStorage } from './services/wordpressService';
+import { getSitesFromStorage, saveSitesToStorage, fetchAllPostsFromAllSites } from './services/wordpressService';
 import Notification from './components/Notification';
 import { getT } from './i18n';
 import Spinner from './components/common/Spinner';
@@ -15,6 +17,8 @@ const SiteDetailView = React.lazy(() => import('./components/SiteDetailView'));
 
 
 export const LanguageContext = createContext<LanguageContextType | null>(null);
+
+const turndownService = new TurndownService({ headingStyle: 'atx' });
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>(View.Dashboard);
@@ -32,22 +36,60 @@ export default function App() {
   const [activeSite, setActiveSite] = useState<WordPressSite | null>(null);
   
   const t = getT(language);
+  
+  const loadAllContent = useCallback(async (allSites: WordPressSite[]) => {
+      try {
+          // 1. Fetch all posts from all connected WordPress sites
+          const sitePosts = await fetchAllPostsFromAllSites(allSites);
+          const syncedContent: ArticleContent[] = sitePosts.map((post: SitePost) => {
+              const sanitizedHtml = DOMPurify.sanitize(post.content.rendered);
+              const markdownBody = turndownService.turndown(sanitizedHtml);
+              return {
+                  id: `synced_${post.id}`,
+                  type: ContentType.Article,
+                  title: post.title.rendered,
+                  metaDescription: '', // Not available from basic posts endpoint
+                  body: markdownBody,
+                  status: post.status === 'publish' ? 'published' : 'draft',
+                  createdAt: new Date(post.date),
+                  language: allSites.find(s => s.url === new URL(post.link).origin)?.url.includes('.ar') ? Language.Arabic : Language.English,
+                  siteId: allSites.find(s => s.url === new URL(post.link).origin)?.id,
+                  postId: post.id,
+                  origin: 'synced',
+                  postLink: post.link,
+                  performanceStats: post.performance_stats,
+                  scheduledFor: post.status === 'future' ? new Date(post.date).toISOString() : undefined,
+              };
+          });
+          
+          // 2. Load locally generated content
+          const localContent: GeneratedContent[] = JSON.parse(localStorage.getItem('content_library') || '[]')
+            .map((item: GeneratedContent) => ({...item, createdAt: new Date(item.createdAt)}));
+            
+          // 3. Merge and deduplicate
+          // Keep local content only if it hasn't been synced (i.e., doesn't have a postId that exists in synced content)
+          const syncedPostIds = new Set(syncedContent.map(c => c.postId));
+          const uniqueLocalContent = localContent.filter(item => !item.postId || !syncedPostIds.has(item.postId));
+
+          const combinedLibrary = [...syncedContent, ...uniqueLocalContent];
+          setContentLibrary(combinedLibrary);
+          
+      } catch (error) {
+           console.error("Failed to load all content:", error);
+           showNotification({ message: 'Could not sync with all WordPress sites.', type: 'error'});
+           // Fallback to only local storage if sync fails
+           const storedContent = JSON.parse(localStorage.getItem('content_library') || '[]');
+           setContentLibrary(storedContent.map((item: GeneratedContent) => ({...item, createdAt: new Date(item.createdAt)})));
+      }
+  }, []);
 
   useEffect(() => {
-    // Load sites and content library from local storage on initial load
+    // Load sites and then all content
     setIsLoading(true);
-    try {
-        const storedSites = getSitesFromStorage();
-        setSites(storedSites);
-        const storedContent = JSON.parse(localStorage.getItem('content_library') || '[]');
-        setContentLibrary(storedContent.map((item: GeneratedContent) => ({...item, createdAt: new Date(item.createdAt)})));
-    } catch (error) {
-        console.error("Failed to load data from storage:", error);
-        showNotification({ message: 'Could not load data from your browser storage.', type: 'error'});
-    } finally {
-        setIsLoading(false);
-    }
-  }, []);
+    const storedSites = getSitesFromStorage();
+    setSites(storedSites);
+    loadAllContent(storedSites).finally(() => setIsLoading(false));
+  }, [loadAllContent]);
 
   useEffect(() => {
       localStorage.setItem('app_language', language);
@@ -56,8 +98,9 @@ export default function App() {
   }, [language]);
 
   useEffect(() => {
-    // Persist content library to local storage whenever it changes
-    localStorage.setItem('content_library', JSON.stringify(contentLibrary));
+    // Persist content library to local storage whenever it changes, but only store non-synced items
+    const localItems = contentLibrary.filter(item => item.origin !== 'synced');
+    localStorage.setItem('content_library', JSON.stringify(localItems));
   }, [contentLibrary]);
 
 
@@ -70,6 +113,8 @@ export default function App() {
     setSites(updatedSites);
     saveSitesToStorage(updatedSites);
     showNotification({ message: t('siteAdded', { name: newSite.name }), type: 'success' });
+    // Refresh content after adding a new site
+    loadAllContent(updatedSites);
   };
 
   const removeSite = (siteId: string) => {
@@ -77,6 +122,8 @@ export default function App() {
     setSites(updatedSites);
     saveSitesToStorage(updatedSites);
     showNotification({ message: t('siteRemoved'), type: 'info' });
+     // Refresh content after removing a site
+    loadAllContent(updatedSites);
   }
 
   const addToLibrary = useCallback((content: GeneratedContent) => {
@@ -88,6 +135,12 @@ export default function App() {
     const allNewArticles = [campaignResult.pillarPost, ...campaignResult.clusterPosts];
     setContentLibrary(prevLibrary => [...allNewArticles, ...prevLibrary]);
     showNotification({ message: t('campaignGenerated'), type: 'success' });
+  }, [t]);
+
+  const handleMultipleContentsGenerated = useCallback((contents: GeneratedContent[]) => {
+    setContentLibrary(prevLibrary => [...contents, ...prevLibrary]);
+    const notificationMessage = t('multipleContentsGenerated', { count: contents.length });
+    showNotification({ message: notificationMessage, type: 'success' });
   }, [t]);
 
   const removeFromLibrary = (contentId: string) => {
@@ -158,6 +211,8 @@ export default function App() {
     // If we were on a site detail page before, go back there. Otherwise, go to library.
     const destination = activeSite ? View.SiteDetail : View.ContentLibrary;
     navigateTo(destination);
+    // After editing, a sync might be needed to get the latest version
+    loadAllContent(sites);
   };
 
 
@@ -169,7 +224,8 @@ export default function App() {
              <Suspense fallback={fallback}>
                 <NewContentView 
                     onContentGenerated={addToLibrary} 
-                    onCampaignGenerated={handleCampaignGenerated} 
+                    onCampaignGenerated={handleCampaignGenerated}
+                    onMultipleContentsGenerated={handleMultipleContentsGenerated}
                     sites={sites} 
                     showNotification={showNotification} 
                     initialContent={editingContent}
@@ -209,6 +265,7 @@ export default function App() {
                         showNotification={showNotification} 
                         onEdit={editFromLibrary} 
                         onScheduleAll={scheduleAllUnscheduled} 
+                        onUpdateLibraryItem={updateLibraryItem}
                       />
                     </Suspense>
                 );
@@ -220,7 +277,6 @@ export default function App() {
                         sites={sites} 
                         showNotification={showNotification} 
                         onUpdateLibraryItem={updateLibraryItem} 
-                        onRemoveFromLibrary={removeFromLibrary} 
                       />
                     </Suspense>
                 );

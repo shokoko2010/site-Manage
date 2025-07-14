@@ -1,5 +1,5 @@
 import { marked } from 'marked';
-import { WordPressSite, GeneratedContent, PublishingOptions, SiteContext, ContentType, ArticleContent, ProductContent, SitePost } from '../types';
+import { WordPressSite, GeneratedContent, PublishingOptions, SiteContext, ContentType, ArticleContent, ProductContent, SitePost, MediaItem } from '../types';
 
 const SITES_STORAGE_KEY = 'ai-wp-manager-sites';
 
@@ -201,7 +201,7 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
     return new Blob([byteArray], { type: mimeType });
 }
 
-const uploadMedia = async (site: WordPressSite, base64Data: string, title: string): Promise<number> => {
+export const uploadMedia = async (site: WordPressSite, base64Data: string, title: string): Promise<MediaItem> => {
     if (!site.username || !site.appPassword) {
         throw new Error("Cannot upload media without credentials.");
     }
@@ -214,17 +214,17 @@ const uploadMedia = async (site: WordPressSite, base64Data: string, title: strin
     formData.append('title', title);
     formData.append('alt_text', title);
 
-    const response = await apiFetch(`${site.url}/wp-json/wp/v2/media`, {
+    const response = await apiFetch(`${site.url}/wp-json/wp/v2/media?_fields=id,source_url,alt_text`, {
         method: 'POST',
         headers: headers,
         body: formData,
     });
     
     const mediaDetails = await response.json();
-    if (!mediaDetails.id) {
-        throw new Error("Media upload succeeded but did not return an ID.");
+    if (!mediaDetails.id || !mediaDetails.source_url) {
+        throw new Error("Media upload succeeded but did not return complete media details (ID and URL).");
     }
-    return mediaDetails.id;
+    return mediaDetails;
 }
 
 
@@ -276,7 +276,8 @@ export const publishContent = async (site: WordPressSite, content: GeneratedCont
             mediaId = article.featuredMediaId;
         } else if (article.featuredImage) {
             try {
-                mediaId = await uploadMedia(site, article.featuredImage, article.title);
+                const uploadedMedia = await uploadMedia(site, article.featuredImage, article.title);
+                mediaId = uploadedMedia.id;
             } catch (error) {
                 console.error("Failed to upload featured image:", error);
                 throw new Error(`Could not upload the featured image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown reason'}`);
@@ -367,7 +368,8 @@ export const updatePost = async (
         mediaId = content.featuredMediaId;
     } else if (content.featuredImage) {
         try {
-            mediaId = await uploadMedia(site, content.featuredImage, content.title);
+            const uploadedMedia = await uploadMedia(site, content.featuredImage, content.title);
+            mediaId = uploadedMedia.id;
         } catch (error) {
             console.error("Failed to upload featured image during update:", error);
             throw new Error(`Could not upload the new featured image. Error: ${error instanceof Error ? error.message : 'Unknown reason'}`);

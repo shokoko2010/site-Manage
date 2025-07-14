@@ -10,9 +10,10 @@ interface ContentLibraryViewProps {
   showNotification: (notification: Notification) => void;
   onEdit: (content: ArticleContent) => void;
   onScheduleAll: () => void;
+  onUpdateLibraryItem: (contentId: string, updates: Partial<GeneratedContent>) => void;
 }
 
-const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites, onRemoveFromLibrary, showNotification, onEdit, onScheduleAll }) => {
+const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites, onRemoveFromLibrary, showNotification, onEdit, onScheduleAll, onUpdateLibraryItem }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const hasUnscheduledItems = useMemo(() => library.some(c => !c.scheduledFor && c.status === 'draft'), [library]);
 
@@ -40,11 +41,11 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
 
       {library.length > 0 ? (
         <div className="space-y-8">
-            {drafts.length > 0 && (
+             {published.length > 0 && (
                 <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('draft')}s</h2>
+                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('published')}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {drafts.map(content => (
+                        {published.map(content => (
                             <ContentCard 
                                 key={content.id}
                                 content={content}
@@ -52,7 +53,7 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
                                 onEdit={onEdit}
                                 onRemove={onRemoveFromLibrary}
                                 showNotification={showNotification}
-                                onRemoveFromLibrary={onRemoveFromLibrary}
+                                onUpdateLibraryItem={onUpdateLibraryItem}
                                 allSites={sites}
                             />
                         ))}
@@ -71,18 +72,18 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
                                 onEdit={onEdit}
                                 onRemove={onRemoveFromLibrary}
                                 showNotification={showNotification}
-                                onRemoveFromLibrary={onRemoveFromLibrary}
+                                onUpdateLibraryItem={onUpdateLibraryItem}
                                 allSites={sites}
                             />
                         ))}
                     </div>
                 </section>
             )}
-             {published.length > 0 && (
+            {drafts.length > 0 && (
                 <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('published')}</h2>
+                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('draft')}s</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {published.map(content => (
+                        {drafts.map(content => (
                             <ContentCard 
                                 key={content.id}
                                 content={content}
@@ -90,7 +91,7 @@ const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites,
                                 onEdit={onEdit}
                                 onRemove={onRemoveFromLibrary}
                                 showNotification={showNotification}
-                                onRemoveFromLibrary={onRemoveFromLibrary}
+                                onUpdateLibraryItem={onUpdateLibraryItem}
                                 allSites={sites}
                             />
                         ))}

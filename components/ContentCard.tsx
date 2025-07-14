@@ -3,7 +3,7 @@ import { GeneratedContent, WordPressSite, ContentType, ArticleContent, LanguageC
 import { ArticleIcon, ProductIcon, ClockIcon, TrashIcon, EditIcon, PublishIcon, ArrowUpRightIcon } from '../constants';
 import { LanguageContext } from '../App';
 import PublishModal from './PublishModal';
-import { publishContent } from '../services/wordpressService';
+import { publishContent, updatePost } from '../services/wordpressService';
 
 interface ContentCardProps {
     content: GeneratedContent;
@@ -11,11 +11,11 @@ interface ContentCardProps {
     onEdit: (content: ArticleContent) => void;
     onRemove: (contentId: string) => void;
     showNotification: (notification: any) => void;
-    onRemoveFromLibrary: (contentId: string) => void;
+    onUpdateLibraryItem: (contentId: string, updates: Partial<GeneratedContent>) => void;
     allSites: WordPressSite[];
 }
 
-const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemove, showNotification, onRemoveFromLibrary, allSites }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemove, showNotification, onUpdateLibraryItem, allSites }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const isArticle = content.type === ContentType.Article;
     const article = isArticle ? (content as ArticleContent) : null;
@@ -38,17 +38,26 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
         setIsPublishing(true);
 
         try {
-            const result = await publishContent(selectedSite, content, options);
-            const message = options.status === 'future' 
-                ? `Successfully scheduled! It will be published on ${new Date(options.scheduledAt!).toLocaleString()}.`
-                : t('publishSuccess', { url: result.postUrl });
+            const isUpdate = (content as any)?.origin === 'synced';
+            const postId = (content as any)?.postId;
 
-            showNotification({ message, type: 'success' });
-            onRemoveFromLibrary(content.id);
+            const result = isUpdate && postId
+                ? await updatePost(selectedSite, postId, content as ArticleContent, options)
+                : await publishContent(selectedSite, content, options);
+
+            const successMsgKey = isUpdate ? 'updateSuccess' : 'publishSuccess';
+            showNotification({ message: t(successMsgKey, { url: result.postUrl }), type: 'success' });
+            
+            onUpdateLibraryItem(content.id, {
+                status: 'published',
+                postId: result.postId,
+                postLink: result.postUrl
+            });
+
             setIsPublishModalOpen(false);
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : t('errorUnknown');
-            showNotification({ message: t('publishFail', { error: errorMessage }), type: 'error' });
+            const errorMsgKey = (content as any)?.origin === 'synced' ? 'updateFail' : 'publishFail';
+            showNotification({ message: t(errorMsgKey, { error: err instanceof Error ? err.message : String(err) }), type: 'error' });
         } finally {
             setIsPublishing(false);
         }
@@ -77,7 +86,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
                 <div className="text-xs text-gray-400 flex items-center mt-2">
                     <ClockIcon className="w-4 h-4 me-1.5"/>
                     {isPublished ? (
-                        <span className="text-green-400 font-semibold">{t('published')}</span>
+                        <span className="text-green-400 font-semibold">{t('published')} on {new Date(content.createdAt).toLocaleDateString()}</span>
                     ) : content.scheduledFor ? (
                         <span>{t('tableScheduled')}: {new Date(content.scheduledFor).toLocaleDateString()}</span>
                     ) : (
@@ -95,7 +104,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
                         </a>
                     ) : (
                         <>
-                            {!isVirtual && isArticle && (
+                             {isArticle && (
                                 <button onClick={() => onEdit(article as ArticleContent)} className="bg-gray-700 hover:bg-yellow-500 text-white p-3 rounded-full transition-colors" title={t('edit')}>
                                     <EditIcon/>
                                 </button>
@@ -120,6 +129,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, site, onEdit, onRemo
                     onClose={() => setIsPublishModalOpen(false)}
                     onPublish={handlePublish}
                     isPublishing={isPublishing}
+                    mode={(content as ArticleContent).origin === 'synced' ? 'update' : 'publish'}
                 />
             )}
         </div>

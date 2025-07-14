@@ -3,10 +3,10 @@ import MDEditor from '@uiw/react-md-editor';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { ArticleContent, ContentType, GeneratedContent, Language, ProductContent, WordPressSite, SiteContext, Notification, PublishingOptions, LanguageContextType, ArticleLength, SeoAnalysis, ProductContent as ProductContentType, WritingTone, InternalLinkSuggestion, CampaignGenerationResult, MediaItem } from '../types';
-import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks, generateFreePlaceholderImages } from '../services/geminiService';
+import { generateArticle, generateProduct, generateFeaturedImage, generateContentCampaign, analyzeSeo, refineArticle, modifyText, generateInternalLinks, generateFreePlaceholderImages, generateBilingualArticles } from '../services/geminiService';
 import Spinner from './common/Spinner';
-import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon, ArrowUturnLeftIcon, Bars3Icon, HeadingIcon, BoldIcon, ItalicIcon, ListBulletIcon, QuoteIcon, PublishIcon, TextColorIcon, AlignLeftIcon, AlignCenterIcon, AlignRightIcon, FolderIcon } from '../constants';
-import { getSiteContext, publishContent, updatePost } from '../services/wordpressService';
+import { ArticleIcon, ProductIcon, SparklesIcon, CameraIcon, CampaignIcon, SeoIcon, LibraryIcon, LinkIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, CheckCircleIcon, ArrowUturnLeftIcon, Bars3Icon, HeadingIcon, BoldIcon, ItalicIcon, ListBulletIcon, QuoteIcon, PublishIcon, TextColorIcon, AlignLeftIcon, AlignCenterIcon, AlignRightIcon, FolderIcon, PhotoIcon, ArrowUpTrayIcon } from '../constants';
+import { getSiteContext, publishContent, updatePost, uploadMedia } from '../services/wordpressService';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
 import InlineAiMenu from './InlineAiMenu';
@@ -15,6 +15,7 @@ import InlineAiMenu from './InlineAiMenu';
 interface NewContentViewProps {
     onContentGenerated: (content: GeneratedContent) => void;
     onCampaignGenerated: (campaignResult: CampaignGenerationResult) => void;
+    onMultipleContentsGenerated: (contents: GeneratedContent[]) => void;
     sites: WordPressSite[];
     showNotification: (notification: Notification) => void;
     initialContent?: ArticleContent | null;
@@ -100,7 +101,7 @@ const ColorPicker = ({ onSelect, onClose }: { onSelect: (color: string) => void,
     );
 };
 
-const EditorToolbar = ({ onFormat, onAdvancedFormat }: { onFormat: (cmd: any) => void, onAdvancedFormat: (type: 'color' | 'align', value: string) => void }) => {
+const EditorToolbar = ({ onFormat, onAdvancedFormat, onInsertImage, isUploading }: { onFormat: (cmd: any) => void, onAdvancedFormat: (type: 'color' | 'align', value: string) => void, onInsertImage: () => void, isUploading: boolean }) => {
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
 
@@ -116,6 +117,8 @@ const EditorToolbar = ({ onFormat, onAdvancedFormat }: { onFormat: (cmd: any) =>
         { cmd: 'ordered-list', title: t('numberedList'), icon: <ListBulletIcon/>, type: 'basic'},
         { cmd: 'quote', title: t('quote'), icon: <QuoteIcon/>, type: 'basic'},
         { cmd: 'link', title: t('addLink'), icon: <LinkIcon/>, type: 'basic'},
+        { separator: true },
+        { type: 'insertImage', title: t('insertImage'), icon: <PhotoIcon /> },
         { separator: true },
         { type: 'color', title: t('textColor'), icon: <TextColorIcon /> },
         { type: 'align', value: 'left', title: t('alignLeft'), icon: <AlignLeftIcon /> },
@@ -133,9 +136,11 @@ const EditorToolbar = ({ onFormat, onAdvancedFormat }: { onFormat: (cmd: any) =>
                         if (btn.type === 'basic') onFormat(btn.cmd);
                         else if (btn.type === 'color') setIsColorPickerOpen(p => !p);
                         else if (btn.type === 'align') onAdvancedFormat(btn.type, btn.value);
+                        else if (btn.type === 'insertImage') onInsertImage();
                     }}
                     title={btn.title} 
-                    className="p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors"
+                    className="p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors disabled:opacity-50"
+                    disabled={isUploading && btn.type === 'insertImage'}
                 >
                     {btn.icon}
                 </button>
@@ -216,7 +221,7 @@ const ImageGeneratorTool: React.FC<{
     const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatorMode, setGeneratorMode] = useState<'professional' | 'free'>('professional');
-    const [activeTab, setActiveTab] = useState<'generate' | 'library'>('generate');
+    const [activeTab, setActiveTab] = useState<'generate' | 'upload' | 'library'>('generate');
 
     const handleGenerateImages = async () => {
         setIsGenerating(true);
@@ -235,6 +240,22 @@ const ImageGeneratorTool: React.FC<{
             showNotification({ message: t('imageGenFail'), type: 'error' });
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = (reader.result as string).replace('data:', '').replace(/^.+,/, '');
+                onImageChange({
+                    featuredImage: base64String,
+                    featuredMediaId: undefined,
+                    featuredMediaUrl: undefined,
+                });
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -262,6 +283,9 @@ const ImageGeneratorTool: React.FC<{
             <div className="bg-gray-800/80 rounded-lg p-1 flex items-center text-sm border border-gray-600">
                 <button onClick={() => setActiveTab('generate')} className={`flex-1 py-1 rounded-md transition-colors flex items-center justify-center space-x-2 ${activeTab === 'generate' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
                     <CameraIcon /> <span>{t('generateImage')}</span>
+                </button>
+                <button onClick={() => setActiveTab('upload')} className={`flex-1 py-1 rounded-md transition-colors flex items-center justify-center space-x-2 ${activeTab === 'upload' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+                    <ArrowUpTrayIcon /> <span>{t('upload')}</span>
                 </button>
                 <button onClick={() => setActiveTab('library')} disabled={!siteContext} className={`flex-1 py-1 rounded-md transition-colors flex items-center justify-center space-x-2 ${activeTab === 'library' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'} disabled:text-gray-500 disabled:cursor-not-allowed`}>
                     <FolderIcon /> <span>{t('mediaLibrary')}</span>
@@ -316,6 +340,22 @@ const ImageGeneratorTool: React.FC<{
                     ) : (
                         <p className="text-sm text-gray-500 text-center py-10">{t('noMediaFound')}</p>
                     )}
+                </div>
+            )}
+
+            {activeTab === 'upload' && (
+                 <div className="p-3">
+                    <label htmlFor="featured-image-upload" className="cursor-pointer bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors w-full flex items-center justify-center">
+                        <ArrowUpTrayIcon className="me-2" />
+                        {t('uploadFromDevice')}
+                    </label>
+                    <input
+                        id="featured-image-upload"
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                    />
                 </div>
             )}
         </div>
@@ -378,7 +418,7 @@ const InternalLinkerTool: React.FC<{
 
 
 // Main Component
-const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onCampaignGenerated, sites, showNotification, initialContent, newContentType, onExit, initialTitle }) => {
+const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onCampaignGenerated, onMultipleContentsGenerated, sites, showNotification, initialContent, newContentType, onExit, initialTitle }) => {
     const { t, language: appLanguage } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [wizardStep, setWizardStep] = useState<WizardStep>('brief');
     
@@ -401,7 +441,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     const [campaignTopic, setCampaignTopic] = useState('');
     const [numArticles, setNumArticles] = useState(4);
     const [tone, setTone] = useState<WritingTone>(WritingTone.Professional);
-    const [language, setLanguage] = useState<Language>(Language.English); // Language of the content
+    const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([Language.English]);
     const [selectedSiteId, setSelectedSiteId] = useState<string | undefined>(sites.length > 0 ? sites[0].id : undefined);
     const [useGoogleSearch, setUseGoogleSearch] = useState(true);
     const [isThinkingEnabled, setIsThinkingEnabled] = useState(true);
@@ -425,6 +465,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     // Site Context for Editor
     const [siteContext, setSiteContext] = useState<SiteContext | null>(null);
     const [isContextLoading, setIsContextLoading] = useState(false);
+    const [isUploadingBodyImage, setIsUploadingBodyImage] = useState(false);
     
     // Derived states
     const articleForAnalysis = generatedResult?.type === ContentType.Article ? (generatedResult as ArticleContent) : null;
@@ -453,7 +494,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
             setGeneratedResult(initialContent);
             setActiveTab(initialContent.type);
             setSelectedSiteId(initialContent.siteId);
-            setLanguage(initialContent.language);
+            setSelectedLanguages([initialContent.language]);
             setWizardStep('editor');
         } else if (newContentType) {
             setActiveTab(newContentType);
@@ -519,21 +560,32 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
     
     const handleGenerateArticle = async () => {
         if (!articleTopic) throw new Error(t('errorAllFieldsRequired'));
-        const result = await generateArticle(articleTopic, articleKeywords, tone, language, articleLength, useGoogleSearch, isThinkingEnabled, siteContext);
-        setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
-        setWizardStep('editor');
+        if (selectedLanguages.length === 0) {
+            throw new Error('Please select at least one language.');
+        }
+
+        if (selectedLanguages.length === 1) {
+            const result = await generateArticle(articleTopic, articleKeywords, tone, selectedLanguages[0], articleLength, useGoogleSearch, isThinkingEnabled, siteContext);
+            setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
+            setWizardStep('editor');
+        } else {
+            const results = await generateBilingualArticles(articleTopic, articleKeywords, tone, selectedLanguages as [Language, Language], articleLength, useGoogleSearch, isThinkingEnabled, siteContext);
+            const articlesWithSiteId = results.map(r => ({ ...r, siteId: selectedSiteId, origin: 'new' as const }));
+            onMultipleContentsGenerated(articlesWithSiteId);
+            onExit();
+        }
     };
 
     const handleGenerateProduct = async () => {
         if (!productName) throw new Error(t('errorAllFieldsRequired'));
-        const result = await generateProduct(productName, productFeatures, language, isThinkingEnabled);
-        setGeneratedResult({ ...result, siteId: selectedSiteId });
+        const result = await generateProduct(productName, productFeatures, selectedLanguages[0], isThinkingEnabled);
+        setGeneratedResult({ ...result, siteId: selectedSiteId, origin: 'new' });
         setWizardStep('editor');
     };
     
     const handleGenerateCampaign = async () => {
         if (!campaignTopic || !selectedSiteId) throw new Error(t('errorAllFieldsRequired'));
-        const campaignResult = await generateContentCampaign(campaignTopic, numArticles, language, isThinkingEnabled);
+        const campaignResult = await generateContentCampaign(campaignTopic, numArticles, selectedLanguages[0], isThinkingEnabled);
         const updatedPillar = { ...campaignResult.pillarPost, siteId: selectedSiteId };
         const updatedClusters = campaignResult.clusterPosts.map(c => ({...c, siteId: selectedSiteId}));
         setGeneratedCampaign({ pillarPost: updatedPillar, clusterPosts: updatedClusters });
@@ -663,9 +715,10 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
 
     const handleAiTextModify = async (instruction: string) => {
         if (!selection || !generatedResult) return;
+        const currentLanguage = (generatedResult as ArticleContent).language || Language.English;
         setIsModifyingText(true);
         try {
-            const modifiedText = await modifyText(selection.text, instruction, language);
+            const modifiedText = await modifyText(selection.text, instruction, currentLanguage);
             setGeneratedResult(prevResult => {
                 if (!prevResult) return null;
                 const newResult = { ...prevResult };
@@ -721,6 +774,59 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         
         updateGeneratedResult({body: newBody});
     };
+    
+    const handleInsertImageIntoBody = () => {
+        if (!selectedSite || selectedSite.isVirtual) {
+            showNotification({ message: 'Please select a connected WordPress site to upload media.', type: 'error' });
+            return;
+        }
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            setIsUploadingBodyImage(true);
+            showNotification({ message: t('uploadingImage'), type: 'info' });
+
+            try {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    try {
+                        const base64Data = (reader.result as string).split(',')[1];
+                        const uploadedMedia = await uploadMedia(selectedSite, base64Data, file.name);
+                        const imageUrl = uploadedMedia.source_url;
+                        const altText = file.name.split('.')[0]; // simple alt text
+                        const markdownToInsert = `\n![${altText}](${imageUrl})\n`;
+                        const editor = editorRef.current?.textarea;
+                        if (editor) {
+                            const selectionStart = editor.selectionStart;
+                            const currentBody = (generatedResult as ArticleContent).body;
+                            const newBody = currentBody.substring(0, selectionStart) + markdownToInsert + currentBody.substring(editor.selectionEnd);
+                            updateGeneratedResult({ body: newBody });
+                        }
+                        showNotification({ message: t('imageUploadSuccess'), type: 'success' });
+                    } catch (uploadError) { throw uploadError; }
+                };
+            } catch (err) { showNotification({ message: err instanceof Error ? err.message : t('imageUploadFail'), type: 'error' }); } 
+            finally { setIsUploadingBodyImage(false); }
+        };
+        input.click();
+    };
+
+    const handleLanguageChange = (lang: Language) => {
+        setSelectedLanguages(prev => {
+            const isSelected = prev.includes(lang);
+            if (isSelected) {
+                return prev.length > 1 ? prev.filter(l => l !== lang) : prev;
+            } else {
+                return prev.length < 2 ? [...prev, lang] : prev;
+            }
+        });
+    };
 
 
     const renderBriefStep = () => {
@@ -746,17 +852,28 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                     <form onSubmit={handleGenerate} className="bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700/50">
                         {/* Common fields */}
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">{t('writingTone')}</label>
                                 <select value={tone} onChange={e => setTone(e.target.value as WritingTone)} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     {Object.values(WritingTone).map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('language')}</label>
-                                <select value={language} onChange={e => setLanguage(e.target.value as Language)} className="w-full bg-gray-700 border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    {Object.values(Language).map(l => <option key={l} value={l}>{l}</option>)}
-                                </select>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('contentLanguage')}</label>
+                                <p className="text-xs text-gray-500 mb-2">{t('selectLanguagesHint')}</p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {Object.values(Language).map(lang => (
+                                        <label key={lang} className={`flex items-center space-x-2 bg-gray-700 p-2 rounded-lg cursor-pointer border-2 transition-colors ${selectedLanguages.includes(lang) ? 'border-indigo-500' : 'border-transparent'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedLanguages.includes(lang)}
+                                                onChange={() => handleLanguageChange(lang)}
+                                                className="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500 bg-gray-800"
+                                            />
+                                            <span className="text-sm text-white">{t(lang.toLowerCase() as any)}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                          </div>
                         
@@ -810,7 +927,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                     <p className="text-xs text-gray-400">{t('enableThinkingHint')}</p>
                                 </div>
                             </div>
-                            <button type="submit" className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-105" disabled={isLoading}>
+                            <button type="submit" className="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-105" disabled={isLoading || selectedLanguages.length === 0}>
                                 {isLoading ? <Spinner /> : <><SparklesIcon className="me-2" /> {activeTab === ContentType.Campaign ? t('generateCampaign') : t('generateContent')}</>}
                             </button>
                         </div>
@@ -834,6 +951,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
         if (!generatedResult) return <div className="fixed inset-0 bg-gray-900 z-40 flex items-center justify-center"><Spinner /></div>;
         
         const isEditingSyncedPost = (generatedResult as ArticleContent)?.origin === 'synced';
+        const currentLanguage = (generatedResult as ArticleContent).language;
         
         return(
             <div className="fixed inset-0 bg-gray-900 z-40 flex flex-col animate-fade-in-fast">
@@ -852,10 +970,8 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                     <main ref={resultViewRef} className="flex-grow flex flex-col p-4 md:p-6 lg:p-8" onMouseUp={handleTextSelection}>
                         {generatedResult.type === ContentType.Article ? (
                              <>
-                                <div className="flex-shrink-0">
-                                    <EditorToolbar onFormat={handleFormat} onAdvancedFormat={handleAdvancedFormat} />
-                                </div>
-                                <div className="flex-grow relative" data-color-mode="dark" dir={language === 'Arabic' ? 'rtl' : 'ltr'} data-editor-field="body">
+                                <div className="flex-shrink-0"><EditorToolbar onFormat={handleFormat} onAdvancedFormat={handleAdvancedFormat} onInsertImage={handleInsertImageIntoBody} isUploading={isUploadingBodyImage} /></div>
+                                <div className="flex-grow relative" data-color-mode="dark" dir={currentLanguage === 'Arabic' ? 'rtl' : 'ltr'} data-editor-field="body">
                                     <MDEditor
                                         ref={editorRef}
                                         value={(generatedResult as ArticleContent).body}
@@ -865,7 +981,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                                         className="!h-full !w-full !flex !flex-col"
                                         style={{ background: 'transparent', border: 0 }}
                                         textareaProps={{
-                                            className: `!text-lg !leading-relaxed ${language === 'Arabic' ? '!text-center' : ''}`
+                                            className: `!text-lg !leading-relaxed ${currentLanguage === 'Arabic' ? '!text-center' : ''}`
                                         }}
                                         height="100%"
                                     />
@@ -878,7 +994,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                             <div className="overflow-y-auto space-y-4">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-400 mb-1">{t('longDescription')}</label>
-                                    <div data-color-mode="dark" dir={language === 'Arabic' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
+                                    <div data-color-mode="dark" dir={currentLanguage === 'Arabic' ? 'rtl' : 'ltr'} data-editor-field="longDescription">
                                         <MDEditor value={(generatedResult as ProductContent).longDescription} onChange={(val) => updateGeneratedResult({ longDescription: val || '' })} height={300} preview="live" />
                                     </div>
                                 </div>
@@ -899,7 +1015,7 @@ const NewContentView: React.FC<NewContentViewProps> = ({ onContentGenerated, onC
                             {generatedResult.type === ContentType.Article && (
                                 <>
                                     <AIToolkitSection title={t('refineWithAI')} icon={<SparklesIcon/>} isOpen={true} onToggle={() => {}}>
-                                        <RefineTool article={generatedResult as ArticleContent} contentLanguage={language} showNotification={showNotification} onRefined={setGeneratedResult} />
+                                        <RefineTool article={generatedResult as ArticleContent} contentLanguage={currentLanguage} showNotification={showNotification} onRefined={setGeneratedResult} />
                                     </AIToolkitSection>
                                     <AIToolkitSection title={t('featuredImage')} icon={<CameraIcon/>} isOpen={true} onToggle={() => {}}>
                                         <ImageGeneratorTool

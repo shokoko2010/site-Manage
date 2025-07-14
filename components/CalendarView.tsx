@@ -2,10 +2,10 @@ import React, { useMemo, useState, useContext, useEffect, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
-import { GeneratedContent, WordPressSite, Notification, LanguageContextType, PublishingOptions, ContentType, SitePost } from '../types';
+import { GeneratedContent, WordPressSite, Notification, LanguageContextType, PublishingOptions, ContentType } from '../types';
 import PublishModal from './PublishModal';
 import { LanguageContext } from '../App';
-import { fetchAllPostsFromAllSites, publishContent } from '../services/wordpressService';
+import { publishContent, updatePost } from '../services/wordpressService';
 import { ArticleIcon, ProductIcon, EyeIcon, ChatBubbleLeftIcon } from '../constants';
 
 interface CalendarViewProps {
@@ -13,66 +13,40 @@ interface CalendarViewProps {
     sites: WordPressSite[];
     showNotification: (notification: Notification) => void;
     onUpdateLibraryItem: (contentId: string, updates: Partial<GeneratedContent>) => void;
-    onRemoveFromLibrary: (contentId: string) => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotification, onUpdateLibraryItem, onRemoveFromLibrary }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotification, onUpdateLibraryItem }) => {
     const { t, language } = useContext(LanguageContext as React.Context<LanguageContextType>);
     const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
-    const [allSitePosts, setAllSitePosts] = useState<SitePost[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const externalEventsRef = useRef<HTMLUListElement>(null);
-    
-    useEffect(() => {
-        setIsLoading(true);
-        fetchAllPostsFromAllSites(sites)
-            .then(setAllSitePosts)
-            .catch(err => console.error("Failed to fetch all site posts for calendar analytics", err))
-            .finally(() => setIsLoading(false));
-    }, [sites]);
-
-    const syncedLibrary = useMemo(() => {
-        if (isLoading) return library;
-        
-        return library.map(content => {
-            // Find corresponding post if it has been published and has an ID
-            if (content.postId) {
-                const correspondingPost = allSitePosts.find(p => p.id === content.postId);
-                if (correspondingPost) {
-                    return {
-                        ...content,
-                        status: 'published' as const, // Ensure status is updated
-                        performanceStats: correspondingPost.performance_stats ? {
-                            views: correspondingPost.performance_stats.views,
-                            comments: correspondingPost.performance_stats.comments
-                        } : undefined
-                    };
-                }
-            }
-            return content;
-        });
-    }, [library, allSitePosts, isLoading]);
 
     const events = useMemo(() => {
-        return syncedLibrary.map(content => ({
-            id: content.id,
-            title: content.title,
-            start: content.scheduledFor,
-            allDay: true,
-            display: content.scheduledFor ? 'auto' : 'list-item',
-            backgroundColor: content.type === ContentType.Article ? '#4338ca' : '#047857',
-            borderColor: content.type === ContentType.Article ? '#6d28d9' : '#065f46',
-            className: content.status === 'published' ? 'published-event' : '',
-            extendedProps: {
-                content,
-            },
-        }));
-    }, [syncedLibrary]);
+        return library.map(content => {
+            let eventDate: string | undefined = content.scheduledFor;
+            if (content.status === 'published' && !content.scheduledFor) {
+                eventDate = content.createdAt.toISOString();
+            }
+
+            return {
+                id: content.id,
+                title: content.title,
+                start: eventDate,
+                allDay: true,
+                display: eventDate ? 'auto' : 'list-item',
+                backgroundColor: content.type === ContentType.Article ? '#4338ca' : '#047857',
+                borderColor: content.type === ContentType.Article ? '#6d28d9' : '#065f46',
+                className: content.status === 'published' ? 'published-event' : '',
+                extendedProps: {
+                    content,
+                },
+            };
+        });
+    }, [library]);
     
     const unscheduledEvents = useMemo(() => {
-        return events.filter(event => !event.start);
+        return events.filter(event => !event.start && event.extendedProps.content.status !== 'published');
     }, [events]);
     
     useEffect(() => {
@@ -114,7 +88,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
         const content = clickInfo.event.extendedProps.content;
         
         if (content.status === 'published') {
-            // Maybe show a modal with stats or link to post? For now, we do nothing.
              if (content.postLink) {
                 window.open(content.postLink, '_blank');
             }
@@ -141,19 +114,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
         setIsPublishing(true);
 
         try {
-            const result = await publishContent(selectedSite, selectedContent, options);
+             const isUpdate = (selectedContent as any)?.origin === 'synced';
+             const postId = (selectedContent as any)?.postId;
+            
+             const result = isUpdate && postId
+                ? await updatePost(selectedSite, postId, selectedContent as any, options)
+                : await publishContent(selectedSite, selectedContent, options);
+            
              const message = options.status === 'future' 
                 ? `Successfully scheduled! It will be published on ${new Date(options.scheduledAt!).toLocaleString()}.`
-                : t('publishSuccess', { url: result.postUrl });
+                : t(isUpdate ? 'updateSuccess' : 'publishSuccess', { url: result.postUrl });
 
             showNotification({ message, type: 'success' });
             
-            // Instead of removing, we update the item to be "published"
             onUpdateLibraryItem(selectedContent.id, {
                 status: 'published',
                 postId: result.postId,
                 postLink: result.postUrl,
-                scheduledFor: options.status === 'future' ? new Date(options.scheduledAt!).toISOString() : new Date().toISOString()
+                scheduledFor: options.status === 'future' && options.scheduledAt ? new Date(options.scheduledAt).toISOString() : new Date().toISOString()
             });
 
             setIsPublishModalOpen(false);
@@ -242,6 +220,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ library, sites, showNotific
                     onClose={() => setIsPublishModalOpen(false)}
                     onPublish={handlePublish}
                     isPublishing={isPublishing}
+                    mode={(selectedContent as any).origin === 'synced' ? 'update' : 'publish'}
                 />
             )}
         </div>
