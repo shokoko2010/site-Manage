@@ -37,7 +37,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         case 'future':
             badgeClasses = 'bg-sky-600/50 text-sky-300';
             icon = <ClockIcon className="me-1 h-3.5 w-3.5" />;
-            text = t('scheduledFor');
+            text = t('tableScheduled');
             break;
         case 'draft':
             badgeClasses = 'bg-gray-600/50 text-gray-300';
