@@ -1,111 +1,57 @@
-import React, { useMemo, useContext } from 'react';
-import { GeneratedContent, ContentType, WordPressSite, Notification, ArticleContent, LanguageContextType } from '../types';
-import { LanguageContext } from '../App';
+// components/ContentLibraryView.tsx
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Grid, CircularProgress } from '@mui/material';
+import { useAuthContext } from '../context/AuthContext';
+import { db } from '../firebase';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import ContentCard from './ContentCard';
 
-interface ContentLibraryViewProps {
-  library: GeneratedContent[];
-  sites: WordPressSite[];
-  onRemoveFromLibrary: (contentId: string) => void;
-  showNotification: (notification: Notification) => void;
-  onEdit: (content: ArticleContent) => void;
-  onScheduleAll: () => void;
-  onUpdateLibraryItem: (contentId: string, updates: Partial<GeneratedContent>) => void;
-}
+const ContentLibraryView: React.FC = () => {
+  const { team } = useAuthContext();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const ContentLibraryView: React.FC<ContentLibraryViewProps> = ({ library, sites, onRemoveFromLibrary, showNotification, onEdit, onScheduleAll, onUpdateLibraryItem }) => {
-    const { t } = useContext(LanguageContext as React.Context<LanguageContextType>);
-    const hasUnscheduledItems = useMemo(() => library.some(c => !c.scheduledFor && c.status === 'draft'), [library]);
+  useEffect(() => {
+    if (team) {
+      const fetchPosts = async () => {
+        const postsQuery = query(collection(db, "posts"), where("teamId", "==", team.id));
+        const postsSnapshot = await getDocs(postsQuery);
+        setPosts(postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+      };
+      fetchPosts();
+    } else {
+        setLoading(false);
+    }
+  }, [team]);
 
-    // Group by status for better organization
-    const drafts = library.filter(c => c.status === 'draft' && !c.scheduledFor);
-    const scheduled = library.filter(c => c.status === 'draft' && c.scheduledFor).sort((a,b) => new Date(a.scheduledFor!).getTime() - new Date(b.scheduledFor!).getTime());
-    const published = library.filter(c => c.status === 'published').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
+  const handleDelete = async (postId: string) => {
+    try {
+      await deleteDoc(doc(db, "posts", postId));
+      setPosts(posts.filter(post => post.id !== postId));
+    } catch (error) {
+      console.error("Error deleting post: ", error);
+      alert("An error occurred while deleting the post.");
+    }
+  };
+
+  if (loading) {
+    return <CircularProgress />;
+  }
+
   return (
-    <div className="p-8 h-full">
-      <header className="flex justify-between items-center mb-8">
-        <div>
-            <h1 className="text-3xl font-bold text-white">{t('libraryTitle')}</h1>
-            <p className="text-gray-400 mt-1">{t('libraryHint')}</p>
-        </div>
-        {hasUnscheduledItems && (
-            <button 
-                onClick={onScheduleAll} 
-                className="btn-gradient text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105"
-            >
-                {t('scheduleAll')}
-            </button>
-        )}
-      </header>
-
-      {library.length > 0 ? (
-        <div className="space-y-8">
-             {published.length > 0 && (
-                <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('published')}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {published.map(content => (
-                            <ContentCard 
-                                key={content.id}
-                                content={content}
-                                site={sites.find(s => s.id === content.siteId)}
-                                onEdit={onEdit}
-                                onRemove={onRemoveFromLibrary}
-                                showNotification={showNotification}
-                                onUpdateLibraryItem={onUpdateLibraryItem}
-                                allSites={sites}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-             {scheduled.length > 0 && (
-                <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('tableScheduled')}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {scheduled.map(content => (
-                            <ContentCard 
-                                key={content.id}
-                                content={content}
-                                site={sites.find(s => s.id === content.siteId)}
-                                onEdit={onEdit}
-                                onRemove={onRemoveFromLibrary}
-                                showNotification={showNotification}
-                                onUpdateLibraryItem={onUpdateLibraryItem}
-                                allSites={sites}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-            {drafts.length > 0 && (
-                <section>
-                    <h2 className="text-xl font-semibold text-gray-300 mb-4">{t('draft')}s</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {drafts.map(content => (
-                            <ContentCard 
-                                key={content.id}
-                                content={content}
-                                site={sites.find(s => s.id === content.siteId)}
-                                onEdit={onEdit}
-                                onRemove={onRemoveFromLibrary}
-                                showNotification={showNotification}
-                                onUpdateLibraryItem={onUpdateLibraryItem}
-                                allSites={sites}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-        </div>
-      ) : (
-        <div className="text-center py-24 bg-gray-800 border-2 border-dashed border-gray-700 rounded-xl">
-            <h3 className="text-white font-semibold">{t('libraryEmpty')}</h3>
-            <p className="text-gray-500 text-sm mt-1">{t('libraryEmptyHint')}</p>
-        </div>
-      )}
-    </div>
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Content Library
+      </Typography>
+      <Grid container spacing={3}>
+        {posts.map(post => (
+          <Grid item key={post.id} xs={12} sm={6} md={4}>
+            <ContentCard post={post} onDelete={() => handleDelete(post.id)} />
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   );
 };
 

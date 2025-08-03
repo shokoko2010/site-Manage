@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read and write their own document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Teams can only be read by members, and only updated by the owner
+    match /teams/{teamId} {
+      allow read: if request.auth != null && get(/databases/$(database)/documents/teams/$(teamId)).data.members.hasAny([request.auth.uid]);
+      allow write: if request.auth != null && get(/databases/$(database)/documents/teams/$(teamId)).data.owner == request.auth.uid;
+    }
+
+    // Posts can be read by team members, but only created, updated, or deleted by Admins and Editors.
+    match /posts/{postId} {
+      allow read: if request.auth != null && get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.members.hasAny([request.auth.uid]);
+      allow create, update, delete: if request.auth != null && 
+        (get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.roles[request.auth.uid] == 'Admin' ||
+         get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.roles[request.auth.uid] == 'Editor');
+    }
+
+    // Sites can be read and written by team members with Admin or Editor roles.
+    match /sites/{siteId} {
+       allow read, write: if request.auth != null &&
+        (get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.roles[request.auth.uid] == 'Admin' ||
+         get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.roles[request.auth.uid] == 'Editor');
+    }
+  }
+}
