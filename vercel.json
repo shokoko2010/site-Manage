@@ -9,5 +9,10 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PUBLIC_URL": "./"
+    }
+  }
 }
