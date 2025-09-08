@@ -1,72 +1,19 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+// API Service for Next.js API routes
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  name: string;
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  plan: 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+  avatar?: string;
+  bio?: string;
+  emailVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
-// Create axios instance
-const api: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor to handle auth errors
-api.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Handle 401 Unauthorized errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Try to refresh the token
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`
-            }
-          });
-
-          const { token } = response.data;
-          localStorage.setItem('authToken', token);
-          
-          // Retry the original request
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        }
-      } catch (refreshError) {
-        // If refresh fails, clear tokens and redirect to login
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Types
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -79,205 +26,174 @@ export interface RegisterData {
   name: string;
 }
 
-export interface User {
+export interface Site {
   id: string;
-  email: string;
-  username: string;
-  name: string;
-  role: string;
-  plan: string;
-  avatar?: string;
-  bio?: string;
-  emailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuthResponse {
-  message: string;
-  user: User;
-  token: string;
-}
-
-export interface WordPressSite {
-  id: string;
+  userId: string;
   url: string;
   name: string;
   isVirtual: boolean;
+  username?: string;
+  appPassword?: string;
   isActive: boolean;
   lastSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
-  _count?: {
-    content: number;
-  };
 }
 
-export interface ContentData {
+export interface Content {
   id: string;
+  userId: string;
+  siteId?: string;
   type: 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
   title: string;
-  body: string;
+  slug: string;
   metaDescription?: string;
+  body: string;
   status: 'DRAFT' | 'PUBLISHED' | 'PENDING' | 'SCHEDULED' | 'ARCHIVED';
-  language: string;
+  language: 'ENGLISH' | 'ARABIC' | 'FRENCH' | 'SPANISH' | 'GERMAN' | 'JAPANESE';
   featuredImage?: string;
+  featuredMediaId?: number;
+  featuredMediaUrl?: string;
   scheduledFor?: string;
+  postId?: number;
+  origin: 'NEW' | 'SYNCED' | 'IMPORTED';
+  postLink?: string;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
-  site?: {
-    id: string;
-    name: string;
-    url: string;
-  };
-  tags?: Array<{
-    tag: {
-      id: string;
-      name: string;
-    };
-  }>;
-  categories?: Array<{
-    category: {
-      id: string;
-      name: string;
-    };
-  }>;
+  seoScore?: number;
+  seoAnalysis?: any;
+  internalLinks?: any;
+  performanceStats?: any;
+  site?: Site;
+  tags: Array<{ tag: { id: string; name: string; slug: string } }>;
+  categories: Array<{ category: { id: string; name: string; slug: string } }>;
 }
 
-export interface CreateContentData {
-  type: 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
-  title: string;
-  body: string;
-  metaDescription?: string;
-  language?: string;
-  siteId?: string;
-  featuredImage?: string;
-  scheduledFor?: string;
-  tags?: string[];
-  categories?: string[];
-}
+class ApiService {
+  private getBaseUrl(): string {
+    return typeof window !== 'undefined' ? '' : 'http://localhost:3000';
+  }
 
-// API Services
-export const authService = {
-  // Login
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
-    return response.data;
-  },
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.getBaseUrl()}${endpoint}`;
+    
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
 
-  // Register
-  async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/register', data);
-    return response.data;
-  },
+    // Add authorization header if token exists
+    const token = this.getToken();
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      };
+    }
 
-  // Logout
-  async logout(): Promise<void> {
-    await api.post('/auth/logout');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-  },
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
 
-  // Get current user
-  async getCurrentUser(): Promise<{ user: User }> {
-    const response = await api.get<{ user: User }>('/auth/me');
-    return response.data;
-  },
+      return await response.json();
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
 
-  // Refresh token
-  async refreshToken(): Promise<{ token: string; message: string }> {
-    const response = await api.post<{ token: string; message: string }>('/auth/refresh');
-    return response.data;
-  },
-};
+  // Token management
+  private getToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('auth_token');
+    }
+    return null;
+  }
 
-export const userService = {
-  // Get all users (admin only)
-  async getUsers(): Promise<{ users: User[] }> {
-    const response = await api.get<{ users: User[] }>('/users');
-    return response.data;
-  },
+  public setToken(token: string): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', token);
+    }
+  }
 
-  // Get user by ID
-  async getUserById(id: string): Promise<{ user: User }> {
-    const response = await api.get<{ user: User }>(`/users/${id}`);
-    return response.data;
-  },
+  public removeToken(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+    }
+  }
 
-  // Update user profile
-  async updateUser(id: string, data: Partial<User>): Promise<{ message: string; user: User }> {
-    const response = await api.put<{ message: string; user: User }>(`/users/${id}`, data);
-    return response.data;
-  },
-
-  // Change password
-  async changePassword(id: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const response = await api.put<{ message: string }>(`/users/${id}/password`, {
-      currentPassword,
-      newPassword,
+  // Authentication
+  async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
+    const response = await this.request<{ user: User; token: string }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
     });
-    return response.data;
-  },
-};
+    
+    this.setToken(response.token);
+    return response;
+  }
 
-export const siteService = {
-  // Get user's sites
-  async getSites(): Promise<{ sites: WordPressSite[] }> {
-    const response = await api.get<{ sites: WordPressSite[] }>('/sites');
-    return response.data;
-  },
+  async register(data: RegisterData): Promise<{ user: User; token: string }> {
+    const response = await this.request<{ user: User; token: string }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    
+    this.setToken(response.token);
+    return response;
+  }
 
-  // Get specific site
-  async getSite(id: string): Promise<{ site: WordPressSite }> {
-    const response = await api.get<{ site: WordPressSite }>(`/sites/${id}`);
-    return response.data;
-  },
+  async logout(): Promise<void> {
+    try {
+      await this.request<{ message: string }>('/api/auth/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      this.removeToken();
+    }
+  }
 
-  // Create new site
-  async createSite(data: {
+  async getCurrentUser(): Promise<{ user: User }> {
+    return this.request<{ user: User }>('/api/auth/me');
+  }
+
+  // Sites
+  async getSites(): Promise<{ sites: Site[] }> {
+    return this.request<{ sites: Site[] }>('/api/sites');
+  }
+
+  async createSite(siteData: {
     url: string;
-    name?: string;
+    name: string;
     isVirtual?: boolean;
     username?: string;
     appPassword?: string;
-  }): Promise<{ message: string; site: WordPressSite }> {
-    const response = await api.post<{ message: string; site: WordPressSite }>('/sites', data);
-    return response.data;
-  },
+  }): Promise<{ message: string; site: Site }> {
+    return this.request<{ message: string; site: Site }>('/api/sites', {
+      method: 'POST',
+      body: JSON.stringify(siteData),
+    });
+  }
 
-  // Update site
-  async updateSite(id: string, data: Partial<WordPressSite>): Promise<{ message: string; site: WordPressSite }> {
-    const response = await api.put<{ message: string; site: WordPressSite }>(`/sites/${id}`, data);
-    return response.data;
-  },
-
-  // Delete site
-  async deleteSite(id: string): Promise<{ message: string }> {
-    const response = await api.delete<{ message: string }>(`/sites/${id}`);
-    return response.data;
-  },
-
-  // Sync site
-  async syncSite(id: string): Promise<{ message: string; site: WordPressSite }> {
-    const response = await api.post<{ message: string; site: WordPressSite }>(`/sites/${id}/sync`);
-    return response.data;
-  },
-};
-
-export const contentService = {
-  // Get content with filtering
+  // Content
   async getContent(params?: {
+    page?: number;
+    limit?: number;
     type?: string;
     status?: string;
     siteId?: string;
-    page?: number;
-    limit?: number;
-    search?: string;
-    sortBy?: string;
-    sortOrder?: string;
-  }): Promise<{ 
-    content: ContentData[]; 
+  }): Promise<{
+    content: Content[];
     pagination: {
       page: number;
       limit: number;
@@ -285,121 +201,70 @@ export const contentService = {
       pages: number;
     };
   }> {
-    const response = await api.get('/content', { params });
-    return response.data;
-  },
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
 
-  // Get specific content
-  async getContentById(id: string): Promise<{ content: ContentData }> {
-    const response = await api.get<{ content: ContentData }>(`/content/${id}`);
-    return response.data;
-  },
-
-  // Create content
-  async createContent(data: CreateContentData): Promise<{ message: string; content: ContentData }> {
-    const response = await api.post<{ message: string; content: ContentData }>('/content', data);
-    return response.data;
-  },
-
-  // Update content
-  async updateContent(id: string, data: Partial<CreateContentData>): Promise<{ message: string; content: ContentData }> {
-    const response = await api.put<{ message: string; content: ContentData }>(`/content/${id}`, data);
-    return response.data;
-  },
-
-  // Delete content
-  async deleteContent(id: string): Promise<{ message: string }> {
-    const response = await api.delete<{ message: string }>(`/content/${id}`);
-    return response.data;
-  },
-
-  // Publish content
-  async publishContent(id: string): Promise<{ message: string; content: ContentData }> {
-    const response = await api.post<{ message: string; content: ContentData }>(`/content/${id}/publish`);
-    return response.data;
-  },
-
-  // Get content analytics
-  async getContentAnalytics(id: string, params?: { startDate?: string; endDate?: string }): Promise<{ analytics: any[] }> {
-    const response = await api.get<{ analytics: any[] }>(`/content/${id}/analytics`, { params });
-    return response.data;
-  },
-};
-
-export const analyticsService = {
-  // Get dashboard analytics
-  async getDashboardAnalytics(params?: { startDate?: string; endDate?: string }): Promise<{
-    userAnalytics: any[];
-    contentStats: any[];
-    siteStats: any[];
-    topContent: any[];
-    totals: any;
-  }> {
-    const response = await api.get('/analytics/dashboard', { params });
-    return response.data;
-  },
-
-  // Get user analytics
-  async getUserAnalytics(params?: { 
-    startDate?: string; 
-    endDate?: string; 
-    granularity?: 'daily' | 'weekly' | 'monthly' 
-  }): Promise<{ analytics: any[] }> {
-    const response = await api.get('/analytics/user', { params });
-    return response.data;
-  },
-
-  // Get site analytics
-  async getSiteAnalytics(siteId: string, params?: { startDate?: string; endDate?: string }): Promise<{
-    analytics: any[];
-    contentPerformance: any[];
-  }> {
-    const response = await api.get(`/analytics/sites/${siteId}`, { params });
-    return response.data;
-  },
-
-  // Generate report
-  async generateReport(data: {
-    startDate: string;
-    endDate: string;
-    type: 'user' | 'sites' | 'content';
-  }): Promise<{ message: string; report: any; reportId: string }> {
-    const response = await api.post<{ message: string; report: any; reportId: string }>('/analytics/report', data);
-    return response.data;
-  },
-};
-
-// Error handling utility
-export const handleApiError = (error: any): string => {
-  if (error.response?.data?.error) {
-    return error.response.data.error;
+    const endpoint = `/api/content${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    return this.request<{
+      content: Content[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+      };
+    }>(endpoint);
   }
-  if (error.response?.data?.message) {
-    return error.response.data.message;
+
+  async createContent(contentData: {
+    title: string;
+    body: string;
+    type: 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
+    metaDescription?: string;
+    language?: 'ENGLISH' | 'ARABIC' | 'FRENCH' | 'SPANISH' | 'GERMAN' | 'JAPANESE';
+    featuredImage?: string;
+    siteId?: string;
+    scheduledFor?: string;
+    tagIds?: string[];
+    categoryIds?: string[];
+  }): Promise<{ message: string; content: Content }> {
+    return this.request<{ message: string; content: Content }>('/api/content', {
+      method: 'POST',
+      body: JSON.stringify(contentData),
+    });
   }
-  if (error.message) {
-    return error.message;
+
+  // Health check
+  async healthCheck(): Promise<{ status: string; message: string; timestamp: string }> {
+    return this.request<{ status: string; message: string; timestamp: string }>('/api/health');
   }
-  return 'An unexpected error occurred';
+}
+
+// Export singleton instance
+export const apiService = new ApiService();
+
+// Export utility functions for backward compatibility
+export const authService = {
+  login: (credentials: LoginCredentials) => apiService.login(credentials),
+  register: (data: RegisterData) => apiService.register(data),
+  logout: () => apiService.logout(),
+  getCurrentUser: () => apiService.getCurrentUser(),
 };
 
-// Utility to set auth tokens
-export const setAuthTokens = (token: string, refreshToken?: string) => {
-  localStorage.setItem('authToken', token);
-  if (refreshToken) {
-    localStorage.setItem('refreshToken', refreshToken);
-  }
+export const setAuthTokens = (token: string): void => {
+  apiService.setToken(token);
 };
 
-// Utility to clear auth tokens
-export const clearAuthTokens = () => {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('refreshToken');
+export const clearAuthTokens = (): void => {
+  apiService.removeToken();
 };
 
-// Utility to check if user is authenticated
 export const isAuthenticated = (): boolean => {
-  return !!localStorage.getItem('authToken');
+  return !!apiService.getToken();
 };
-
-export default api;

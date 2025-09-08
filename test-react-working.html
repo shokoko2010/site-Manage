@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Working Test</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        console.log('Starting React working test...');
+        
+        // Test if React and ReactDOM are available
+        if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+            console.error('React or ReactDOM is not available');
+            document.getElementById('root').innerHTML = '<h1 style="color: red;">React not loaded</h1>';
+        } else {
+            console.log('React and ReactDOM are available');
+            
+            try {
+                const TestApp = () => {
+                    const [count, setCount] = React.useState(0);
+                    
+                    return React.createElement('div', { style: { padding: '20px', fontFamily: 'Arial, sans-serif' } }, [
+                        React.createElement('h1', { key: 'title', style: { color: '#333' } }, 'React is Working!'),
+                        React.createElement('p', { key: 'count' }, `Count: ${count}`),
+                        React.createElement('button', { 
+                            key: 'button', 
+                            onClick: () => setCount(count + 1),
+                            style: { 
+                                padding: '10px 20px', 
+                                fontSize: '16px', 
+                                backgroundColor: '#007bff', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }
+                        }, 'Click Me')
+                    ]);
+                };
+                
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(React.createElement(TestApp));
+                
+                console.log('React test component rendered successfully');
+            } catch (error) {
+                console.error('Error rendering React component:', error);
+                document.getElementById('root').innerHTML = `
+                    <div style="color: red; padding: 20px;">
+                        <h1>React Error</h1>
+                        <p>Error: ${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

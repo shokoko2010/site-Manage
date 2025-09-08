@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug App</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        console.log('=== DEBUG APP STARTING ===');
+        
+        // Test 1: Check if basic modules are available
+        console.log('Test 1: Checking basic modules...');
+        console.log('React available:', typeof React !== 'undefined');
+        console.log('ReactDOM available:', typeof ReactDOM !== 'undefined');
+        
+        // Test 2: Try to import the main App component
+        console.log('Test 2: Trying to import App component...');
+        try {
+            import('/src/App.tsx').then(AppModule => {
+                console.log('App module imported successfully:', AppModule);
+                
+                // Test 3: Try to render the App component
+                console.log('Test 3: Trying to render App component...');
+                try {
+                    const root = ReactDOM.createRoot(document.getElementById('root'));
+                    root.render(React.createElement(AppModule.default));
+                    console.log('App component rendered successfully');
+                } catch (renderError) {
+                    console.error('Error rendering App component:', renderError);
+                    document.getElementById('root').innerHTML = `
+                        <div style="color: red; padding: 20px;">
+                            <h1>Render Error</h1>
+                            <p>Error: ${renderError.message}</p>
+                            <pre>${renderError.stack}</pre>
+                        </div>
+                    `;
+                }
+            }).catch(importError => {
+                console.error('Error importing App component:', importError);
+                document.getElementById('root').innerHTML = `
+                    <div style="color: red; padding: 20px;">
+                        <h1>Import Error</h1>
+                        <p>Error: ${importError.message}</p>
+                        <pre>${importError.stack}</pre>
+                    </div>
+                `;
+            });
+        } catch (error) {
+            console.error('Error in import test:', error);
+            document.getElementById('root').innerHTML = `
+                <div style="color: red; padding: 20px;">
+                    <h1>Import Test Error</h1>
+                    <p>Error: ${error.message}</p>
+                    <pre>${error.stack}</pre>
+                </div>
+            `;
+        }
+        
+        // Fallback: Show basic React test if main app fails
+        setTimeout(() => {
+            const rootElement = document.getElementById('root');
+            if (rootElement.innerHTML === '') {
+                console.log('Fallback: Showing basic React test...');
+                try {
+                    const FallbackApp = () => {
+                        return React.createElement('div', { style: { padding: '20px', fontFamily: 'Arial, sans-serif' } }, [
+                            React.createElement('h1', { key: 'title', style: { color: '#28a745' } }, 'Basic React Test Working'),
+                            React.createElement('p', { key: 'text' }, 'The main app failed to load, but basic React functionality works.'),
+                            React.createElement('p', { key: 'time' }, `Time: ${new Date().toLocaleString()}`),
+                            React.createElement('button', { 
+                                key: 'button', 
+                                onClick: () => alert('Basic React is working!'),
+                                style: { 
+                                    padding: '10px 20px', 
+                                    fontSize: '16px', 
+                                    backgroundColor: '#28a745', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    marginTop: '10px'
+                                }
+                            }, 'Test React')
+                        ]);
+                    };
+                    
+                    const root = ReactDOM.createRoot(rootElement);
+                    root.render(React.createElement(FallbackApp));
+                    
+                    console.log('Fallback React component rendered successfully');
+                } catch (fallbackError) {
+                    console.error('Fallback React test failed:', fallbackError);
+                    rootElement.innerHTML = `
+                        <div style="color: red; padding: 20px;">
+                            <h1>Complete Failure</h1>
+                            <p>Even basic React functionality failed.</p>
+                            <p>Error: ${fallbackError.message}</p>
+                            <pre>${fallbackError.stack}</pre>
+                        </div>
+                    `;
+                }
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

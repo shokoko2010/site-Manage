@@ -1,28 +1,26 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { View, LanguageContextType, ContentType } from '../types/types';
 import { AppTitle, DashboardIcon, PlusCircleIcon, LibraryIcon, SettingsIcon, CalendarIcon, LanguageIcon, ArticleIcon, CampaignIcon, ProductIcon, UsersIcon, CreditCardIcon, LogoutIcon } from '../lib/constants';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
-  currentView: View;
-  setCurrentView: (view: View) => void;
-  onQuickAction: (type: ContentType) => void;
   user?: any;
   onLogout?: () => void;
+  showNotification?: (notification: { message: string; type: 'success' | 'error' | 'info' }) => void;
 }
 
 interface NavItemProps {
   icon: React.ReactNode;
   label: string;
-  view: View;
-  currentView: View;
-  onClick: (view: View) => void;
+  to: string;
   requiredPermission?: string;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, label, view, currentView, onClick, requiredPermission }) => {
-  const isActive = currentView === view;
+const NavItem: React.FC<NavItemProps> = ({ icon, label, to, requiredPermission }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
   const { language } = useLanguage();
   const { hasPermission } = useAuth();
   const textAlignment = language === 'ar' ? 'text-right' : 'text-left';
@@ -33,8 +31,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, view, currentView, onCli
   }
 
   return (
-    <button
-      onClick={() => onClick(view)}
+    <Link
+      to={to}
       className={`flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
         isActive
           ? 'bg-indigo-600 text-white shadow-lg'
@@ -43,13 +41,14 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, view, currentView, onCli
     >
       {icon}
       <span className="mx-3">{label}</span>
-    </button>
+    </Link>
   );
 };
 
-const QuickActionButton = ({ onAction }: { onAction: (type: ContentType) => void }) => {
+const QuickActionButton = () => {
     const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
+    const navigate = useNavigate();
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -63,7 +62,7 @@ const QuickActionButton = ({ onAction }: { onAction: (type: ContentType) => void
     }, []);
 
     const handleSelect = (type: ContentType) => {
-        onAction(type);
+        navigate(`/content/new/${type}`);
         setIsOpen(false);
     };
 
@@ -142,7 +141,7 @@ const UserInfo = ({ user, onLogout }: { user?: any; onLogout?: () => void }) => 
 };
 
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onQuickAction, user, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, onLogout, showNotification }) => {
   const { t } = useLanguage();
   const { hasPermission } = useAuth();
 
@@ -154,18 +153,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onQuickA
           <h1 className="text-xl font-bold text-white text-gradient bg-gradient-to-r from-sky-400 to-indigo-400">{t('appName')}</h1>
         </div>
         <nav className="space-y-2">
-          <NavItem icon={<DashboardIcon />} label={t('dashboard')} view={View.Dashboard} currentView={currentView} onClick={setCurrentView} requiredPermission="view_dashboard" />
-          <NavItem icon={<LibraryIcon />} label={t('contentLibrary')} view={View.ContentLibrary} currentView={currentView} onClick={setCurrentView} requiredPermission="view_own_content" />
-          <NavItem icon={<CalendarIcon />} label={t('calendar')} view={View.Calendar} currentView={currentView} onClick={setCurrentView} requiredPermission="view_own_content" />
+          <NavItem icon={<DashboardIcon />} label={t('dashboard')} to="/dashboard" requiredPermission="view_dashboard" />
+          <NavItem icon={<LibraryIcon />} label={t('contentLibrary')} to="/content" requiredPermission="view_own_content" />
+          <NavItem icon={<CalendarIcon />} label={t('calendar')} to="/calendar" requiredPermission="view_own_content" />
           {hasPermission('manage_users') && (
-            <NavItem icon={<UsersIcon />} label="User Management" view={View.UserManagement} currentView={currentView} onClick={setCurrentView} requiredPermission="manage_users" />
+            <NavItem icon={<UsersIcon />} label="User Management" to="/users" requiredPermission="manage_users" />
           )}
-          <NavItem icon={<CreditCardIcon />} label="Subscription Plans" view={View.SubscriptionPlans} currentView={currentView} onClick={setCurrentView} />
+          <NavItem icon={<CreditCardIcon />} label="Subscription Plans" to="/subscription" />
         </nav>
       </div>
       <div className="space-y-2">
-         <QuickActionButton onAction={onQuickAction} />
-         <NavItem icon={<SettingsIcon />} label={t('settings')} view={View.Settings} currentView={currentView} onClick={setCurrentView} />
+         <QuickActionButton />
+         <NavItem icon={<SettingsIcon />} label={t('settings')} to="/settings" />
          <LanguageSwitcher />
          <UserInfo user={user} onLogout={onLogout} />
       </div>

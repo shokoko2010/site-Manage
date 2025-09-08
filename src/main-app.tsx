@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import AppRouter from './AppRouter'
 import './app/globals.css'
 
 console.log('main-app.tsx executing - START');
@@ -8,19 +8,18 @@ console.log('main-app.tsx executing - START');
 try {
   console.log('React available:', !!React);
   console.log('ReactDOM available:', !!ReactDOM);
-  console.log('App component importing...');
 
   const root = ReactDOM.createRoot(document.getElementById('root')!)
   console.log('Root created:', !!root);
   
-  console.log('About to render App...');
+  console.log('About to render AppRouter...');
   root.render(
     React.createElement(React.StrictMode, null,
-      React.createElement(App)
+      React.createElement(AppRouter)
     )
   );
   
-  console.log('App render called successfully - END');
+  console.log('AppRouter render called successfully - END');
 } catch (error) {
   console.error('Error in main-app.tsx:', error);
   

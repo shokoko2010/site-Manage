@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        console.log('Loading React app...');
+        try {
+            // Import the main React app
+            import('/assets/index-CQU8pqr9.js').then(() => {
+                console.log('React app loaded successfully');
+            }).catch(error => {
+                console.error('Error loading React app:', error);
+            });
+        } catch (error) {
+            console.error('Error in script execution:', error);
+        }
+    </script>
+</body>
+</html>

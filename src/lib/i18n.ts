@@ -1,5 +1,5 @@
 import { translations } from './translations';
-import { LanguageCode, Translator } from './types';
+import { LanguageCode, Translator } from '../types/types';
 
 export const getT = (lang: LanguageCode): Translator => {
   return (key: string, replacements?: { [key: string]: string | number }): string => {
