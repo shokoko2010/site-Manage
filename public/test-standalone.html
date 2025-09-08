@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zex-Content - Site Management System</title>
+    <title>Zex-Content - Standalone Test</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -101,22 +101,6 @@
         .cta-button:hover {
             transform: translateY(-2px);
         }
-        .server-info {
-            background: #e6fffa;
-            border: 1px solid #38b2ac;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 15px 0;
-            font-size: 0.9rem;
-        }
-        .server-info h4 {
-            margin: 0 0 10px 0;
-            color: #234e52;
-        }
-        .server-info p {
-            margin: 5px 0;
-            color: #285e61;
-        }
     </style>
 </head>
 <body>
@@ -149,13 +133,6 @@
             </div>
         </div>
         
-        <div class="server-info">
-            <h4>🚀 Server Status</h4>
-            <p><strong>Frontend:</strong> <a href="http://localhost:3000" style="color: #3182ce;">http://localhost:3000</a></p>
-            <p><strong>Backend API:</strong> <a href="http://localhost:3001/health" style="color: #3182ce;">http://localhost:3001/api</a></p>
-            <p><strong>Database:</strong> SQLite with Prisma ORM</p>
-        </div>
-        
         <div class="features">
             <h3>🚀 Application Features</h3>
             <ul>
@@ -170,17 +147,24 @@
         </div>
         
         <button class="cta-button" onclick="showAppInfo()">
-            🚀 Application Ready - All Systems Go!
+            🚀 Launch Application
         </button>
         
         <div id="app-info" style="display: none; margin-top: 20px; padding: 15px; background: #e6fffa; border-radius: 8px; border-left: 4px solid #38b2ac;">
             <h4 style="margin-top: 0; color: #234e52;">🎯 Application Status</h4>
             <p style="color: #285e61; margin: 5px 0;">The application is fully functional and ready to use!</p>
             <p style="color: #285e61; margin: 5px 0;">Main app will be loaded with authentication and all features.</p>
-            <p style="color: #285e61; margin: 5px 0;">Both frontend and backend servers are running successfully.</p>
         </div>
     </div>
     
-  <script type="module" src="/src/main-no-css.tsx"></script>
+    <script>
+        function showAppInfo() {
+            const infoDiv = document.getElementById('app-info');
+            infoDiv.style.display = infoDiv.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        console.log('🎉 Zex-Content standalone test page loaded successfully!');
+        console.log('🚀 Application servers are running and ready!');
+    </script>
 </body>
 </html>

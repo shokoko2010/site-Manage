@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CDN React Test</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        console.log('CDN React test starting...');
+        
+        try {
+            console.log('React available:', !!React);
+            console.log('ReactDOM available:', !!ReactDOM);
+            
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            console.log('Root created:', !!root);
+            
+            const TestComponent = () => {
+                return React.createElement('div', { 
+                    style: { 
+                        padding: '20px', 
+                        backgroundColor: '#fef3c7', 
+                        border: '2px solid #f59e0b', 
+                        borderRadius: '8px' 
+                    } 
+                }, 
+                    React.createElement('h1', { style: { color: '#78350f', marginBottom: '10px' } }, 'CDN React Test'),
+                    React.createElement('p', { style: { color: '#92400e' } }, 'If you can see this, CDN React is working!'),
+                    React.createElement('button', { 
+                        onClick: () => alert('CDN React button clicked!'),
+                        style: { 
+                            backgroundColor: '#f59e0b', 
+                            color: 'white', 
+                            padding: '8px 16px', 
+                            border: 'none', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer', 
+                            marginTop: '10px' 
+                        }
+                    }, 'Click Me')
+                );
+            };
+            
+            root.render(React.createElement(TestComponent));
+            console.log('CDN React test completed successfully');
+            
+        } catch (error) {
+            console.error('CDN React test failed:', error);
+            
+            const rootElement = document.getElementById('root');
+            if (rootElement) {
+                rootElement.innerHTML = `
+                    <div style="padding: 20px; background-color: #fef2f2; border: 2px solid #dc2626; border-radius: 8px;">
+                        <h1 style="color: #7f1d1d;">CDN React Error</h1>
+                        <p style="color: #991b1b;">There was an error loading CDN React:</p>
+                        <pre style="background: white; padding: 10px; margin: 10px 0; color: #7f1d1d;">${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,406 @@
+import React from 'react'
+
+console.log('App-working.tsx loaded');
+
+// Simple loading spinner component
+const LoadingSpinner = () => {
+  return React.createElement('div', { 
+    className: 'flex items-center justify-center min-h-screen'
+  },
+    React.createElement('div', { 
+      className: 'animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'
+    })
+  );
+};
+
+// Simple login form component
+const LoginForm = () => {
+  return React.createElement('div', {
+    style: {
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    }
+  },
+    React.createElement('div', {
+      style: {
+        background: 'white',
+        padding: '40px',
+        borderRadius: '12px',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+        width: '100%',
+        maxWidth: '400px'
+      }
+    },
+      React.createElement('h1', {
+        style: {
+          textAlign: 'center',
+          color: '#1a202c',
+          marginBottom: '30px',
+          fontSize: '2rem',
+          fontWeight: 'bold'
+        }
+      }, 'Welcome to Zex-Content'),
+      
+      React.createElement('form', {
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }
+      },
+        React.createElement('div', null,
+          React.createElement('label', {
+            style: {
+              display: 'block',
+              marginBottom: '5px',
+              color: '#4a5568',
+              fontWeight: '500'
+            }
+          }, 'Email'),
+          React.createElement('input', {
+            type: 'email',
+            placeholder: 'Enter your email',
+            style: {
+              width: '100%',
+              padding: '12px',
+              border: '2px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }
+          })
+        ),
+        
+        React.createElement('div', null,
+          React.createElement('label', {
+            style: {
+              display: 'block',
+              marginBottom: '5px',
+              color: '#4a5568',
+              fontWeight: '500'
+            }
+          }, 'Password'),
+          React.createElement('input', {
+            type: 'password',
+            placeholder: 'Enter your password',
+            style: {
+              width: '100%',
+              padding: '12px',
+              border: '2px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }
+          })
+        ),
+        
+        React.createElement('button', {
+          type: 'submit',
+          style: {
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '15px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'transform 0.2s'
+          },
+          onClick: (e) => {
+            e.preventDefault();
+            alert('Login functionality will be connected to the backend API');
+          }
+        }, 'Sign In'),
+        
+        React.createElement('div', {
+          style: {
+            textAlign: 'center',
+            marginTop: '20px'
+          }
+        },
+          React.createElement('span', {
+            style: {
+              color: '#4a5568'
+            }
+          }, "Don't have an account? "),
+          React.createElement('a', {
+            href: '#',
+            style: {
+              color: '#667eea',
+              textDecoration: 'none',
+              fontWeight: '600'
+            },
+            onClick: (e) => {
+              e.preventDefault();
+              alert('Registration functionality will be available soon');
+            }
+          }, 'Sign up')
+        )
+      )
+    )
+  );
+};
+
+// Main dashboard component
+const Dashboard = () => {
+  return React.createElement('div', {
+    style: {
+      minHeight: '100vh',
+      background: '#f7fafc'
+    }
+  },
+    React.createElement('div', {
+      style: {
+        background: 'white',
+        padding: '20px',
+        borderBottom: '1px solid #e2e8f0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }
+    },
+      React.createElement('h1', {
+        style: {
+          color: '#1a202c',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          margin: 0
+        }
+      }, 'Zex-Content Dashboard'),
+      
+      React.createElement('button', {
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          border: 'none',
+          padding: '8px 16px',
+          borderRadius: '6px',
+          cursor: 'pointer'
+        },
+        onClick: () => alert('Logout functionality will be implemented')
+      }, 'Logout')
+    ),
+    
+    React.createElement('div', {
+      style: {
+        padding: '20px',
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }
+    },
+      React.createElement('div', {
+        style: {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '20px',
+          marginBottom: '30px'
+        }
+      },
+        React.createElement('div', {
+          style: {
+            background: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
+          }
+        },
+          React.createElement('h3', {
+            style: {
+              color: '#1a202c',
+              marginTop: 0,
+              marginBottom: '15px'
+            }
+          }, '📊 Content Overview'),
+          React.createElement('p', {
+            style: {
+              color: '#4a5568',
+              margin: '5px 0'
+            }
+          }, 'Total Content: 0'),
+          React.createElement('p', {
+            style: {
+              color: '#4a5568',
+              margin: '5px 0'
+            }
+          }, 'Published: 0'),
+          React.createElement('p', {
+            style: {
+              color: '#4a5568',
+              margin: '5px 0'
+            }
+          }, 'Drafts: 0')
+        ),
+        
+        React.createElement('div', {
+          style: {
+            background: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
+          }
+        },
+          React.createElement('h3', {
+            style: {
+              color: '#1a202c',
+              marginTop: 0,
+              marginBottom: '15px'
+            }
+          }, '🌐 Connected Sites'),
+          React.createElement('p', {
+            style: {
+              color: '#4a5568',
+              margin: '5px 0'
+            }
+          }, 'WordPress Sites: 0'),
+          React.createElement('p', {
+            style: {
+              color: '#4a5568',
+              margin: '5px 0'
+            }
+          }, 'Virtual Sites: 0'),
+          React.createElement('button', {
+            style: {
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            },
+            onClick: () => alert('Add site functionality will be implemented')
+          }, 'Add Site')
+        ),
+        
+        React.createElement('div', {
+          style: {
+            background: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
+          }
+        },
+          React.createElement('h3', {
+            style: {
+              color: '#1a202c',
+              marginTop: 0,
+              marginBottom: '15px'
+            }
+          }, '🤖 AI Assistant'),
+          React.createElement('p', {
+            style: {
+              color: '#4a5568',
+              margin: '5px 0'
+            }
+          }, 'Generate content with AI'),
+          React.createElement('button', {
+            style: {
+              background: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            },
+            onClick: () => alert('AI content generation will be implemented')
+          }, 'Generate Content')
+        )
+      ),
+      
+      React.createElement('div', {
+        style: {
+          background: 'white',
+          padding: '20px',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0'
+        }
+      },
+        React.createElement('h3', {
+          style: {
+            color: '#1a202c',
+            marginTop: 0,
+            marginBottom: '15px'
+          }
+        }, '🚀 Quick Actions'),
+        React.createElement('div', {
+          style: {
+            display: 'flex',
+            gap: '10px',
+            flexWrap: 'wrap'
+          }
+        },
+          React.createElement('button', {
+            style: {
+              background: '#10b981',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            },
+            onClick: () => alert('Create new content')
+          }, 'New Content'),
+          
+          React.createElement('button', {
+            style: {
+              background: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            },
+            onClick: () => alert('View calendar')
+          }, 'Calendar'),
+          
+          React.createElement('button', {
+            style: {
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            },
+            onClick: () => alert('View analytics')
+          }, 'Analytics')
+        )
+      )
+    )
+  );
+};
+
+// Main App component
+const AppWorking = () => {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+
+  console.log('AppWorking component rendering');
+
+  if (loading) {
+    return React.createElement(LoadingSpinner);
+  }
+
+  if (!isAuthenticated) {
+    return React.createElement(LoginForm, {
+      onLogin: () => {
+        setLoading(true);
+        setTimeout(() => {
+          setIsAuthenticated(true);
+          setLoading(false);
+        }, 1000);
+      }
+    });
+  }
+
+  return React.createElement(Dashboard, {
+    onLogout: () => setIsAuthenticated(false)
+  });
+};
+
+export default AppWorking;

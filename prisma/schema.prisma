@@ -1,0 +1,318 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// User Management
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  password    String
+  name        String
+  role        UserRole @default(USER)
+  plan        UserPlan @default(FREE)
+  avatar      String?
+  bio         String?
+  isActive    Boolean  @default(true)
+  emailVerified Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sites       WordPressSite[]
+  content     GeneratedContent[]
+  sessions    Session[]
+  activities  Activity[]
+  subscriptions Subscription[]
+  analytics   UserAnalytics[]
+
+  @@map("users")
+}
+
+// User Sessions for JWT management
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// WordPress Sites Management
+model WordPressSite {
+  id           String   @id @default(cuid())
+  userId       String
+  url          String
+  name         String
+  isVirtual    Boolean  @default(false)
+  username     String?
+  appPassword  String?
+  isActive     Boolean  @default(true)
+  lastSyncedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    GeneratedContent[]
+  analytics  SiteAnalytics[]
+  activities Activity[]
+
+  @@map("wordpress_sites")
+}
+
+// Content Management
+model GeneratedContent {
+  id              String      @id @default(cuid())
+  userId          String
+  siteId          String?
+  type            ContentType
+  title           String
+  slug            String      @unique
+  metaDescription String?
+  body            String
+  status          ContentStatus @default(DRAFT)
+  language        Language    @default(ENGLISH)
+  featuredImage   String?
+  featuredMediaId Int?
+  featuredMediaUrl String?
+  scheduledFor    DateTime?
+  postId          Int?
+  origin          ContentOrigin @default(NEW)
+  postLink        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  publishedAt     DateTime?
+
+  // SEO and Analytics
+  seoScore        Int?
+  seoAnalysis     Json?
+  internalLinks   Json?
+  performanceStats Json?
+
+  // Relations
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site     WordPressSite?  @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  tags     ContentTag[]
+  categories ContentCategory[]
+  analytics ContentAnalytics[]
+  activities Activity[]
+
+  @@map("generated_content")
+}
+
+// Content Tags
+model Tag {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  description String?
+  color       String?
+
+  // Relations
+  contents ContentTag[]
+
+  @@map("tags")
+}
+
+// Content Categories
+model Category {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  description String?
+  color       String?
+
+  // Relations
+  contents ContentCategory[]
+
+  @@map("categories")
+}
+
+// Junction tables for many-to-many relationships
+model ContentTag {
+  contentId String
+  tagId     String
+
+  content GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  tag     Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, tagId])
+  @@map("content_tags")
+}
+
+model ContentCategory {
+  contentId   String
+  categoryId String
+
+  content   GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  category Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, categoryId])
+  @@map("content_categories")
+}
+
+// Analytics and Performance Tracking
+model UserAnalytics {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @default(now())
+  contentCreated Int   @default(0)
+  contentPublished Int @default(0)
+  sitesConnected Int   @default(0)
+  totalViews     Int   @default(0)
+  totalComments  Int   @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("user_analytics")
+}
+
+model SiteAnalytics {
+  id        String   @id @default(cuid())
+  siteId    String
+  date      DateTime @default(now())
+  postsSynced     Int @default(0)
+  pagesSynced     Int @default(0)
+  productsSynced  Int @default(0)
+  totalViews      Int @default(0)
+  totalComments   Int @default(0)
+  lastSyncStatus  String?
+
+  site WordPressSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date])
+  @@map("site_analytics")
+}
+
+model ContentAnalytics {
+  id          String   @id @default(cuid())
+  contentId   String
+  date        DateTime @default(now())
+  views       Int      @default(0)
+  comments    Int      @default(0)
+  shares      Int      @default(0)
+  clickThroughRate Float @default(0)
+  engagementScore Float @default(0)
+
+  content GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, date])
+  @@map("content_analytics")
+}
+
+// Activity Logging
+model Activity {
+  id          String       @id @default(cuid())
+  userId      String
+  siteId      String?
+  contentId   String?
+  action      ActivityType
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime     @default(now())
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site    WordPressSite?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  content GeneratedContent? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+
+  @@map("activities")
+}
+
+// Subscription Management
+model Subscription {
+  id              String           @id @default(cuid())
+  userId          String
+  plan            UserPlan
+  status          SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd Boolean @default(false)
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
+  metadata           Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, status])
+  @@map("subscriptions")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserPlan {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum ContentType {
+  ARTICLE
+  PRODUCT
+  CAMPAIGN
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  PENDING
+  SCHEDULED
+  ARCHIVED
+}
+
+enum ContentOrigin {
+  NEW
+  SYNCED
+  IMPORTED
+}
+
+enum Language {
+  ENGLISH
+  ARABIC
+  FRENCH
+  SPANISH
+  GERMAN
+  JAPANESE
+}
+
+enum ActivityType {
+  LOGIN
+  LOGOUT
+  CREATE_CONTENT
+  PUBLISH_CONTENT
+  UPDATE_CONTENT
+  DELETE_CONTENT
+  ADD_SITE
+  REMOVE_SITE
+  SYNC_SITE
+  UPDATE_SETTINGS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
