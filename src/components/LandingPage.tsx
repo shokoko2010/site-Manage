@@ -108,7 +108,7 @@ const LandingPage: React.FC = () => {
       twitterDescription.name = 'twitter:description';
       document.head.appendChild(twitterDescription);
     }
-    twitterDescription.content = 'Streamline content creation with AI. Manage multiple WordPress sites from one dashboard.';
+    twitterDescription.content = 'Streamline content creation with AI. Manage multiple WordPress sites from one appboard.';
     
     // Canonical URL
     let canonical = document.querySelector('link[rel="canonical"]');
@@ -132,7 +132,7 @@ const LandingPage: React.FC = () => {
   const features: Feature[] = [
     {
       title: "Multi-Site Management",
-      description: "Manage multiple WordPress sites from a single dashboard. Save time and streamline your workflow.",
+      description: "Manage multiple WordPress sites from a single appboard. Save time and streamline your workflow.",
       icon: "🌐"
     },
     {
@@ -226,7 +226,7 @@ const LandingPage: React.FC = () => {
       features: [
         "Unlimited WordPress sites",
         "Unlimited AI content generation",
-        "Custom analytics dashboard",
+        "Custom analytics appboard",
         "Advanced content scheduling",
         "Comprehensive SEO suite",
         "24/7 dedicated support",
@@ -265,10 +265,10 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <a href="/dashboard" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+              <a href="/appboard" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                 Sign In
               </a>
-              <a href="/dashboard" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              <a href="/appboard" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
                 Get Started Free
               </a>
             </div>
@@ -285,10 +285,10 @@ const LandingPage: React.FC = () => {
               <span className="text-blue-600 block">Content Strategy</span>
             </h1>
             <p className="mt-6 text-xl text-gray-600 max-w-3xl mx-auto">
-              AI-powered content management system for WordPress. Generate, optimize, and schedule content across multiple sites from one powerful dashboard.
+              AI-powered content management system for WordPress. Generate, optimize, and schedule content across multiple sites from one powerful appboard.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="/dashboard" className="bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 rounded-lg text-lg font-semibold transition-colors text-center">
+              <a href="/appboard" className="bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 rounded-lg text-lg font-semibold transition-colors text-center">
                 Start Free Trial
               </a>
               <button className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-colors">
@@ -429,7 +429,7 @@ const LandingPage: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-                  <a href="/dashboard" className={`w-full py-3 rounded-lg font-semibold transition-colors text-center block ${
+                  <a href="/appboard" className={`w-full py-3 rounded-lg font-semibold transition-colors text-center block ${
                     plan.popular 
                       ? 'bg-blue-600 text-white hover:bg-blue-700' 
                       : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -466,7 +466,7 @@ const LandingPage: React.FC = () => {
             </button>
           </form>
           <div className="mt-4">
-            <a href="/dashboard" className="text-blue-100 hover:text-white underline">
+            <a href="/appboard" className="text-blue-100 hover:text-white underline">
               Or sign in directly to your account
             </a>
           </div>
@@ -485,7 +485,7 @@ const LandingPage: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">What is Zex-Content?</h3>
-              <p className="text-gray-600">Zex-Content is an AI-powered content management system designed specifically for WordPress sites. It helps you create, optimize, and schedule content across multiple websites from one centralized dashboard.</p>
+              <p className="text-gray-600">Zex-Content is an AI-powered content management system designed specifically for WordPress sites. It helps you create, optimize, and schedule content across multiple websites from one centralized appboard.</p>
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow">
@@ -495,7 +495,7 @@ const LandingPage: React.FC = () => {
             
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Can I manage multiple WordPress sites?</h3>
-              <p className="text-gray-600">Yes! Depending on your plan, you can manage anywhere from 3 to unlimited WordPress sites from a single Zex-Content dashboard.</p>
+              <p className="text-gray-600">Yes! Depending on your plan, you can manage anywhere from 3 to unlimited WordPress sites from a single Zex-Content appboard.</p>
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow">

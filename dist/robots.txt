@@ -10,7 +10,7 @@ Crawl-delay: 1
 # Block common bot paths
 Disallow: /api/
 Disallow: /admin/
-Disallow: /dashboard/
+Disallow: /appboard/
 Disallow: /app/
 
 # Allow search engines to crawl the main site

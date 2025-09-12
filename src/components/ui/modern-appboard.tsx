@@ -39,7 +39,7 @@ interface ContentItem {
   comments?: number
 }
 
-interface ModernDashboardProps {
+interface ModernAppboardProps {
   sites: Site[]
   content: ContentItem[]
   onCreateContent: (type: "article" | "product" | "campaign") => void
@@ -179,12 +179,12 @@ function StatCard({
   )
 }
 
-export function ModernDashboard({ 
+export function ModernAppboard({ 
   sites, 
   content, 
   onCreateContent, 
   onAddSite 
-}: ModernDashboardProps) {
+}: ModernAppboardProps) {
   const recentContent = content.slice(0, 5)
   const topPerformingContent = content
     .filter(item => item.views && item.views > 0)
@@ -195,7 +195,7 @@ export function ModernDashboard({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Appboard</h1>
           <p className="text-muted-foreground">
             Welcome back! Here's what's happening with your content.
           </p>

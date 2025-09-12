@@ -14,7 +14,7 @@ import { siteService, contentService } from '../services/apiService'
 import { UserManagement } from './admin/UserManagement'
 import { SubscriptionPlans } from './SubscriptionPlans'
 
-import DashboardView from '../components/DashboardView'
+import AppboardView from '../components/AppboardView'
 import NewContentView from '../components/NewContentView'
 import ContentLibraryView from '../components/ContentLibraryView'
 import CalendarView from '../components/CalendarView'
@@ -32,7 +32,7 @@ export const AuthenticatedApp: React.FC = () => {
     setIsClient(true)
   }, [])
   
-  const [currentView, setCurrentView] = useState<View>(View.Dashboard)
+  const [currentView, setCurrentView] = useState<View>(View.Appboard)
   const [sites, setSites] = useState<WordPressSite[]>([])
   const [contentLibrary, setContentLibrary] = useState<GeneratedContent[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -272,10 +272,10 @@ export const AuthenticatedApp: React.FC = () => {
        <div className="flex-1 overflow-y-auto">
         {(() => {
             switch (currentView) {
-              case View.Dashboard:
+              case View.Appboard:
                 return (
-                  <ProtectedRoute requiredPermission="view_dashboard">
-                    <DashboardView 
+                  <ProtectedRoute requiredPermission="view_appboard">
+                    <AppboardView 
                       sites={sites} 
                       onAddSite={addSite} 
                       onRemoveSite={removeSite} 
@@ -320,10 +320,10 @@ export const AuthenticatedApp: React.FC = () => {
               case View.SiteDetail:
                   return activeSite ? 
                     <ProtectedRoute requiredPermission="view_own_content">
-                      <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Dashboard)} showNotification={showNotification} />
+                      <SiteDetailView site={activeSite} onEdit={editFromLibrary} onBack={() => navigateTo(View.Appboard)} showNotification={showNotification} />
                     </ProtectedRoute> : 
-                    <ProtectedRoute requiredPermission="view_dashboard">
-                      <DashboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} contentLibrary={contentLibrary} />
+                    <ProtectedRoute requiredPermission="view_appboard">
+                      <AppboardView sites={sites} onAddSite={addSite} onRemoveSite={removeSite} isLoading={isLoading} onManageSite={navigateToSiteDetail} onNavigateToNewContent={createNew} contentLibrary={contentLibrary} />
                     </ProtectedRoute>
               case View.UserManagement:
                   return (
@@ -339,8 +339,8 @@ export const AuthenticatedApp: React.FC = () => {
                   )
               default:
                 return (
-                  <ProtectedRoute requiredPermission="view_dashboard">
-                    <DashboardView 
+                  <ProtectedRoute requiredPermission="view_appboard">
+                    <AppboardView 
                       sites={sites} 
                       onAddSite={addSite} 
                       onRemoveSite={removeSite} 

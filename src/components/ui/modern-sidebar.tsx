@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: "📊" },
+  { name: "Appboard", href: "/appboard", icon: "📊" },
   { name: "Content Library", href: "/content", icon: "📚" },
   { name: "Calendar", href: "/calendar", icon: "📅" },
   { name: "Settings", href: "/settings", icon: "⚙️" },

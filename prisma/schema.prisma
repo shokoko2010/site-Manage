@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 // User Management
@@ -33,6 +33,7 @@ model User {
   activities  Activity[]
   subscriptions Subscription[]
   analytics   UserAnalytics[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -214,6 +215,22 @@ model ContentAnalytics {
   @@map("content_analytics")
 }
 
+// Notification System
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  actionUrl String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
 // Activity Logging
 model Activity {
   id          String       @id @default(cuid())
@@ -295,6 +312,13 @@ enum Language {
   SPANISH
   GERMAN
   JAPANESE
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
 }
 
 enum ActivityType {

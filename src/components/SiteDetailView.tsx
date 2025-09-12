@@ -209,7 +209,7 @@ const SiteDetailView: React.FC<SiteDetailViewProps> = ({ site, onEdit, onBack, s
                     <p className="text-gray-400 mt-1">{t('siteDetailHint')} for <span className="font-semibold text-white">{site.name}</span></p>
                 </div>
                 <button onClick={onBack} className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
-                    {t('backToDashboard')}
+                    {t('backToAppboard')}
                 </button>
             </header>
 

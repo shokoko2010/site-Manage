@@ -153,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, onLogout, showNotification }) =
           <h1 className="text-xl font-bold text-white text-gradient bg-gradient-to-r from-sky-400 to-indigo-400">{t('appName')}</h1>
         </div>
         <nav className="space-y-2">
-          <NavItem icon={<DashboardIcon />} label={t('dashboard')} to="/dashboard" requiredPermission="view_dashboard" />
+          <NavItem icon={<DashboardIcon />} label={t('appboard')} to="/appboard" requiredPermission="view_appboard" />
           <NavItem icon={<LibraryIcon />} label={t('contentLibrary')} to="/content" requiredPermission="view_own_content" />
           <NavItem icon={<CalendarIcon />} label={t('calendar')} to="/calendar" requiredPermission="view_own_content" />
           {hasPermission('manage_users') && (

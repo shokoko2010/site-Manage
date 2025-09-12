@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home, mobileOnly: false },
+  { name: "Appboard", href: "/appboard", icon: Home, mobileOnly: false },
   { name: "Content Library", href: "/content", icon: FileText, mobileOnly: false },
   { name: "Calendar", href: "/calendar", icon: Calendar, mobileOnly: false },
   { name: "Settings", href: "/settings", icon: Settings, mobileOnly: true },

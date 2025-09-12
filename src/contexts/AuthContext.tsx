@@ -95,10 +95,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Define permissions based on user plan
     const permissions: Record<string, string[]> = {
-      FREE: ['view_dashboard', 'view_own_content'],
-      BASIC: ['view_dashboard', 'view_own_content', 'create_content', 'edit_own_content'],
-      PREMIUM: ['view_dashboard', 'view_own_content', 'create_content', 'edit_own_content', 'delete_own_content', 'view_analytics'],
-      ENTERPRISE: ['view_dashboard', 'view_own_content', 'create_content', 'edit_own_content', 'delete_own_content', 'view_analytics', 'manage_users', 'view_all_content'],
+      FREE: ['view_appboard', 'view_own_content'],
+      BASIC: ['view_appboard', 'view_own_content', 'create_content', 'edit_own_content'],
+      PREMIUM: ['view_appboard', 'view_own_content', 'create_content', 'edit_own_content', 'delete_own_content', 'view_analytics'],
+      ENTERPRISE: ['view_appboard', 'view_own_content', 'create_content', 'edit_own_content', 'delete_own_content', 'view_analytics', 'manage_users', 'view_all_content'],
     };
 
     return permissions[user.plan]?.includes(permission) || false;

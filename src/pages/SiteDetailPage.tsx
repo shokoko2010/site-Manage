@@ -32,7 +32,7 @@ export const SiteDetailPage: React.FC<SiteDetailPageProps> = () => {
       } catch (error) {
         console.error('Failed to load site:', error)
         showNotification({ message: 'Failed to load site details', type: 'error' })
-        navigate('/dashboard')
+        navigate('/appboard')
       } finally {
         setLoading(false)
       }
@@ -46,7 +46,7 @@ export const SiteDetailPage: React.FC<SiteDetailPageProps> = () => {
   }
 
   const onBack = () => {
-    navigate('/dashboard')
+    navigate('/appboard')
   }
 
   if (loading) {
@@ -67,7 +67,7 @@ export const SiteDetailPage: React.FC<SiteDetailPageProps> = () => {
             onClick={onBack}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            Back to Dashboard
+            Back to Appboard
           </button>
         </div>
       </div>

@@ -22,7 +22,7 @@ const plans: Plan[] = [
     price: '$0',
     description: 'Perfect for trying out the platform',
     features: [
-      { name: 'View Dashboard', included: true },
+      { name: 'View Appboard', included: true },
       { name: 'View Own Content', included: true },
       { name: 'Create Content', included: false },
       { name: 'Edit Content', included: false },
@@ -38,7 +38,7 @@ const plans: Plan[] = [
     price: '$9',
     description: 'Great for individuals and small teams',
     features: [
-      { name: 'View Dashboard', included: true },
+      { name: 'View Appboard', included: true },
       { name: 'View Own Content', included: true },
       { name: 'Create Content', included: true },
       { name: 'Edit Content', included: true },
@@ -54,7 +54,7 @@ const plans: Plan[] = [
     price: '$29',
     description: 'For growing businesses',
     features: [
-      { name: 'View Dashboard', included: true },
+      { name: 'View Appboard', included: true },
       { name: 'View Own Content', included: true },
       { name: 'Create Content', included: true },
       { name: 'Edit Content', included: true },
@@ -71,7 +71,7 @@ const plans: Plan[] = [
     price: '$99',
     description: 'For large organizations',
     features: [
-      { name: 'View Dashboard', included: true },
+      { name: 'View Appboard', included: true },
       { name: 'View Own Content', included: true },
       { name: 'Create Content', included: true },
       { name: 'Edit Content', included: true },

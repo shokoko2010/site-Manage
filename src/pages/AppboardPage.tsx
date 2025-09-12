@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import DashboardView from '../components/DashboardView'
+import AppboardView from '../components/AppboardView'
 import { useAuth } from '../contexts/AuthContext'
 import { siteService, contentService } from '../services/apiService'
 import { WordPressSite, GeneratedContent, ContentType } from '../types/types'
 import { useOutletContext } from 'react-router-dom'
 
-interface DashboardPageProps {}
+interface AppboardPageProps {}
 
 interface OutletContext {
   showNotification: (notification: { message: string; type: 'success' | 'error' | 'info' }) => void
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = () => {
+export const AppboardPage: React.FC<AppboardPageProps> = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { showNotification } = useOutletContext<OutletContext>()
@@ -117,7 +117,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <DashboardView 
+      <AppboardView 
         sites={sites} 
         onAddSite={addSite} 
         onRemoveSite={removeSite} 

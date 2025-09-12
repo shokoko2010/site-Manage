@@ -65,7 +65,7 @@ const LandingPageSimple: React.FC = () => {
               },
               {
                 title: "Multi-Site Management",
-                description: "Manage multiple WordPress sites from a single dashboard with seamless integration.",
+                description: "Manage multiple WordPress sites from a single appboard with seamless integration.",
                 icon: "🌐"
               },
               {

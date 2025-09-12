@@ -145,8 +145,8 @@ const LoginForm = () => {
   );
 };
 
-// Main dashboard component
-const Dashboard = () => {
+// Main appboard component
+const Appboard = () => {
   return React.createElement('div', {
     style: {
       minHeight: '100vh',
@@ -170,7 +170,7 @@ const Dashboard = () => {
           fontWeight: 'bold',
           margin: 0
         }
-      }, 'Zex-Content Dashboard'),
+      }, 'Zex-Content Appboard'),
       
       React.createElement('button', {
         style: {
@@ -398,7 +398,7 @@ const AppWorking = () => {
     });
   }
 
-  return React.createElement(Dashboard, {
+  return React.createElement(Appboard, {
     onLogout: () => setIsAuthenticated(false)
   });
 };

@@ -1,5 +1,5 @@
 import React, { useState, useContext, useMemo } from 'react';
-import { WordPressSite, LanguageContextType, DashboardViewProps, ContentType, GeneratedContent, ArticleContent } from '../types/types';
+import { WordPressSite, LanguageContextType, AppboardViewProps, ContentType, GeneratedContent, ArticleContent } from '../types/types';
 import SiteCard from './SiteCard';
 import Spinner from './common/Spinner';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -20,7 +20,7 @@ const StatCard = ({ icon, value, label }: { icon: React.ReactNode, value: string
 );
 
 
-const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite, onNavigateToNewContent, contentLibrary }) => {
+const AppboardView: React.FC<AppboardViewProps> = ({ sites, onAddSite, onRemoveSite, isLoading, onManageSite, onNavigateToNewContent, contentLibrary }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
   const { t } = useLanguage();
@@ -83,8 +83,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
     <div className="p-8 h-full overflow-y-auto">
       <header className="flex justify-between items-center mb-8">
         <div>
-            <h1 className="text-3xl font-bold text-white">{t('dashboard')}</h1>
-            <p className="text-gray-400 mt-1">{t('dashboardHint')}</p>
+            <h1 className="text-3xl font-bold text-white">{t('appboard')}</h1>
+            <p className="text-gray-400 mt-1">{t('appboardHint')}</p>
         </div>
         <button onClick={() => setIsAddModalOpen(true)} className="btn-gradient text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center transition-transform hover:scale-105">
             <PlusCircleIcon className="me-2"/> {t('addNewSite')}
@@ -192,4 +192,4 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sites, onAddSite, onRemov
   );
 };
 
-export default DashboardView;
+export default AppboardView;

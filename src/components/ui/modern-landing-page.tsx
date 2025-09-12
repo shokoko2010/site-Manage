@@ -24,7 +24,7 @@ const features = [
   {
     icon: Globe,
     title: "Multi-Site Management",
-    description: "Manage multiple WordPress sites from a single dashboard. Save time and streamline your workflow."
+    description: "Manage multiple WordPress sites from a single appboard. Save time and streamline your workflow."
   },
   {
     icon: PenTool,
@@ -118,7 +118,7 @@ const pricingPlans = [
     features: [
       "Unlimited WordPress sites",
       "Unlimited AI content generation",
-      "Custom analytics dashboard",
+      "Custom analytics appboard",
       "Advanced content scheduling",
       "Comprehensive SEO suite",
       "24/7 dedicated support",
@@ -194,9 +194,9 @@ function PricingCard({ plan }: { plan: typeof pricingPlans[0] }) {
         <Button 
           className="w-full" 
           variant={plan.popular ? "default" : "outline"}
+          asChild
         >
-          {plan.cta}
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <a href="/login">{plan.cta}</a>
         </Button>
       </CardContent>
     </Card>
@@ -222,8 +222,8 @@ export default function ModernLandingPage() {
             </nav>
             <div className="flex items-center space-x-2">
               <ThemeToggleLarge />
-              <Button variant="outline" size="sm">
-                Sign In
+              <Button variant="outline" size="sm" asChild>
+                <a href="/login">Sign In</a>
               </Button>
             </div>
           </div>
@@ -242,12 +242,11 @@ export default function ModernLandingPage() {
             <span className="text-primary block">Content Strategy</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            AI-powered content management system for WordPress. Generate, optimize, and schedule content across multiple sites from one powerful dashboard.
+            AI-powered content management system for WordPress. Generate, optimize, and schedule content across multiple sites from one powerful appboard.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="text-lg px-8 py-3">
-              Start Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button size="lg" className="text-lg px-8 py-3" asChild>
+              <a href="/login">Start Free Trial</a>
             </Button>
             <Button variant="outline" size="lg" className="text-lg px-8 py-3">
               Watch Demo
@@ -357,9 +356,8 @@ export default function ModernLandingPage() {
           <p className="text-xl mb-8 opacity-90">
             Join thousands of content creators who are already saving time and producing better content with Zex-Content.
           </p>
-          <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-            Get Started Free
-            <ArrowRight className="ml-2 h-5 w-5" />
+          <Button size="lg" variant="secondary" className="text-lg px-8 py-3" asChild>
+            <a href="/login">Get Started Free</a>
           </Button>
         </div>
       </section>

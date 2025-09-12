@@ -9,7 +9,7 @@ import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
 import { PublicLayout } from './layouts/PublicLayout'
 
 // Page Components
-import { DashboardPage } from './pages/DashboardPage'
+import { AppboardPage } from './pages/AppboardPage'
 import { ContentLibraryPage } from './pages/ContentLibraryPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -67,7 +67,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/appboard" replace />
   }
 
   return <>{children}</>
@@ -99,11 +99,11 @@ function AppRoutes() {
           <AuthenticatedLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to="/appboard" replace />} />
         
-        <Route path="dashboard" element={
-          <ProtectedRoute requiredPermission="view_dashboard">
-            <DashboardPage />
+        <Route path="appboard" element={
+          <ProtectedRoute requiredPermission="view_appboard">
+            <AppboardPage />
           </ProtectedRoute>
         } />
         

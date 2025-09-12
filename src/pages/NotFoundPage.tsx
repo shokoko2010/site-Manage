@@ -9,10 +9,10 @@ export const NotFoundPage: React.FC = () => {
         <h2 className="text-2xl font-semibold text-gray-700 mb-4">Page Not Found</h2>
         <p className="text-gray-600 mb-8">The page you're looking for doesn't exist or has been moved.</p>
         <Link 
-          to="/dashboard" 
+          to="/appboard" 
           className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200"
         >
-          Go to Dashboard
+          Go to Appboard
         </Link>
       </div>
     </div>

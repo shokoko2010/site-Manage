@@ -16,6 +16,14 @@ const contentSchema = z.object({
   categoryIds: z.array(z.string()).optional()
 });
 
+// Helper function to transform frontend data to match schema
+function transformContentData(data: any) {
+  return {
+    ...data,
+    body: data.content || data.body, // Map 'content' to 'body'
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -104,7 +112,8 @@ export async function POST(request: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
 
     const body = await request.json();
-    const validatedData = contentSchema.parse(body);
+    const transformedData = transformContentData(body);
+    const validatedData = contentSchema.parse(transformedData);
 
     const user = await db.user.findUnique({
       where: { id: decoded.userId }

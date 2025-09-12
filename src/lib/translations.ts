@@ -5,7 +5,7 @@ export const translations = {
     loading: 'Loading...',
 
     // Sidebar & Language
-    dashboard: 'Dashboard',
+    appboard: 'Appboard',
     newContent: 'New Content',
     contentLibrary: 'Content Library',
     calendar: 'Calendar',
@@ -14,7 +14,7 @@ export const translations = {
     quickAction: 'Quick Action',
     
     // DashboardView
-    dashboardHint: "Welcome back! Here's your content overview.",
+    appboardHint: "Welcome back! Here's your content overview.",
     totalSites: 'Total Sites',
     contentLast30Days: 'Generated in Last 30 Days',
     totalLibraryItems: 'Total Library Items',
@@ -206,7 +206,7 @@ export const translations = {
     // Site Detail View
     siteDetailTitle: 'Site Content Explorer',
     siteDetailHint: 'View, edit, and improve all existing posts on your site.',
-    backToDashboard: 'Back to Dashboard',
+    backToAppboard: 'Back to Appboard',
     postTitle: 'Title',
     postStatus: 'Status',
     postDate: 'Date',
@@ -298,7 +298,7 @@ export const translations = {
     loading: 'جاري التحميل...',
 
     // Sidebar & Language
-    dashboard: 'لوحة التحكم',
+    appboard: 'لوحة التحكم',
     newContent: 'محتوى جديد',
     contentLibrary: 'مكتبة المحتوى',
     calendar: 'التقويم',
@@ -307,7 +307,7 @@ export const translations = {
     quickAction: 'إجراء سريع',
     
     // DashboardView
-    dashboardHint: 'أهلاً بعودتك! إليك نظرة عامة على المحتوى الخاص بك.',
+    appboardHint: 'أهلاً بعودتك! إليك نظرة عامة على المحتوى الخاص بك.',
     totalSites: 'إجمالي المواقع',
     contentLast30Days: 'تم إنشاؤه آخر 30 يومًا',
     totalLibraryItems: 'إجمالي عناصر المكتبة',
@@ -499,7 +499,7 @@ export const translations = {
     // Site Detail View
     siteDetailTitle: 'مستكشف محتوى الموقع',
     siteDetailHint: 'عرض وتعديل وتحسين جميع المقالات الموجودة على موقعك.',
-    backToDashboard: 'العودة إلى لوحة التحكم',
+    backToAppboard: 'العودة إلى لوحة التحكم',
     postTitle: 'العنوان',
     postStatus: 'الحالة',
     postDate: 'التاريخ',

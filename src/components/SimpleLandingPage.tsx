@@ -15,10 +15,10 @@ const SimpleLandingPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-blue-600">Zex-Content</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <a href="/dashboard" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+              <a href="/appboard" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                 Sign In
               </a>
-              <a href="/dashboard" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium">
+              <a href="/appboard" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium">
                 Get Started Free
               </a>
             </div>
@@ -34,10 +34,10 @@ const SimpleLandingPage: React.FC = () => {
             <span className="text-blue-600 block">Content Strategy</span>
           </h1>
           <p className="mt-6 text-xl text-gray-600 max-w-3xl mx-auto">
-            AI-powered content management system for WordPress. Generate, optimize, and schedule content across multiple sites from one powerful dashboard.
+            AI-powered content management system for WordPress. Generate, optimize, and schedule content across multiple sites from one powerful appboard.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/dashboard" className="bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 rounded-lg text-lg font-semibold transition-colors text-center">
+            <a href="/appboard" className="bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 rounded-lg text-lg font-semibold transition-colors text-center">
               Start Free Trial
             </a>
             <button className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-colors">
@@ -60,7 +60,7 @@ const SimpleLandingPage: React.FC = () => {
             <div className="text-center">
               <div className="text-4xl mb-4">🌐</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Multi-Site Management</h3>
-              <p className="text-gray-600">Manage multiple WordPress sites from a single dashboard.</p>
+              <p className="text-gray-600">Manage multiple WordPress sites from a single appboard.</p>
             </div>
             <div className="text-center">
               <div className="text-4xl mb-4">🤖</div>
