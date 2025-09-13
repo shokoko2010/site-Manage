@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { WordPressSite, AppboardViewProps, ContentType, GeneratedContent, ArticleContent } from '@/types/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import AddSiteModal from '@/components/AddSiteModal';
@@ -47,14 +47,27 @@ const AppboardView: React.FC<AppboardViewProps> = ({
     };
   }, [sites, contentLibrary]);
 
-  const handleIdeaSelected = (title: string) => {
+  const handleIdeaSelected = useCallback((title: string) => {
       setIsIdeaModalOpen(false);
       onNavigateToNewContent(ContentType.Article, title);
-  }
+  }, [onNavigateToNewContent]);
 
-  const handleAnalyzeClick = () => {
+  const handleAnalyzeClick = useCallback(() => {
       setIsIdeaModalOpen(true);
-  }
+  }, []);
+
+  const handleAddModalClose = useCallback(() => {
+      setIsAddModalOpen(false);
+  }, []);
+
+  const handleIdeaModalClose = useCallback(() => {
+      setIsIdeaModalOpen(false);
+  }, []);
+
+  const handleAddSite = useCallback(async (newSite: any) => {
+      await onAddSite(newSite);
+      setIsAddModalOpen(false);
+  }, [onAddSite]);
 
   return (
     <div className="p-8 h-full overflow-y-auto">
@@ -102,15 +115,15 @@ const AppboardView: React.FC<AppboardViewProps> = ({
       {isAddModalOpen && (
         <AddSiteModal
             isOpen={isAddModalOpen}
-            onClose={() => setIsAddModalOpen(false)}
-            onAddSite={onAddSite}
+            onClose={handleAddModalClose}
+            onAddSite={handleAddSite}
             sites={sites}
         />
       )}
       {isIdeaModalOpen && (
         <IdeaGeneratorModal
             isOpen={isIdeaModalOpen}
-            onClose={() => setIsIdeaModalOpen(false)}
+            onClose={handleIdeaModalClose}
             onIdeaSelect={handleIdeaSelected}
             sites={sites}
         />
@@ -119,4 +132,4 @@ const AppboardView: React.FC<AppboardViewProps> = ({
   );
 };
 
-export default AppboardView;
+export default memo(AppboardView);

@@ -1,34 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { db } from '@/lib/db';
+import { JwtPayload } from 'jsonwebtoken';
+import { 
+  AppError, 
+  ErrorCodes, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createValidationError, 
+  createNotFoundError, 
+  createConflictError 
+} from '@/lib/error-handling';
+
+interface SiteStats {
+  posts: number;
+  pages: number;
+  products: number;
+}
+
+interface SiteWithStats extends ReturnType<typeof db.wordPressSite.findFirst> {
+  stats: SiteStats;
+  _count: {
+    content: Array<{
+      type: string;
+    }>;
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
+      throw createUnauthorizedError('Authorization token required');
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload & { userId: string };
 
     const sites = await db.wordPressSite.findMany({
       where: { userId: decoded.userId },
+      include: {
+        _count: {
+          select: {
+            content: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
+    // Add stats to each site
+    const sitesWithStats = sites.map(site => ({
+      ...site,
+      stats: {
+        posts: site._count.content || 0,
+        pages: 0, // TODO: Implement pages count when pages are added to the system
+        products: site._count.content.filter(c => c.type === 'PRODUCT').length || 0
+      }
+    }));
+
     return NextResponse.json({
-      sites
+      sites: sitesWithStats
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30'
+      }
     });
 
   } catch (error) {
-    console.error('Get sites error:', error);
+    const appError = handleApiError(error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        error: appError.message,
+        code: appError.code,
+        details: appError.details 
+      },
+      { status: appError.statusCode }
     );
   }
 }
@@ -37,22 +84,16 @@ export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
+      throw createUnauthorizedError('Authorization token required');
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload & { userId: string };
 
     const { url, name, isVirtual, username, appPassword } = await request.json();
 
     if (!url || !name) {
-      return NextResponse.json(
-        { error: 'URL and name are required' },
-        { status: 400 }
-      );
+      throw createValidationError('URL and name are required');
     }
 
     // Check user's plan limits
@@ -61,10 +102,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      throw createNotFoundError('User');
     }
 
     const currentSites = await db.wordPressSite.count({
@@ -79,10 +117,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (currentSites >= siteLimits[user.plan]) {
-      return NextResponse.json(
-        { error: 'Site limit reached for your plan' },
-        { status: 403 }
-      );
+      throw createConflictError('Site limit reached for your plan');
     }
 
     const site = await db.wordPressSite.create({
@@ -113,10 +148,14 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Create site error:', error);
+    const appError = handleApiError(error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        error: appError.message,
+        code: appError.code,
+        details: appError.details 
+      },
+      { status: appError.statusCode }
     );
   }
 }

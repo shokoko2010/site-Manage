@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { JwtPayload } from 'jsonwebtoken';
+
+interface ContentData {
+  title: string;
+  content?: string;
+  body?: string;
+  type: 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
+  metaDescription?: string;
+  language?: 'ENGLISH' | 'ARABIC' | 'FRENCH' | 'SPANISH' | 'GERMAN' | 'JAPANESE';
+  featuredImage?: string;
+  siteId?: string;
+  scheduledFor?: string;
+  tagIds?: string[];
+  categoryIds?: string[];
+}
+
+interface ContentWhereClause {
+  userId: string;
+  type?: string;
+  status?: string;
+  siteId?: string;
+}
 
 const contentSchema = z.object({
   title: z.string().min(1).max(200),
@@ -17,7 +39,7 @@ const contentSchema = z.object({
 });
 
 // Helper function to transform frontend data to match schema
-function transformContentData(data: any) {
+function transformContentData(data: ContentData) {
   return {
     ...data,
     body: data.content || data.body, // Map 'content' to 'body'
@@ -35,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload & { userId: string };
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -46,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: ContentWhereClause = {
       userId: decoded.userId
     };
 
@@ -87,6 +109,10 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit)
       }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=15'
+      }
     });
 
   } catch (error) {
@@ -109,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload & { userId: string };
 
     const body = await request.json();
     const transformedData = transformContentData(body);

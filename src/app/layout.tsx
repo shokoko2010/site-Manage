@@ -1,6 +1,7 @@
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import Providers from '@/components/Providers'
+import { PageErrorWrapper } from '@/components/ErrorBoundaryWrapper'
 
 export default function RootLayout({
   children,
@@ -17,7 +18,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            {children}
+            <PageErrorWrapper>
+              {children}
+            </PageErrorWrapper>
           </Providers>
         </ThemeProvider>
       </body>

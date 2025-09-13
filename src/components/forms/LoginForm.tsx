@@ -5,9 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormData } from '@/lib/validations/schemas';
 import { useLogin } from '@/hooks';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ResponsiveForm, ResponsiveFormGroup, ResponsiveInput, ResponsiveButton } from '@/components/ResponsiveComponents';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -47,58 +45,37 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectTo }) =
   };
 
   return (
-    <Card className="modern-card w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
-        <CardDescription className="text-center">
+    <Card className="modern-card w-full max-w-md mx-auto">
+      <CardHeader className="text-center p-6 sm:p-8">
+        <CardTitle className="text-2xl sm:text-3xl font-bold">Sign In</CardTitle>
+        <CardDescription className="text-sm sm:text-base">
           Enter your credentials to access your account
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email Field */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  className={errors.email ? 'border-destructive' : ''}
-                  {...field}
-                />
-              )}
+      <CardContent className="p-6 sm:p-8">
+        <ResponsiveForm onSubmit={handleSubmit(onSubmit)}>
+          <ResponsiveFormGroup>
+            <ResponsiveInput
+              id="email"
+              type="email"
+              label="Email"
+              placeholder="Enter your email"
+              error={errors.email?.message}
+              {...control.register('email')}
             />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-          </div>
+          </ResponsiveFormGroup>
 
-          {/* Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Controller
-              name="password"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  className={errors.password ? 'border-destructive' : ''}
-                  {...field}
-                />
-              )}
+          <ResponsiveFormGroup>
+            <ResponsiveInput
+              id="password"
+              type="password"
+              label="Password"
+              placeholder="Enter your password"
+              error={errors.password?.message}
+              {...control.register('password')}
             />
-            {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
-            )}
-          </div>
+          </ResponsiveFormGroup>
 
-          {/* Error Alert */}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>
@@ -107,20 +84,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectTo }) =
             </Alert>
           )}
 
-          {/* Submit Button */}
-          <Button type="submit" className="w-full modern-button-primary" disabled={isPending}>
-            {isPending ? (
-              <div className="flex items-center justify-center">
-                <LoadingSpinner size="sm" className="mr-2" />
-                Signing in...
-              </div>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
+          <ResponsiveButton
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={isPending}
+            className="w-full"
+          >
+            {isPending ? 'Signing in...' : 'Sign In'}
+          </ResponsiveButton>
+        </ResponsiveForm>
 
-        {/* Additional Links */}
         <div className="mt-6 text-center text-sm">
           <p className="text-muted-foreground">
             Don't have an account?{' '}

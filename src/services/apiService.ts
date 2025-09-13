@@ -38,6 +38,11 @@ export interface Site {
   lastSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
+  stats?: {
+    posts: number;
+    pages: number;
+    products: number;
+  };
 }
 
 export interface Content {

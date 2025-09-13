@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 export function middleware(request: NextRequest) {
   // Get the pathname of the request
@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
     
     // Verify token
     try {
-      jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+      verifyToken(token);
     } catch (err) {
       // Token is invalid
       if (pathname.startsWith('/api/')) {
@@ -61,7 +61,7 @@ export function middleware(request: NextRequest) {
     
     if (token) {
       try {
-        jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+        verifyToken(token);
         return NextResponse.redirect(new URL('/appboard', request.url));
       } catch (err) {
         // Token is invalid, continue to login page

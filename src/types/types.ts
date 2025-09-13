@@ -40,6 +40,11 @@ export interface WordPressSite {
   lastSyncedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  stats?: {
+    posts: number;
+    pages: number;
+    products: number;
+  };
 }
 
 // Content Types

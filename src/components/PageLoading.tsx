@@ -4,11 +4,13 @@ import LoadingSpinner from './ui/LoadingSpinner';
 interface PageLoadingProps {
   message?: string;
   className?: string;
+  showBranding?: boolean;
 }
 
 const PageLoading: React.FC<PageLoadingProps> = ({ 
   message = 'Loading your content...', 
-  className = '' 
+  className = '',
+  showBranding = true 
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center min-h-screen bg-background ${className}`}>
@@ -20,7 +22,9 @@ const PageLoading: React.FC<PageLoadingProps> = ({
           </div>
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-foreground">Zex-Content</h2>
+          {showBranding && (
+            <h2 className="text-2xl font-semibold text-foreground">Zex-Content</h2>
+          )}
           <p className="text-muted-foreground">{message}</p>
         </div>
       </div>

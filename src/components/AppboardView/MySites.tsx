@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import SiteCard from '../SiteCard';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { WordPressSite } from '@/types/types';
@@ -16,6 +16,14 @@ const MySites: React.FC<MySitesProps> = ({
   onRemoveSite, 
   onManageSite 
 }) => {
+  const handleRemoveSite = useCallback((siteId: string) => {
+    onRemoveSite(siteId);
+  }, [onRemoveSite]);
+
+  const handleManageSite = useCallback((site: WordPressSite) => {
+    onManageSite(site.id);
+  }, [onManageSite]);
+
   if (isLoading) {
     return (
       <section>
@@ -47,8 +55,8 @@ const MySites: React.FC<MySitesProps> = ({
           <SiteCard 
             key={site.id} 
             site={site} 
-            onRemove={onRemoveSite} 
-            onManage={onManageSite} 
+            onRemove={handleRemoveSite} 
+            onManage={handleManageSite} 
           />
         ))}
       </div>
@@ -56,4 +64,4 @@ const MySites: React.FC<MySitesProps> = ({
   );
 };
 
-export default MySites;
+export default memo(MySites);

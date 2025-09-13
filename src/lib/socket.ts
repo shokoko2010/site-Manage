@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 // Store active user sessions
 const activeUsers = new Map<string, any>();
@@ -66,8 +66,8 @@ function setupSocketHandlers() {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-      socket.userId = decoded.id;
+      const decoded = verifyToken(token);
+      socket.userId = decoded.userId;
       socket.userRole = decoded.role;
       next();
     } catch (err) {
