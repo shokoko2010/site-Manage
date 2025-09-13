@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { env } from '@/lib/env';
 
 // Database configuration for different environments
-const isProduction = env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 const isVercel = process.env.VERCEL === '1';
 
 // Create Prisma client with appropriate configuration
@@ -11,7 +10,7 @@ const createPrismaClient = () => {
     log: isProduction ? ['error'] : ['query', 'info', 'warn', 'error'],
     datasources: {
       db: {
-        url: env.DATABASE_URL,
+        url: process.env.DATABASE_URL!,
       },
     },
   });
@@ -28,13 +27,18 @@ const createPrismaClient = () => {
   return client;
 };
 
+// Global Prisma client instance
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Export Prisma client
 export const db = globalForPrisma.prisma ?? createPrismaClient();
 
-if (env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+// Save to global object in development to prevent multiple connections
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db;
+}
 
 // Health check function
 export async function checkDatabaseHealth() {

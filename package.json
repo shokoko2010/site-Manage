@@ -21,7 +21,13 @@
     "backup:list": "tsx src/scripts/backupDatabase.ts list",
     "backup:restore": "tsx src/scripts/backupDatabase.ts restore",
     "env:validate": "tsx src/scripts/validateEnv.ts",
-    "health": "curl http://localhost:3000/api/health"
+    "health": "curl http://localhost:3000/api/health",
+    "vercel:build": "prisma generate && next build",
+    "vercel:dev": "vercel dev",
+    "vercel:deploy": "vercel --prod",
+    "db:vercel:generate": "prisma generate",
+    "db:vercel:push": "prisma db push",
+    "db:vercel:migrate": "prisma migrate deploy"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.11",
@@ -115,6 +121,7 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "vercel": "^37.4.0"
   }
 }
