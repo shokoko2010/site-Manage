@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 // Load environment variables
 config();
@@ -57,7 +58,6 @@ class PostgreSQLSetup {
       
       try {
         // Create database using default connection
-        const { exec } = require('child_process');
         const createDbCommand = `createdb "${dbName}"`;
         
         execSync(createDbCommand, { 
@@ -105,7 +105,6 @@ class PostgreSQLSetup {
       if (!adminExists) {
         console.log('👤 Creating super admin user...');
         
-        const bcrypt = require('bcryptjs');
         const hashedPassword = await bcrypt.hash('admin123', 12);
         
         await this.prisma.user.create({

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SiteDetailView } from '@/components/SiteDetailView';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Settings, Sync, Globe, Calendar, FileText, Users, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Settings, RefreshCw, Globe, Calendar, FileText, Users, TrendingUp } from 'lucide-react';
 
 interface Site {
   id: string;
@@ -161,7 +161,7 @@ export default function SiteDetailPage() {
           </Button>
           {!site.isVirtual && (
             <Button onClick={handleSync} disabled={syncing}>
-              <Sync className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2" />
               {syncing ? 'Syncing...' : 'Sync Now'}
             </Button>
           )}
@@ -201,7 +201,7 @@ export default function SiteDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Last Sync</CardTitle>
-            <Sync className="h-4 w-4 text-muted-foreground" />
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">

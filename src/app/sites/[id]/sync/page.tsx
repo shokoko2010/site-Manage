@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Sync, CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle, Database, FileText, Image } from 'lucide-react';
+import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, Database, FileText, Image } from 'lucide-react';
 
 interface SyncResult {
   postsSynced: number;
@@ -202,7 +202,7 @@ export default function SiteSyncPage() {
           disabled={syncing || !site.isActive}
           size="lg"
         >
-          <Sync className="h-4 w-4 mr-2" />
+          <RefreshCw className="h-4 w-4 mr-2" />
           {syncing ? 'Syncing...' : 'Sync Now'}
         </Button>
       </div>

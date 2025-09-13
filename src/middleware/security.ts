@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { env } from '../lib/env';
 import { securityLogger } from '../lib/logger';
+import { randomBytes } from 'crypto';
 
 /**
  * Enhanced rate limiting configuration
@@ -319,7 +320,7 @@ export const sessionSecurity = (req: Request, res: Response, next: NextFunction)
 };
 
 function generateCSRFToken(): string {
-  return require('crypto').randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
 }
 
 /**

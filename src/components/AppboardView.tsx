@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { WordPressSite, AppboardViewProps, ContentType, GeneratedContent, ArticleContent } from '@/types/types';
 import { useLanguage } from '@/contexts/LanguageContext';
-import AddSiteModal from '../AddSiteModal';
-import IdeaGeneratorModal from '../IdeaGeneratorModal';
+import AddSiteModal from '@/components/AddSiteModal';
+import IdeaGeneratorModal from '@/components/IdeaGeneratorModal';
 import { PlusCircleIcon } from '@/lib/constants';
 
 // Import sub-components
-import StatsOverview from './StatsOverview';
-import QuickActions from './QuickActions';
-import MySites from './MySites';
-import PerformanceSnapshot from './PerformanceSnapshot';
-import RecentActivity from './RecentActivity';
+import StatsOverview from '@/components/AppboardView/StatsOverview';
+import QuickActions from '@/components/AppboardView/QuickActions';
+import MySites from '@/components/AppboardView/MySites';
+import PerformanceSnapshot from '@/components/AppboardView/PerformanceSnapshot';
+import RecentActivity from '@/components/AppboardView/RecentActivity';
 
 const AppboardView: React.FC<AppboardViewProps> = ({ 
   sites, 

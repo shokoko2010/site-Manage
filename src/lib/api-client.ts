@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useAppStore } from '@/stores';
 
 // API Response types
 interface ApiResponse<T = any> {
@@ -75,7 +75,6 @@ class ApiClient {
         const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
         
         // Add notification
-        const { useAppStore } = require('@/stores');
         useAppStore.getState().addNotification({
           type: 'error',
           title: 'API Error',

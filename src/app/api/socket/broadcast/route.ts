@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
-import { socketUtils } from '@/lib/socket';
-
-// Get the Socket.IO server instance (this would need to be set up properly)
-let io: Server | null = null;
-
-// This function should be called when the server starts to set up the Socket.IO instance
-export function setSocketIO(socketIOServer: Server) {
-  io = socketIOServer;
-}
+import { getSocketServer, socketUtils } from '@/lib/socket';
+import jwt from 'jsonwebtoken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const io = getSocketServer();
     if (!io) {
       return NextResponse.json(
         { error: 'Socket.IO server not available' },
@@ -43,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Broadcast the event based on the target
     if (targetUserId) {
       // Send to specific user
-      socketUtils.sendNotificationToUser(io, targetUserId, {
+      socketUtils.sendNotificationToUser(targetUserId, {
         ...data,
         event,
         sentBy: decoded.id,
@@ -87,9 +80,7 @@ export async function sendRealtimeNotification(
     actionUrl?: string;
   }
 ) {
-  if (!io) return;
-
-  socketUtils.sendNotificationToUser(io, userId, {
+  socketUtils.sendNotificationToUser(userId, {
     ...notification,
     createdAt: new Date()
   });
@@ -100,6 +91,7 @@ export async function broadcastContentUpdate(
   event: 'content_created' | 'content_updated' | 'content_published',
   contentData: any
 ) {
+  const io = getSocketServer();
   if (!io) return;
 
   io.emit(event, {
@@ -113,6 +105,7 @@ export async function broadcastSiteEvent(
   event: 'site_connected' | 'site_disconnected' | 'site_synced',
   siteData: any
 ) {
+  const io = getSocketServer();
   if (!io) return;
 
   io.emit(event, {

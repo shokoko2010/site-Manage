@@ -346,6 +346,24 @@ export interface AppError {
   stack?: string;
 }
 
+// Language Types
+export enum LanguageCode {
+  EN = 'en',
+  AR = 'ar',
+  FR = 'fr',
+  ES = 'es',
+  DE = 'de',
+  JA = 'ja'
+}
+
+export interface LanguageContextType {
+  language: LanguageCode;
+  setLanguage: (language: LanguageCode) => void;
+  t: (key: string) => string;
+}
+
+export type Translator = (key: string, replacements?: { [key: string]: string | number }) => string;
+
 // Theme Types
 export interface ThemeConfig {
   mode: 'light' | 'dark';
@@ -353,6 +371,67 @@ export interface ThemeConfig {
   secondaryColor: string;
   borderRadius: string;
   fontSize: 'small' | 'medium' | 'large';
+}
+
+// Component Props Types
+export interface AppboardViewProps {
+  sites: WordPressSite[];
+  onAddSite: (site: CreateSiteForm) => Promise<void>;
+  onRemoveSite: (siteId: string) => Promise<void>;
+  isLoading: boolean;
+  onManageSite: (siteId: string) => void;
+  onNavigateToNewContent: (type: ContentType, title?: string) => void;
+  contentLibrary: GeneratedContent[];
+}
+
+// Content Management Types
+export interface ContentFilter {
+  status?: ContentStatus[];
+  type?: ContentType[];
+  siteId?: string;
+  categories?: string[];
+  tags?: string[];
+  author?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export interface SearchResult {
+  content: GeneratedContent;
+  score: number;
+  matchedFields: string[];
+}
+
+export interface BulkOperation {
+  type: 'publish' | 'unpublish' | 'delete' | 'archive' | 'restore';
+  contentIds: string[];
+  data?: any;
+}
+
+// Extended Content Types for UI
+export interface ArticleContent extends GeneratedContent {
+  type: ContentType.ARTICLE;
+  wordCount: number;
+  readingTime: number;
+  categories: string[];
+  tags: string[];
+  author: string;
+  views: number;
+  engagement: number;
+  performance_stats?: {
+    views: number;
+    comments: number;
+    shares: number;
+  };
+}
+
+export interface ProductContent extends GeneratedContent {
+  type: ContentType.PRODUCT;
+  price?: number;
+  currency?: string;
+  sku?: string;
+  images?: string[];
+  variants?: any[];
 }
 
 // Export all types for easier importing
@@ -391,5 +470,11 @@ export type {
   SortOptions,
   WordPressPost,
   AppError,
-  ThemeConfig
+  ThemeConfig,
+  AppboardViewProps,
+  ContentFilter,
+  SearchResult,
+  BulkOperation,
+  ArticleContent,
+  ProductContent
 };

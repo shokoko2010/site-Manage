@@ -1,26 +1,27 @@
+'use client';
+
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import AppboardView from '../components/AppboardView'
-import { useAuth } from '../contexts/AuthContext'
-import { siteService, contentService } from '../services/apiService'
-import { WordPressSite, GeneratedContent, ContentType } from '../types/types'
-import { useOutletContext } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
+import AppboardView from '@/components/AppboardView'
+import { useAuth } from '@/contexts/AuthContext'
+import { siteService, contentService } from '@/services/apiService'
+import { WordPressSite, GeneratedContent, ContentType } from '@/types/types'
 
 interface AppboardPageProps {}
 
-interface OutletContext {
-  showNotification: (notification: { message: string; type: 'success' | 'error' | 'info' }) => void
-}
-
-export const AppboardPage: React.FC<AppboardPageProps> = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { showNotification } = useOutletContext<OutletContext>()
+export default function AppboardPage() {
+  const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   
   const [sites, setSites] = useState<WordPressSite[]>([])
   const [contentLibrary, setContentLibrary] = useState<GeneratedContent[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
+
+  // Simple notification function (since we don't have outlet context in Next.js)
+  const showNotification = (notification: { message: string; type: 'success' | 'error' | 'info' }) => {
+    // For now, just use console.log - in a real app you'd use a toast system
+    console.log(`Notification: ${notification.message} (${notification.type})`)
+  }
 
   // Load sites and content from API
   useEffect(() => {
@@ -55,9 +56,9 @@ export const AppboardPage: React.FC<AppboardPageProps> = () => {
     };
 
     loadData();
-  }, [isAuthenticated, user, showNotification]);
+  }, [isAuthenticated, user]);
 
-  const addSite = async (newSite: WordPressSite) => {
+  const addSite = async (newSite: any) => {
     try {
       const { site: createdSite } = await siteService.createSite({
         url: newSite.url,
@@ -104,14 +105,14 @@ export const AppboardPage: React.FC<AppboardPageProps> = () => {
   }
 
   const navigateToSiteDetail = (site: WordPressSite) => {
-    navigate(`/sites/${site.id}`)
+    router.push(`/sites/${site.id}`)
   }
 
   const navigateToNewContent = (type: ContentType, title?: string) => {
     if (title) {
-      navigate(`/content/new/${type}?title=${encodeURIComponent(title)}`)
+      router.push(`/content/new/${type}?title=${encodeURIComponent(title)}`)
     } else {
-      navigate(`/content/new/${type}`)
+      router.push(`/content/new/${type}`)
     }
   }
 

@@ -1,10 +1,8 @@
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 
-interface AuthenticatedSocket extends Socket {
-  userId?: string;
-  userRole?: string;
-}
+// Store active user sessions
+const activeUsers = new Map<string, any>();
 
 // Real-time event types
 export enum SocketEvents {
@@ -42,21 +40,25 @@ export enum SocketEvents {
   ERROR = 'error'
 }
 
-interface UserSession {
-  userId: string;
-  socketId: string;
-  userRole: string;
-  joinedAt: Date;
+// Global socket.io server instance
+let io: Server | null = null;
+
+export function getSocketServer(): Server | null {
+  return io;
 }
 
-// Store active user sessions
-const activeUsers = new Map<string, UserSession>();
+export function setupSocket(socketIOServer: Server) {
+  io = socketIOServer;
+  setupSocketHandlers();
+}
 
-export function setupSocket(io: Server) {
+function setupSocketHandlers() {
+  if (!io) return;
+
   console.log('Socket.IO server setup complete');
 
   // Authentication middleware
-  io.use((socket: AuthenticatedSocket, next) => {
+  io.use((socket: any, next: any) => {
     const token = socket.handshake.auth.token;
     
     if (!token) {
@@ -73,7 +75,7 @@ export function setupSocket(io: Server) {
     }
   });
 
-  io.on(SocketEvents.CONNECT, (socket: AuthenticatedSocket) => {
+  io.on(SocketEvents.CONNECT, (socket: any) => {
     console.log('Client connected:', socket.id);
 
     // Join user to their personal room
@@ -103,11 +105,10 @@ export function setupSocket(io: Server) {
     }
 
     // Handle content creation events
-    socket.on(SocketEvents.CONTENT_CREATED, (data) => {
+    socket.on(SocketEvents.CONTENT_CREATED, (data: any) => {
       if (!socket.userId) return;
       
-      // Broadcast to all users in the same sites or with appropriate permissions
-      io.emit(SocketEvents.CONTENT_CREATED, {
+      io?.emit(SocketEvents.CONTENT_CREATED, {
         ...data,
         createdBy: socket.userId,
         createdAt: new Date()
@@ -115,10 +116,10 @@ export function setupSocket(io: Server) {
     });
 
     // Handle content update events
-    socket.on(SocketEvents.CONTENT_UPDATED, (data) => {
+    socket.on(SocketEvents.CONTENT_UPDATED, (data: any) => {
       if (!socket.userId) return;
       
-      io.emit(SocketEvents.CONTENT_UPDATED, {
+      io?.emit(SocketEvents.CONTENT_UPDATED, {
         ...data,
         updatedBy: socket.userId,
         updatedAt: new Date()
@@ -126,10 +127,10 @@ export function setupSocket(io: Server) {
     });
 
     // Handle content publishing events
-    socket.on(SocketEvents.CONTENT_PUBLISHED, (data) => {
+    socket.on(SocketEvents.CONTENT_PUBLISHED, (data: any) => {
       if (!socket.userId) return;
       
-      io.emit(SocketEvents.CONTENT_PUBLISHED, {
+      io?.emit(SocketEvents.CONTENT_PUBLISHED, {
         ...data,
         publishedBy: socket.userId,
         publishedAt: new Date()
@@ -137,10 +138,10 @@ export function setupSocket(io: Server) {
     });
 
     // Handle site connection events
-    socket.on(SocketEvents.SITE_CONNECTED, (data) => {
+    socket.on(SocketEvents.SITE_CONNECTED, (data: any) => {
       if (!socket.userId) return;
       
-      io.emit(SocketEvents.SITE_CONNECTED, {
+      io?.emit(SocketEvents.SITE_CONNECTED, {
         ...data,
         connectedBy: socket.userId,
         connectedAt: new Date()
@@ -148,10 +149,10 @@ export function setupSocket(io: Server) {
     });
 
     // Handle site sync events
-    socket.on(SocketEvents.SITE_SYNCED, (data) => {
+    socket.on(SocketEvents.SITE_SYNCED, (data: any) => {
       if (!socket.userId) return;
       
-      io.emit(SocketEvents.SITE_SYNCED, {
+      io?.emit(SocketEvents.SITE_SYNCED, {
         ...data,
         syncedBy: socket.userId,
         syncedAt: new Date()
@@ -159,48 +160,24 @@ export function setupSocket(io: Server) {
     });
 
     // Handle notification events
-    socket.on(SocketEvents.NOTIFICATION, (data) => {
+    socket.on(SocketEvents.NOTIFICATION, (data: any) => {
       if (!socket.userId) return;
       
       // Send to specific user if targetUserId is provided
       if (data.targetUserId) {
-        io.to(`user:${data.targetUserId}`).emit(SocketEvents.NOTIFICATION, {
+        io?.to(`user:${data.targetUserId}`).emit(SocketEvents.NOTIFICATION, {
           ...data,
           fromUserId: socket.userId,
           createdAt: new Date()
         });
       } else {
         // Broadcast to all users
-        io.emit(SocketEvents.NOTIFICATION, {
+        io?.emit(SocketEvents.NOTIFICATION, {
           ...data,
           fromUserId: socket.userId,
           createdAt: new Date()
         });
       }
-    });
-
-    // Handle user typing indicators
-    socket.on(SocketEvents.USER_TYPING, (data) => {
-      if (!socket.userId) return;
-      
-      socket.broadcast.emit(SocketEvents.USER_TYPING, {
-        userId: socket.userId,
-        ...data,
-        timestamp: new Date()
-      });
-    });
-
-    // Handle system messages
-    socket.on(SocketEvents.SYSTEM_MESSAGE, (data) => {
-      if (socket.userRole !== 'ADMIN' && socket.userRole !== 'SUPER_ADMIN') {
-        return; // Only admins can send system messages
-      }
-      
-      io.emit(SocketEvents.SYSTEM_MESSAGE, {
-        ...data,
-        sentBy: socket.userId,
-        sentAt: new Date()
-      });
     });
 
     socket.on(SocketEvents.DISCONNECT, () => {
@@ -219,7 +196,7 @@ export function setupSocket(io: Server) {
     });
 
     // Error handling
-    socket.on('error', (error) => {
+    socket.on('error', (error: any) => {
       console.error('Socket error:', error);
       socket.emit(SocketEvents.ERROR, {
         message: 'An error occurred',
@@ -228,46 +205,21 @@ export function setupSocket(io: Server) {
     });
   });
 
-  // Get active users count
-  io.of('/').adapter.on('create-room', (room) => {
-    console.log('Room created:', room);
-  });
-
-  // Utility function to send notification to specific user
-  io.sendNotificationToUser = (userId: string, notification: any) => {
-    io.to(`user:${userId}`).emit(SocketEvents.NOTIFICATION, {
-      ...notification,
-      createdAt: new Date()
-    });
-  };
-
-  // Utility function to broadcast to all admins
-  io.broadcastToAdmins = (event: string, data: any) => {
-    activeUsers.forEach((user) => {
-      if (user.userRole === 'ADMIN' || user.userRole === 'SUPER_ADMIN') {
-        io.to(`user:${user.userId}`).emit(event, data);
-      }
-    });
-  };
-
-  // Utility function to get active users
-  io.getActiveUsers = () => {
-    return Array.from(activeUsers.values());
-  };
-
   console.log('Socket.IO event handlers registered');
 }
 
 // Export utility functions for use in API routes
 export const socketUtils = {
-  sendNotificationToUser: (io: Server, userId: string, notification: any) => {
+  sendNotificationToUser: (userId: string, notification: any) => {
+    if (!io) return;
     io.to(`user:${userId}`).emit(SocketEvents.NOTIFICATION, {
       ...notification,
       createdAt: new Date()
     });
   },
   
-  broadcastToAdmins: (io: Server, event: string, data: any) => {
+  broadcastToAdmins: (event: string, data: any) => {
+    if (!io) return;
     activeUsers.forEach((user) => {
       if (user.userRole === 'ADMIN' || user.userRole === 'SUPER_ADMIN') {
         io.to(`user:${user.userId}`).emit(event, data);

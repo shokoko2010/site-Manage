@@ -344,6 +344,36 @@ class WordPressService {
 export const wordpressService = new WordPressService();
 
 // Export convenience functions
+export const addSite = async (siteData: {
+  url: string;
+  name: string;
+  isVirtual?: boolean;
+  username?: string;
+  appPassword?: string;
+}): Promise<WordPressSite> => {
+  // This would normally call an API, but for now we'll create a mock site
+  const newSite: WordPressSite = {
+    id: Date.now().toString(),
+    url: siteData.url,
+    name: siteData.name,
+    username: siteData.username,
+    appPassword: siteData.appPassword,
+    isVirtual: siteData.isVirtual || false,
+    isActive: true,
+    lastSyncedAt: new Date()
+  };
+  
+  // Test the connection if it's not a virtual site
+  if (!siteData.isVirtual) {
+    const isConnected = await wordpressService.testConnection(newSite);
+    if (!isConnected) {
+      throw new Error('Failed to connect to WordPress site');
+    }
+  }
+  
+  return newSite;
+};
+
 export const fetchAllPostsFromAllSites = async (sites: WordPressSite[]): Promise<WordPressPost[]> => {
   const allPosts: WordPressPost[] = [];
 

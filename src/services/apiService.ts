@@ -257,6 +257,44 @@ export const authService = {
   getCurrentUser: () => apiService.getCurrentUser(),
 };
 
+export const siteService = {
+  getSites: () => apiService.getSites(),
+  createSite: (siteData: {
+    url: string;
+    name: string;
+    isVirtual?: boolean;
+    username?: string;
+    appPassword?: string;
+  }) => apiService.createSite(siteData),
+  deleteSite: async (siteId: string) => {
+    return apiService.request<{ message: string }>(`/api/sites/${siteId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+export const contentService = {
+  getContent: (params?: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    status?: string;
+    siteId?: string;
+  }) => apiService.getContent(params),
+  createContent: (contentData: {
+    title: string;
+    body: string;
+    type: 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
+    metaDescription?: string;
+    language?: 'ENGLISH' | 'ARABIC' | 'FRENCH' | 'SPANISH' | 'GERMAN' | 'JAPANESE';
+    featuredImage?: string;
+    siteId?: string;
+    scheduledFor?: string;
+    tagIds?: string[];
+    categoryIds?: string[];
+  }) => apiService.createContent(contentData),
+};
+
 export const setAuthTokens = (token: string): void => {
   apiService.setToken(token);
 };
