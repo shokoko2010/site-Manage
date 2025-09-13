@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
 export function middleware(request: NextRequest) {
   // Get the pathname of the request
   const { pathname } = request.nextUrl;
   
   // Define public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/api/auth/login', '/api/auth/register', '/api/health'];
+  const publicRoutes = ['/', '/login', '/register', '/api/auth/login', '/api/auth/register', '/api/health'];
   
   // Define protected routes
   const protectedRoutes = ['/appboard', '/content', '/sites', '/analytics', '/settings'];
@@ -21,35 +21,62 @@ export function middleware(request: NextRequest) {
     pathname === route || pathname.startsWith(route)
   );
   
-  // If it's a protected route, check for authentication token
+  // If it's a protected route, check for authentication
   if (isProtectedRoute && !isPublicRoute) {
-    // Get the token from the Authorization header
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    // Get token from cookie
+    const token = request.cookies.get('auth_token')?.value;
     
-    // For API routes, check the token
-    if (pathname.startsWith('/api/') && !token) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
+    if (!token) {
+      // For API routes, return 401
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Authorization token required' },
+          { status: 401 }
+        );
+      }
+      
+      // For page routes, redirect to login
+      return NextResponse.redirect(new URL('/login', request.url));
     }
     
-    // For page routes, we'll let the client-side handle authentication
-    // The ProtectedRoute component will check authentication
+    // Verify token
+    try {
+      jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+    } catch (err) {
+      // Token is invalid
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Invalid or expired token' },
+          { status: 401 }
+        );
+      }
+      
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
   }
   
   // If the user is already authenticated and tries to access login page, redirect to appboard
-  if (pathname === '/login') {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  if (pathname === '/login' || pathname === '/register') {
+    const token = request.cookies.get('auth_token')?.value;
     
     if (token) {
-      return NextResponse.redirect(new URL('/appboard', request.url));
+      try {
+        jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+        return NextResponse.redirect(new URL('/appboard', request.url));
+      } catch (err) {
+        // Token is invalid, continue to login page
+      }
     }
   }
   
-  return NextResponse.next();
+  // Add security headers
+  const response = NextResponse.next();
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https:;");
+  
+  return response;
 }
 
 export const config = {

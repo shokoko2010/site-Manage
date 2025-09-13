@@ -1,27 +1,38 @@
 "use client"
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { loginSchema } from '@/lib/validation';
 
 interface LoginFormProps {
   onToggleMode: () => void;
 }
 
+type LoginFormData = z.infer<typeof loginSchema>;
+
 export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema)
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     setError('');
     setLoading(true);
 
@@ -31,19 +42,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(responseData.error || 'Login failed');
       }
 
-      // Store token in localStorage
-      localStorage.setItem('auth_token', data.token);
-      
-      // Redirect to appboard
+      // Success - redirect to appboard (token will be stored in HTTP-only cookie)
       router.push('/appboard');
       
     } catch (err) {
@@ -62,17 +70,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              {...register('email')}
             />
+            {errors.email && (
+              <p className="text-sm text-red-600">{errors.email.message}</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -81,10 +90,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
               id="password"
               type="password"
               placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              {...register('password')}
             />
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password.message}</p>
+            )}
           </div>
 
           {error && (

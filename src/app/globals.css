@@ -4,48 +4,118 @@
 
 @layer base {
   :root {
+    /* Modern Design System - Light Theme */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
+    
+    /* Modern Primary - Indigo */
+    --primary: 59 91 246;
+    --primary-foreground: 255 255 255;
+    
+    /* Modern Secondary - Light Gray */
+    --secondary: 241 245 249;
     --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    
+    /* Modern Accent - Vibrant Indigo */
+    --accent: 99 102 241;
+    --accent-foreground: 255 255 255;
+    
+    /* Modern Muted - Soft Gray */
+    --muted: 248 250 252;
+    --muted-foreground: 148 163 184;
+    
+    /* Modern Destructive - Red */
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    
+    /* Modern Border - Light Gray */
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 59 91 246;
+    
+    /* Modern Radius */
+    --radius: 0.75rem;
+    
+    /* Additional Modern Colors */
+    --success: 34 197 94;
+    --success-foreground: 255 255 255;
+    --warning: 251 191 36;
+    --warning-foreground: 255 255 255;
+    --info: 59 130 246;
+    --info-foreground: 255 255 255;
+    
+    /* Spacing Scale */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    --space-3xl: 4rem;
+    
+    /* Typography Scale */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    /* Modern Design System - Dark Theme */
+    --background: 15 23 42;
+    --foreground: 248 250 252;
+    --card: 30 41 59;
+    --card-foreground: 248 250 252;
+    --popover: 30 41 59;
+    --popover-foreground: 248 250 252;
+    
+    /* Modern Primary - Light Indigo */
+    --primary: 129 140 248;
+    --primary-foreground: 15 23 42;
+    
+    /* Modern Secondary - Dark Gray */
+    --secondary: 51 65 85;
+    --secondary-foreground: 248 250 252;
+    
+    /* Modern Accent - Bright Indigo */
+    --accent: 165 180 252;
+    --accent-foreground: 15 23 42;
+    
+    /* Modern Muted - Darker Gray */
+    --muted: 71 85 105;
+    --muted-foreground: 148 163 184;
+    
+    /* Modern Destructive - Red */
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    
+    /* Modern Border - Dark Gray */
+    --border: 71 85 105;
+    --input: 71 85 105;
+    --ring: 129 140 248;
+    
+    /* Additional Modern Colors - Dark */
+    --success: 34 197 94;
+    --success-foreground: 255 255 255;
+    --warning: 251 191 36;
+    --warning-foreground: 255 255 255;
+    --info: 59 130 246;
+    --info-foreground: 255 255 255;
   }
 }
 
@@ -53,7 +123,236 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Modern Typography */
+  h1 {
+    @apply text-3xl font-bold tracking-tight lg:text-4xl;
+  }
+  
+  h2 {
+    @apply text-2xl font-semibold tracking-tight lg:text-3xl;
+  }
+  
+  h3 {
+    @apply text-xl font-semibold tracking-tight lg:text-2xl;
+  }
+  
+  h4 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+  
+  h5 {
+    @apply text-base font-semibold tracking-tight;
+  }
+  
+  h6 {
+    @apply text-sm font-semibold tracking-tight;
+  }
+  
+  /* Modern Animations */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* Utility Classes */
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+  
+  /* Modern Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+  
+  /* Modern Focus Styles */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+  
+  /* Modern Transitions */
+  .transition-modern {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .transition-transform-modern {
+    @apply transition-transform duration-200 ease-in-out;
+  }
+  
+  .transition-opacity-modern {
+    @apply transition-opacity duration-200 ease-in-out;
+  }
+}
+
+@layer components {
+  /* Modern Card Component */
+  .modern-card {
+    @apply bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-modern;
+  }
+  
+  /* Modern Button Component */
+  .modern-button {
+    @apply inline-flex items-center justify-center rounded-xl text-sm font-medium transition-modern focus-ring disabled:pointer-events-none disabled:opacity-50;
+  }
+  
+  .modern-button-primary {
+    @apply modern-button bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+  
+  .modern-button-secondary {
+    @apply modern-button bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+  
+  .modern-button-outline {
+    @apply modern-button border border-border bg-background hover:bg-accent hover:text-accent-foreground;
+  }
+  
+  .modern-button-ghost {
+    @apply modern-button hover:bg-accent hover:text-accent-foreground;
+  }
+  
+  /* Modern Input Component */
+  .modern-input {
+    @apply flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  /* Modern Badge Component */
+  .modern-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .modern-badge-primary {
+    @apply modern-badge bg-primary/10 text-primary border border-primary/20;
+  }
+  
+  .modern-badge-secondary {
+    @apply modern-badge bg-secondary text-secondary-foreground;
+  }
+  
+  .modern-badge-success {
+    @apply modern-badge bg-success/10 text-success border border-success/20;
+  }
+  
+  .modern-badge-warning {
+    @apply modern-badge bg-warning/10 text-warning border border-warning/20;
+  }
+  
+  .modern-badge-destructive {
+    @apply modern-badge bg-destructive/10 text-destructive border border-destructive/20;
+  }
+  
+  /* Modern Alert Component */
+  .modern-alert {
+    @apply relative w-full rounded-xl border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground;
+  }
+  
+  .modern-alert-primary {
+    @apply modern-alert bg-primary/5 border-primary/20 text-primary [&>svg]:text-primary;
+  }
+  
+  .modern-alert-success {
+    @apply modern-alert bg-green-50 border-green-200 text-green-800 dark:bg-green-900 dark:text-green-200 [&>svg]:text-green-600;
+  }
+  
+  .modern-alert-warning {
+    @apply modern-alert bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 [&>svg]:text-yellow-600;
+  }
+  
+  .modern-alert-destructive {
+    @apply modern-alert bg-red-50 border-red-200 text-red-800 dark:bg-red-900 dark:text-red-200 [&>svg]:text-red-600;
+  }
+  
+  /* Modern Loading Spinner */
+  .modern-spinner {
+    @apply animate-spin rounded-full border-2 border-solid border-current border-r-transparent;
+  }
+  
+  /* Modern Skeleton */
+  .modern-skeleton {
+    @apply animate-pulse rounded-xl bg-muted;
+  }
+  
+  /* Cache Status Indicators */
+  .cache-status {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .cache-status-active {
+    @apply cache-status bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+  }
+  
+  .cache-status-stale {
+    @apply cache-status bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+  }
+  
+  .cache-status-empty {
+    @apply cache-status bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200;
   }
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { LazyImage } from './OptimizedImage';
 
 const LandingPageSimple: React.FC = () => {
   return (
@@ -136,7 +137,13 @@ const LandingPageSimple: React.FC = () => {
             ].map((testimonial, index) => (
               <div key={index} className="bg-white rounded-xl p-8 shadow-sm">
                 <div className="flex items-center mb-4">
-                  <img src={testimonial.avatar} alt={testimonial.name} className="w-12 h-12 rounded-full mr-4" />
+                  <LazyImage 
+                    src={testimonial.avatar} 
+                    alt={testimonial.name} 
+                    width={48} 
+                    height={48} 
+                    className="w-12 h-12 rounded-full mr-4" 
+                  />
                   <div>
                     <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
                     <p className="text-sm text-gray-600">{testimonial.role}</p>

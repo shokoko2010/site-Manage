@@ -4,17 +4,20 @@ import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get token from cookie
+    const token = request.cookies.get('auth_token')?.value;
+
+    if (!token) {
       return NextResponse.json(
-        { error: 'Authorization token required' },
+        { error: 'No authentication token found' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7);
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
 
+    // Get user from database
     const user = await db.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -26,8 +29,8 @@ export async function GET(request: NextRequest) {
         plan: true,
         avatar: true,
         bio: true,
-        emailVerified: true,
         isActive: true,
+        emailVerified: true,
         createdAt: true,
         updatedAt: true
       }
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (!user || !user.isActive) {
       return NextResponse.json(
         { error: 'User not found or inactive' },
-        { status: 404 }
+        { status: 401 }
       );
     }
 
@@ -45,7 +48,15 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get user error:', error);
+    console.error('Auth me error:', error);
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

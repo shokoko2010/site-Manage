@@ -133,10 +133,10 @@ const pricingPlans = [
 
 function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: string; label: string }) {
   return (
-    <Card className="text-center">
+    <Card className="text-center modern-card">
       <CardContent className="pt-6">
         <Icon className="h-8 w-8 mx-auto mb-2 text-primary" />
-        <div className="text-3xl font-bold text-primary">{value}</div>
+        <div className="text-3xl font-bold text-foreground">{value}</div>
         <div className="text-sm text-muted-foreground">{label}</div>
       </CardContent>
     </Card>
@@ -145,7 +145,7 @@ function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value
 
 function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[0] }) {
   return (
-    <Card>
+    <Card className="modern-card">
       <CardContent className="pt-6">
         <div className="flex mb-2">
           {[...Array(testimonial.rating)].map((_, i) => (
@@ -156,7 +156,7 @@ function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[0] 
           "{testimonial.content}"
         </p>
         <div>
-          <p className="font-semibold">{testimonial.name}</p>
+          <p className="font-semibold text-foreground">{testimonial.name}</p>
           <p className="text-sm text-muted-foreground">
             {testimonial.role} at {testimonial.company}
           </p>
@@ -168,16 +168,16 @@ function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[0] 
 
 function PricingCard({ plan }: { plan: typeof pricingPlans[0] }) {
   return (
-    <Card className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
+    <Card className={`relative modern-card ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
       {plan.popular && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
+          <Badge className="modern-badge-primary">Most Popular</Badge>
         </div>
       )}
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">{plan.name}</CardTitle>
+        <CardTitle className="text-2xl text-foreground">{plan.name}</CardTitle>
         <div className="mt-2">
-          <span className="text-4xl font-bold">{plan.price}</span>
+          <span className="text-4xl font-bold text-foreground">{plan.price}</span>
           <span className="text-muted-foreground">/{plan.period}</span>
         </div>
         <CardDescription>{plan.description}</CardDescription>
@@ -192,8 +192,7 @@ function PricingCard({ plan }: { plan: typeof pricingPlans[0] }) {
           ))}
         </ul>
         <Button 
-          className="w-full" 
-          variant={plan.popular ? "default" : "outline"}
+          className="w-full modern-button-primary" 
           asChild
         >
           <a href="/login">{plan.cta}</a>
@@ -295,10 +294,10 @@ export default function ModernLandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+              <Card key={index} className="modern-card hover:shadow-lg transition-all">
                 <CardContent className="pt-6">
                   <feature.icon className="h-12 w-12 text-primary mb-4" />
-                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                  <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
                   <p className="text-muted-foreground">{feature.description}</p>
                 </CardContent>
               </Card>
