@@ -55,11 +55,26 @@ export const AuthenticatedApp: React.FC = () => {
         
         // Load sites from API
         const { sites: apiSites } = await siteService.getSites();
-        setSites(apiSites);
+        // Convert API Site[] to WordPressSite[] by transforming string dates to Date objects
+        const convertedSites: WordPressSite[] = apiSites.map(site => ({
+          ...site,
+          lastSyncedAt: site.lastSyncedAt ? new Date(site.lastSyncedAt) : undefined,
+          createdAt: new Date(site.createdAt),
+          updatedAt: new Date(site.updatedAt),
+        }));
+        setSites(convertedSites);
 
         // Load content from API
         const { content: apiContent } = await contentService.getContent();
-        setContentLibrary(apiContent as GeneratedContent[]);
+        // Convert API Content[] to GeneratedContent[] by transforming string dates to Date objects
+        const convertedContent: GeneratedContent[] = apiContent.map(content => ({
+          ...content,
+          scheduledFor: content.scheduledFor ? new Date(content.scheduledFor) : undefined,
+          createdAt: new Date(content.createdAt),
+          updatedAt: new Date(content.updatedAt),
+          publishedAt: content.publishedAt ? new Date(content.publishedAt) : undefined,
+        }));
+        setContentLibrary(convertedContent);
         
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -123,7 +138,15 @@ export const AuthenticatedApp: React.FC = () => {
         appPassword: newSite.appPassword,
       });
       
-      const updatedSites = [...sites, createdSite];
+      // Convert API Site to WordPressSite
+      const convertedSite: WordPressSite = {
+        ...createdSite,
+        lastSyncedAt: createdSite.lastSyncedAt ? new Date(createdSite.lastSyncedAt) : undefined,
+        createdAt: new Date(createdSite.createdAt),
+        updatedAt: new Date(createdSite.updatedAt),
+      };
+      
+      const updatedSites = [...sites, convertedSite];
       setSites(updatedSites);
       saveSitesToStorage(updatedSites);
       showNotification({ message: t('siteAdded', { name: createdSite.name }), type: 'success' });
