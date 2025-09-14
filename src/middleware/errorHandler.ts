@@ -328,7 +328,7 @@ const handlePrismaError = (error: Prisma.PrismaClientKnownRequestError): AppErro
         }
       );
     
-    case 'P2025':
+    case 'P2032':
       return new NotFoundError(
         'Operation failed because it depends on one or more records that were required but not found',
         {

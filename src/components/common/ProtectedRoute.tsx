@@ -1,9 +1,12 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/common/Spinner';
+
+type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+type UserPlan = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

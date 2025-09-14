@@ -1,6 +1,8 @@
 // Responsive Design System Utilities
 // Mobile-first approach with breakpoints and touch-friendly utilities
 
+import * as React from "react"
+
 // Breakpoint Configuration
 export const breakpoints = {
   xs: '0px',
@@ -287,7 +289,7 @@ export const useIsTouch = () => {
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
   
   return isTouch;

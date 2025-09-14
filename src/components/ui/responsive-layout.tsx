@@ -182,6 +182,7 @@ export function ResponsiveLayout({
   notificationCount 
 }: ResponsiveLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
     <div className="min-h-screen bg-background">
@@ -215,7 +216,6 @@ export function ResponsiveLayout({
                 {navigation
                   .filter(item => !item.mobileOnly)
                   .map((item) => {
-                    const pathname = usePathname()
                     const isActive = pathname === item.href
                     return (
                       <Link

@@ -1,3 +1,4 @@
+import React from 'react'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import Providers from '@/components/Providers'
