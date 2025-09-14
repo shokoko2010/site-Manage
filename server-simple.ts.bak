@@ -2,7 +2,7 @@ import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
 import { Server } from 'socket.io';
-import { setSocketServer } from '../src/lib/socket';
+import { setupSocket } from './src/lib/socket';
 
 const app = next({ dev: process.env.NODE_ENV !== 'production' });
 const handle = app.getRequestHandler();
@@ -28,7 +28,7 @@ app.prepare().then(() => {
   });
 
   // Set up Socket.IO
-  setSocketServer(io);
+  setupSocket(io);
 
   const port = process.env.PORT || 3000;
   server.listen(port, () => {

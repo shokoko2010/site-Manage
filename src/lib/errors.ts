@@ -2,6 +2,7 @@
  * Centralized Error Handling System
  * Provides consistent error handling across the application
  */
+import { NextRequest, NextResponse } from 'next/server';
 
 export class AppError extends Error {
   constructor(
@@ -219,12 +220,12 @@ export function createErrorResponse(error: AppError) {
 }
 
 /**
- * Async error handler wrapper for API routes
+ * Async error handler wrapper for Next.js API routes
  */
 export function withErrorHandling(
-  handler: (request: Request, context?: any) => Promise<Response>
+  handler: (request: NextRequest, context?: any) => Promise<NextResponse>
 ) {
-  return async (request: Request, context?: any): Promise<Response> => {
+  return async (request: NextRequest, context?: any): Promise<NextResponse> => {
     try {
       return await handler(request, context);
     } catch (error) {
@@ -233,7 +234,14 @@ export function withErrorHandling(
       // Log the error
       logError(appError, request);
       
-      return createErrorResponse(appError);
+      // Create NextResponse instead of Response
+      const formattedError = formatErrorForResponse(appError);
+      return NextResponse.json(formattedError, {
+        status: appError.statusCode,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     }
   };
 }

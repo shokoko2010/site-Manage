@@ -10,7 +10,7 @@ async function registerHandler(request: NextRequest) {
   const body = await request.json();
   const validatedData = validateSchema(registerSchema, body);
 
-  const { email, username, password, name } = validatedData;
+  const { email, username, password, fullName: name } = validatedData;
 
   // Check if user already exists
   const existingUser = await db.user.findFirst({

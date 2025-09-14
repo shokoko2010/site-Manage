@@ -48,8 +48,22 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, onClose, onAddSite,
     setError('');
     setIsAdding(true);
     try {
-      const newSite = await addSite(newSiteUrl, newSiteUsername, newSitePassword);
-      onAddSite(newSite);
+      const newSite = await addSite({
+        url: newSiteUrl,
+        name: newSiteUrl, // Use URL as name for now
+        username: newSiteUsername,
+        appPassword: newSitePassword,
+        isVirtual: false
+      });
+      
+      // Transform to match the expected WordPressSite type from types
+      const transformedSite: WordPressSite = {
+        ...newSite,
+        userId: '', // This would normally come from the API
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      onAddSite(transformedSite);
       handleClose();
     } catch (err) {
        if (err instanceof Error && (err.message.includes("already been added") || err.message.includes("exists"))) {
@@ -84,12 +98,16 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, onClose, onAddSite,
     setError('');
     const newVirtualSite: WordPressSite = {
         id: cleanedUrl,
+        userId: '', // This should be populated with actual user ID
         url: cleanedUrl,
         name: virtualSiteName,
         isVirtual: true,
-        stats: { posts: 0, pages: 0, products: 0 },
         username: '',
-        appPassword: ''
+        appPassword: '',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        stats: { posts: 0, pages: 0, products: 0 }
     };
     onAddSite(newVirtualSite);
     handleClose();

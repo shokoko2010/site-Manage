@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import TurndownService from 'turndown'
 import DOMPurify from 'dompurify'
-import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, ArticleContent, ContentType, CampaignGenerationResult, SitePost, Language } from '../types/types'
+import { View, WordPressSite, GeneratedContent, Notification as NotificationType, LanguageCode, ArticleContent, ContentType, CampaignGenerationResult, Language } from '../types/types'
 import Sidebar from '../components/Sidebar'
 import { getSitesFromStorage, saveSitesToStorage, fetchAllPostsFromAllSites } from '../services/wordpressService'
 import Notification from '../components/Notification'

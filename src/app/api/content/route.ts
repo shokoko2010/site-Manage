@@ -20,8 +20,8 @@ interface ContentData {
 
 interface ContentWhereClause {
   userId: string;
-  type?: string;
-  status?: string;
+  type?: 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
+  status?: 'DRAFT' | 'PUBLISHED' | 'PENDING' | 'SCHEDULED' | 'ARCHIVED';
   siteId?: string;
 }
 
@@ -72,8 +72,12 @@ export async function GET(request: NextRequest) {
       userId: decoded.userId
     };
 
-    if (type) where.type = type;
-    if (status) where.status = status;
+    if (type && ['ARTICLE', 'PRODUCT', 'CAMPAIGN'].includes(type)) {
+      where.type = type as 'ARTICLE' | 'PRODUCT' | 'CAMPAIGN';
+    }
+    if (status && ['DRAFT', 'PUBLISHED', 'PENDING', 'SCHEDULED', 'ARCHIVED'].includes(status)) {
+      where.status = status as 'DRAFT' | 'PUBLISHED' | 'PENDING' | 'SCHEDULED' | 'ARCHIVED';
+    }
     if (siteId) where.siteId = siteId;
 
     const [content, total] = await Promise.all([

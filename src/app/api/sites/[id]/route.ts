@@ -4,9 +4,10 @@ import { db } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -20,7 +21,7 @@ export async function GET(
 
     const site = await db.wordPressSite.findFirst({
       where: { 
-        id: params.id,
+        id: id,
         userId: decoded.userId 
       },
       include: {
@@ -54,9 +55,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -73,7 +75,7 @@ export async function PUT(
     // Check if site exists and belongs to user
     const existingSite = await db.wordPressSite.findFirst({
       where: { 
-        id: params.id,
+        id: id,
         userId: decoded.userId 
       }
     });
@@ -86,7 +88,7 @@ export async function PUT(
     }
 
     const updatedSite = await db.wordPressSite.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         url: url || existingSite.url,
         name: name || existingSite.name,
@@ -101,7 +103,7 @@ export async function PUT(
     await db.activity.create({
       data: {
         userId: decoded.userId,
-        siteId: params.id,
+        siteId: id,
         action: 'UPDATE_SETTINGS',
         metadata: { changes: { url, name, isVirtual, isActive } },
         ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
@@ -125,9 +127,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -142,7 +145,7 @@ export async function DELETE(
     // Check if site exists and belongs to user
     const site = await db.wordPressSite.findFirst({
       where: { 
-        id: params.id,
+        id: id,
         userId: decoded.userId 
       }
     });
@@ -155,14 +158,14 @@ export async function DELETE(
     }
 
     await db.wordPressSite.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     // Log activity
     await db.activity.create({
       data: {
         userId: decoded.userId,
-        siteId: params.id,
+        siteId: id,
         action: 'REMOVE_SITE',
         metadata: { siteName: site.name },
         ipAddress: request.headers.get('x-forwarded-for') || 'unknown',

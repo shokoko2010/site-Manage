@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       stats: {
         posts: site._count.content || 0,
         pages: 0, // TODO: Implement pages count when pages are added to the system
-        products: site._count.content.filter(c => c.type === 'PRODUCT').length || 0
+        products: 0 // TODO: Implement products count separately
       }
     }));
 

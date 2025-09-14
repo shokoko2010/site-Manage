@@ -15,17 +15,17 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigateToNewContent }) =
         <QuickActionButton 
           title="Article" 
           icon={<ArticleIcon />} 
-          onClick={() => onNavigateToNewContent(ContentType.Article)} 
+          onClick={() => onNavigateToNewContent('ARTICLE' as ContentType)} 
         />
         <QuickActionButton 
           title="Product" 
           icon={<ProductIcon />} 
-          onClick={() => onNavigateToNewContent(ContentType.Product)} 
+          onClick={() => onNavigateToNewContent('PRODUCT' as ContentType)} 
         />
         <QuickActionButton 
           title="Campaign" 
           icon={<CampaignIcon />} 
-          onClick={() => onNavigateToNewContent(ContentType.Campaign)} 
+          onClick={() => onNavigateToNewContent('CAMPAIGN' as ContentType)} 
         />
       </div>
     </section>

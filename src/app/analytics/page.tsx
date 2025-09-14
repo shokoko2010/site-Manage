@@ -457,7 +457,7 @@ export default function AnalyticsPage() {
                         ))}
                       </Pie>
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
+                      <ChartLegend content={<ChartLegendContent payload={[]} />} />
                     </RechartsPieChart>
                   </ChartContainer>
                 </CardContent>
@@ -488,7 +488,7 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="type" />
                       <YAxis />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
+                      <ChartLegend content={<ChartLegendContent payload={[]} />} />
                       <Bar dataKey="views" fill="hsl(var(--chart-1))" name="Views" />
                       <Bar dataKey="count" fill="hsl(var(--chart-2))" name="Count" />
                     </BarChart>
@@ -528,7 +528,7 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="date" />
                       <YAxis />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
+                      <ChartLegend content={<ChartLegendContent payload={[]} />} />
                       <Area
                         type="monotone"
                         dataKey="newUsers"

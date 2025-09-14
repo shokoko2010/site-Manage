@@ -28,7 +28,24 @@ const nextConfig = {
   serverExternalPackages: [],
   
   // Webpack optimizations
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config: any, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
+    // Exclude legacy React Router files from build
+    if (!isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'react-router-dom': 'react-router-dom'
+      });
+    }
+    
+    // Add ignore plugin for legacy files
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new (require('webpack')).IgnorePlugin({
+        resourceRegExp: /^\.\/src\/(main|main-app|App|App-working|App-simple|AppRouter|AppSimple)\.(tsx|ts)$/,
+        contextRegExp: /$/
+      })
+    );
+    
     // Optimize bundle size
     if (!dev && !isServer) {
       config.optimization.splitChunks = {

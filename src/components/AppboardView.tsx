@@ -49,7 +49,7 @@ const AppboardView: React.FC<AppboardViewProps> = ({
 
   const handleIdeaSelected = useCallback((title: string) => {
       setIsIdeaModalOpen(false);
-      onNavigateToNewContent(ContentType.Article, title);
+      onNavigateToNewContent('ARTICLE' as ContentType, title);
   }, [onNavigateToNewContent]);
 
   const handleAnalyzeClick = useCallback(() => {

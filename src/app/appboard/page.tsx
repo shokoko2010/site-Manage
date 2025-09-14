@@ -30,11 +30,26 @@ export default function AppboardPage() {
         
         // Load sites from API
         const { sites: apiSites } = await siteService.getSites();
-        setSites(apiSites);
+        // Transform string dates to Date objects
+        const transformedSites = apiSites.map(site => ({
+          ...site,
+          createdAt: new Date(site.createdAt),
+          updatedAt: new Date(site.updatedAt),
+          lastSyncedAt: site.lastSyncedAt ? new Date(site.lastSyncedAt) : undefined
+        }));
+        setSites(transformedSites);
 
         // Load content from API
         const { content: apiContent } = await contentService.getContent();
-        setContentLibrary(apiContent as GeneratedContent[]);
+        // Transform string dates to Date objects for content
+        const transformedContent = apiContent.map(content => ({
+          ...content,
+          createdAt: new Date(content.createdAt),
+          updatedAt: new Date(content.updatedAt),
+          publishedAt: content.publishedAt ? new Date(content.publishedAt) : undefined,
+          scheduledFor: content.scheduledFor ? new Date(content.scheduledFor) : undefined
+        }));
+        setContentLibrary(transformedContent as GeneratedContent[]);
         
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -65,7 +80,12 @@ export default function AppboardPage() {
         appPassword: newSite.appPassword,
       });
       
-      const updatedSites = [...sites, createdSite];
+      const updatedSites = [...sites, {
+        ...createdSite,
+        createdAt: new Date(createdSite.createdAt),
+        updatedAt: new Date(createdSite.updatedAt),
+        lastSyncedAt: createdSite.lastSyncedAt ? new Date(createdSite.lastSyncedAt) : undefined
+      }];
       setSites(updatedSites);
       localStorage.setItem('wordpress_sites', JSON.stringify(updatedSites));
       showNotification({ message: `Site "${createdSite.name}" added successfully`, type: 'success' });
@@ -101,8 +121,8 @@ export default function AppboardPage() {
     }
   }
 
-  const navigateToSiteDetail = (site: WordPressSite) => {
-    router.push(`/sites/${site.id}`)
+  const navigateToSiteDetail = (siteId: string) => {
+    router.push(`/sites/${siteId}`)
   }
 
   const navigateToNewContent = (type: ContentType, title?: string) => {

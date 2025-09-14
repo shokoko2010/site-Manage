@@ -27,6 +27,20 @@ export enum UserPlan {
   ENTERPRISE = 'ENTERPRISE'
 }
 
+export enum View {
+  Appboard = 'APPBOARD',
+  ContentLibrary = 'CONTENT_LIBRARY',
+  NewContent = 'NEW_CONTENT',
+  Calendar = 'CALENDAR',
+  Settings = 'SETTINGS',
+  SiteDetail = 'SITE_DETAIL',
+  UserManagement = 'USER_MANAGEMENT',
+  SubscriptionPlans = 'SUBSCRIPTION_PLANS',
+  Analytics = 'ANALYTICS',
+  Team = 'TEAM',
+  Upgrade = 'UPGRADE'
+}
+
 // WordPress Site Types
 export interface WordPressSite {
   id: string;
@@ -405,6 +419,15 @@ export interface SearchResult {
   content: GeneratedContent;
   score: number;
   matchedFields: string[];
+}
+
+export interface CampaignGenerationResult {
+  id: string;
+  title: string;
+  description: string;
+  contents: GeneratedContent[];
+  createdAt: Date;
+  status: 'DRAFT' | 'ACTIVE' | 'COMPLETED';
 }
 
 export interface BulkOperation {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { GeneratedContent, ContentFilter, SearchResult, BulkOperation, ContentType } from '../types/types';
 import { ContentManagementService } from '../services/contentManagementService';
 import { useLanguage } from '../contexts/LanguageContext';
-import { SettingsIcon, TagIcon, FolderIcon, CalendarIcon, UsersIcon, ClockIcon, TrashIcon, EyeIcon, EditIcon, ArchiveIcon, PlusIcon } from '../lib/constants';
+import { SettingsIcon, TagIcon, FolderIcon, CalendarIcon, UsersIcon, ClockIcon, TrashIcon, EyeIcon, EditIcon, FolderIcon as ArchiveIcon, PlusCircleIcon as PlusIcon } from '../lib/constants';
 
 interface AdvancedContentManagerProps {
   contentLibrary: GeneratedContent[];
@@ -135,7 +135,9 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
       <div className="bg-gray-800 rounded-lg p-4 mb-6">
         {/* Search Bar */}
         <div className="relative mb-4">
-          <SettingsIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5">
+            <SettingsIcon />
+          </div>
           <input
             type="text"
             placeholder={t('searchContent')}
@@ -156,7 +158,9 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              <TagIcon className="w-4 h-4 mr-2" />
+              <span className="w-4 h-4 mr-2 inline-block">
+                <TagIcon />
+              </span>
               {t('filters')}
               {hasActiveFilters && (
                 <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
@@ -170,7 +174,9 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
                 onClick={clearFilters}
                 className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
-                <TrashIcon className="w-4 h-4 mr-2" />
+                <span className="w-4 h-4 mr-2 inline-block">
+                  <TrashIcon />
+                </span>
                 {t('clearFilters')}
               </button>
             )}
@@ -215,8 +221,8 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
                   }}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value={ContentType.Article}>{t('article')}</option>
-                  <option value={ContentType.Product}>{t('product')}</option>
+                  <option value="ARTICLE">{t('article')}</option>
+                  <option value="PRODUCT">{t('product')}</option>
                 </select>
               </div>
 
@@ -412,46 +418,35 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
                     <div className="col-span-4">
                       <div className="text-white font-medium">{content.title}</div>
                       <div className="text-sm text-gray-400 mt-1">
-                        {content.categories && content.categories.length > 0 && (
-                          <span className="flex items-center mr-3">
-                            <FolderIcon className="w-3 h-3 mr-1" />
-                            {content.categories.slice(0, 2).join(', ')}
-                            {content.categories.length > 2 && ` +${content.categories.length - 2}`}
-                          </span>
-                        )}
-                        {content.tags && content.tags.length > 0 && (
-                          <span className="flex items-center">
-                            <TagIcon className="w-3 h-3 mr-1" />
-                            {content.tags.slice(0, 2).join(', ')}
-                            {content.tags.length > 2 && ` +${content.tags.length - 2}`}
-                          </span>
-                        )}
+                        <span className="flex items-center mr-3">
+                          {content.type}
+                        </span>
                       </div>
                     </div>
                     <div className="col-span-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        content.type === ContentType.Article 
+                        content.type === 'ARTICLE' 
                           ? 'bg-blue-600 text-white' 
                           : 'bg-purple-600 text-white'
                       }`}>
-                        {content.type === ContentType.Article ? t('article') : t('product')}
+                        {content.type === 'ARTICLE' ? t('article') : t('product')}
                       </span>
                     </div>
                     <div className="col-span-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        content.status === 'published' 
+                        content.status === 'PUBLISHED' 
                           ? 'bg-green-600 text-white'
                           : content.scheduledFor
                           ? 'bg-yellow-600 text-white'
                           : 'bg-gray-600 text-white'
                       }`}>
-                        {content.status === 'published' ? t('published') : 
+                        {content.status === 'PUBLISHED' ? t('published') : 
                          content.scheduledFor ? t('scheduled') : t('draft')}
                       </span>
                     </div>
                     <div className="col-span-2 text-sm text-gray-400">
-                      {content.lastModified 
-                        ? new Date(content.lastModified).toLocaleDateString()
+                      {content.updatedAt 
+                        ? new Date(content.updatedAt).toLocaleDateString()
                         : new Date(content.createdAt).toLocaleDateString()
                       }
                     </div>
@@ -462,14 +457,18 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
                           className="p-1 text-gray-400 hover:text-white transition-colors"
                           title={t('edit')}
                         >
-                          <EditIcon className="w-4 h-4" />
+                          <span className="w-4 h-4 inline-block">
+                            <EditIcon />
+                          </span>
                         </button>
                         <button
                           onClick={() => onDeleteContent(content.id)}
                           className="p-1 text-gray-400 hover:text-red-400 transition-colors"
                           title={t('delete')}
                         >
-                          <TrashIcon className="w-4 h-4" />
+                          <span className="w-4 h-4 inline-block">
+                            <TrashIcon />
+                          </span>
                         </button>
                         {content.postLink && (
                           <a
@@ -479,7 +478,9 @@ const AdvancedContentManager: React.FC<AdvancedContentManagerProps> = ({
                             className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
                             title={t('view')}
                           >
-                            <EyeIcon className="w-4 h-4" />
+                            <span className="w-4 h-4 inline-block">
+                              <EyeIcon />
+                            </span>
                           </a>
                         )}
                       </div>

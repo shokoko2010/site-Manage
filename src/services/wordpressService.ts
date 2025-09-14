@@ -389,4 +389,27 @@ export const fetchAllPostsFromAllSites = async (sites: WordPressSite[]): Promise
   return allPosts;
 };
 
+// Local storage helpers
+export const getSitesFromStorage = (): WordPressSite[] => {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const stored = localStorage.getItem('wordpressSites');
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to get sites from storage:', error);
+    return [];
+  }
+};
+
+export const saveSitesToStorage = (sites: WordPressSite[]): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem('wordpressSites', JSON.stringify(sites));
+  } catch (error) {
+    console.error('Failed to save sites to storage:', error);
+  }
+};
+
 export default WordPressService;

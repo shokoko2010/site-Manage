@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { SiteDetailView } from '@/components/SiteDetailView';
+import SiteDetailView from '@/components/SiteDetailView';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Settings, RefreshCw, Globe, Calendar, FileText, Users, TrendingUp } from 'lucide-react';
 

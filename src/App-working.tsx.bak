@@ -110,7 +110,7 @@ const LoginForm = () => {
             cursor: 'pointer',
             transition: 'transform 0.2s'
           },
-          onClick: (e) => {
+          onClick: (e: React.MouseEvent) => {
             e.preventDefault();
             alert('Login functionality will be connected to the backend API');
           }
@@ -134,7 +134,7 @@ const LoginForm = () => {
               textDecoration: 'none',
               fontWeight: '600'
             },
-            onClick: (e) => {
+            onClick: (e: React.MouseEvent) => {
               e.preventDefault();
               alert('Registration functionality will be available soon');
             }

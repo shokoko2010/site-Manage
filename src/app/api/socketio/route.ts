@@ -81,24 +81,3 @@ export async function POST(request: NextRequest) {
 function generateEventId(): string {
   return `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
-
-// Export utility functions for serverless environment
-export const socketUtils = {
-  // Simulate socket notifications by storing in database
-  sendNotificationToUser: async (userId: string, notification: any) => {
-    // In Vercel, we'd store this in a database for polling
-    console.log('Notification queued for user:', userId, notification);
-    return { success: true, queued: true };
-  },
-  
-  // Simulate admin broadcasting
-  broadcastToAdmins: async (event: string, data: any) => {
-    console.log('Admin broadcast queued:', event, data);
-    return { success: true, queued: true };
-  },
-  
-  // Get active users (not available in serverless)
-  getActiveUsers: () => {
-    return []; // Return empty array in serverless environment
-  }
-};
